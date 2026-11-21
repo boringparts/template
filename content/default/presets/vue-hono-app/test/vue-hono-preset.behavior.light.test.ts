@@ -180,8 +180,16 @@ void describe("Vue-Hono 组合预设公开行为", () => {
 
     const webManifest = JSON.parse(
       await readFile(path.join(targetRoot, "apps/web/package.json"), "utf8"),
-    ) as { dependencies: Record<string, string> };
+    ) as {
+      dependencies: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
     assert.strictEqual(webManifest.dependencies["@demo/api"], "workspace:*");
+    assert.ok(webManifest.devDependencies?.typescript);
+    assert.strictEqual(
+      webManifest.devDependencies?.["typescript-7"],
+      undefined,
+    );
 
     const rootManifest = JSON.parse(
       await readFile(path.join(targetRoot, "package.json"), "utf8"),

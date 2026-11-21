@@ -38,8 +38,8 @@
     "@ykdz/tooling-config": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
-    "oxlint-tsgolint": "catalog:",
     "smol-toml": "catalog:",
+    "tsrs": "catalog:",
     "typescript-7": "catalog:"
   }
 }

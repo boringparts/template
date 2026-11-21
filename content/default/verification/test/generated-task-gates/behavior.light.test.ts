@@ -71,6 +71,19 @@ void describe("生成任务公共入口", () => {
           ]);
         }
         assert.deepStrictEqual(turbo.tasks["//#fix"]?.tags, ["work:repair"]);
+
+        const toolingConfigManifestPath = path.join(
+          targetRoot,
+          "packages/tooling-config/package.json",
+        );
+        const toolingConfigManifest = JSON.parse(
+          await readFile(toolingConfigManifestPath, "utf8"),
+        ) as { readonly scripts: Readonly<Record<string, string>> };
+        assert.match(toolingConfigManifest.scripts.lint ?? "", /--type-aware/u);
+        assert.match(
+          toolingConfigManifest.scripts["lint:fix"] ?? "",
+          /--type-aware/u,
+        );
       }
     } finally {
       await rm(workspace, { recursive: true, force: true });
