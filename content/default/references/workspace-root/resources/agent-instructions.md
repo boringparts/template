@@ -1,4 +1,4 @@
-本仓库是 Monorepo，在根目录运行 `turbo ls` 查看各包的名称和路径。
+本仓库是 Monorepo，在根目录运行 `turbo ls` 查看各包信息。
 
 ## 本地代理上下文
 
