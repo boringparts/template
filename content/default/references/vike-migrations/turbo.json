@@ -58,15 +58,6 @@
       "outputs": ["template-dist/**"],
       "tags": ["quality:light"]
     },
-    "typecheck:template": {
-      "dependsOn": [
-        "@ykdz/reference-vike-db#build",
-        "@ykdz/template-core#build",
-        "@ykdz/default-content-authoring#build"
-      ],
-      "outputs": [],
-      "tags": ["quality:light"]
-    },
     "check:author-planning-roles": {
       "cache": false,
       "outputs": [],

@@ -195,9 +195,27 @@ void describe("Vue-Hono 组合预设公开行为", () => {
       await readFile(path.join(targetRoot, "package.json"), "utf8"),
     ) as { scripts: Record<string, string> };
     assert.strictEqual(rootManifest.scripts["test:e2e"], "playwright test");
+    for (const scriptName of [
+      "format:check",
+      "format:write",
+      "lint",
+      "lint:fix",
+    ] as const) {
+      const tokens = (rootManifest.scripts[scriptName] ?? "").split(/\s+/u);
+      assert.ok(
+        tokens.includes("test"),
+        `root ${scriptName} must include test directory`,
+      );
+    }
     const turbo = JSON.parse(
       await readFile(path.join(targetRoot, "turbo.json"), "utf8"),
-    ) as { tasks: Record<string, { dependsOn: readonly string[] }> };
+    ) as {
+      tasks: Record<
+        string,
+        { dependsOn?: readonly string[]; tags?: readonly string[] }
+      >;
+    };
+    assert.deepStrictEqual(turbo.tasks["//#test:e2e"]?.tags, ["quality:heavy"]);
     assert.deepStrictEqual(turbo.tasks["//#test:e2e"]?.dependsOn, [
       "@demo/api#build",
       "@demo/web#build",

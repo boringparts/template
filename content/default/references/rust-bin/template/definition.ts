@@ -8,6 +8,7 @@ import {
   serializeNativeReferenceDocument,
   type DefaultReferenceContributionFacts,
 } from "@ykdz/default-content-authoring/reference-package";
+import type { JsonValue } from "@ykdz/template-core/json";
 import type { PackageContribution } from "@ykdz/template-core/package-contribution";
 import type { ResourceFileSnapshot } from "@ykdz/template-core/reference-package";
 import { parse } from "smol-toml";
@@ -29,7 +30,62 @@ type RustCreationInput = {
   readonly leafName?: string;
   readonly packageName?: string;
   readonly packagePath?: string;
+  readonly linkFrom?: readonly string[];
 };
+
+const allowedRustCreationInputKeys = new Set([
+  "leafName",
+  "packageName",
+  "packagePath",
+  "linkFrom",
+]);
+
+function optionalRustStringField(
+  record: Record<string, unknown>,
+  field: string,
+): string | undefined {
+  const value = record[field];
+  if (value === undefined) return undefined;
+  if (typeof value !== "string") {
+    throw new Error(`rust-bin creationInput.${field} must be a string`);
+  }
+  return value;
+}
+
+function parseRustCreationInput(value: JsonValue): RustCreationInput {
+  if (!isRecord(value)) {
+    throw new Error("rust-bin creationInput must be a JSON object");
+  }
+  for (const key of Object.keys(value)) {
+    if (!allowedRustCreationInputKeys.has(key)) {
+      throw new Error(`rust-bin creationInput has unsupported field: ${key}`);
+    }
+  }
+  const leafName = optionalRustStringField(value, "leafName");
+  const packageName = optionalRustStringField(value, "packageName");
+  const packagePath = optionalRustStringField(value, "packagePath");
+  const rawLinkFrom = value.linkFrom;
+  let linkFrom: readonly string[] | undefined;
+  if (rawLinkFrom !== undefined) {
+    if (
+      !Array.isArray(rawLinkFrom) ||
+      rawLinkFrom.some((entry) => typeof entry !== "string")
+    ) {
+      throw new Error(
+        "rust-bin creationInput.linkFrom must be an array of strings",
+      );
+    }
+    linkFrom = rawLinkFrom.filter(
+      (entry): entry is string => typeof entry === "string",
+    );
+  }
+  return {
+    ...(leafName === undefined ? {} : { leafName }),
+    ...(packageName === undefined ? {} : { packageName }),
+    ...(packagePath === undefined ? {} : { packagePath }),
+    ...(linkFrom === undefined ? {} : { linkFrom }),
+  };
+}
 
 export type RustReferenceFacts = {
   readonly cargoManifest: CargoFileSnapshot;
@@ -115,6 +171,7 @@ const nativeReference = defineReferencePackage<
   instance: "independent",
   defaultLeafName: "app",
   role: "native-package",
+  parseCreationInput: parseRustCreationInput,
   dependencies: [
     {
       key: "base-workspace",

@@ -5,10 +5,101 @@ import referenceManifest from "../package.json" with { type: "json" };
 import { projectCliPackageManifest } from "./package-manifest.ts";
 
 export type TsCliCreationInput = Readonly<Record<string, JsonValue>> & {
+  readonly leafName?: string;
+  readonly packageName?: string;
+  readonly packagePath?: string;
+  readonly linkFrom?: readonly string[];
   readonly linkTo?:
     | Readonly<{ readonly nodeIdentity: string }>
     | Readonly<{ readonly packageDefinitionId: string }>;
 };
+
+function isJsonRecord(
+  value: JsonValue,
+): value is Readonly<Record<string, JsonValue>> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function optionalStringField(
+  record: Readonly<Record<string, JsonValue>>,
+  field: string,
+): string | undefined {
+  const value = record[field];
+  if (value === undefined) return undefined;
+  if (typeof value !== "string") {
+    throw new Error(`ts-cli creationInput.${field} must be a string`);
+  }
+  return value;
+}
+
+function optionalStringArrayField(
+  record: Readonly<Record<string, JsonValue>>,
+  field: string,
+): readonly string[] | undefined {
+  const value = record[field];
+  if (value === undefined) return undefined;
+  if (
+    !Array.isArray(value) ||
+    value.some((entry) => typeof entry !== "string")
+  ) {
+    throw new Error(
+      `ts-cli creationInput.${field} must be an array of strings`,
+    );
+  }
+  return value.filter((entry): entry is string => typeof entry === "string");
+}
+
+function optionalLinkToField(
+  record: Readonly<Record<string, JsonValue>>,
+): TsCliCreationInput["linkTo"] | undefined {
+  const value = record.linkTo;
+  if (value === undefined) return undefined;
+  if (!isJsonRecord(value)) {
+    throw new Error("ts-cli creationInput.linkTo must be an object");
+  }
+  const keys = Object.keys(value);
+  if (keys.length !== 1) {
+    throw new Error(
+      "ts-cli creationInput.linkTo must specify exactly one target key",
+    );
+  }
+  if (
+    keys[0] === "nodeIdentity" &&
+    typeof value.nodeIdentity === "string" &&
+    value.nodeIdentity.length > 0
+  ) {
+    return { nodeIdentity: value.nodeIdentity };
+  }
+  if (
+    keys[0] === "packageDefinitionId" &&
+    typeof value.packageDefinitionId === "string" &&
+    value.packageDefinitionId.length > 0
+  ) {
+    return { packageDefinitionId: value.packageDefinitionId };
+  }
+  throw new Error(
+    "ts-cli creationInput.linkTo must provide a non-empty nodeIdentity or packageDefinitionId string",
+  );
+}
+
+function parseTsCliCreationInput(value: JsonValue): TsCliCreationInput {
+  if (!isJsonRecord(value)) {
+    throw new Error("ts-cli creationInput must be a JSON object");
+  }
+  const leafName = optionalStringField(value, "leafName");
+  const packageName = optionalStringField(value, "packageName");
+  const packagePath = optionalStringField(value, "packagePath");
+  const linkFrom = optionalStringArrayField(value, "linkFrom");
+  const linkTo = optionalLinkToField(value);
+  return {
+    ...value,
+    ...(leafName === undefined ? {} : { leafName }),
+    ...(packageName === undefined ? {} : { packageName }),
+    ...(packagePath === undefined ? {} : { packagePath }),
+    ...(linkFrom === undefined ? {} : { linkFrom }),
+    ...(linkTo === undefined ? {} : { linkTo }),
+  };
+}
 
 function nodeDeclarationFrom(value: unknown): string {
   if (
@@ -29,13 +120,14 @@ function recordFrom(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
-export const referencePackage = defineReferencePackage<TsCliCreationInput>({
+export const referencePackage = defineReferencePackage({
   manifest: referenceManifest,
   artifactVersion: "0.0.0",
   resourceRoot: new URL("../", import.meta.url),
   alias: "cli-package-addition",
   instance: "independent",
   defaultLeafName: "cli",
+  parseCreationInput: parseTsCliCreationInput,
   role: "cli-tool",
   dependencies: [
     {
