@@ -206,7 +206,7 @@ const nativeReference = defineReferencePackage<
     { name: "@ykdz/tooling-config", purpose: "template-build" },
     { name: "oxfmt", purpose: "template-build" },
     { name: "oxlint", purpose: "template-build" },
-    { name: "oxlint-tsgolint", purpose: "template-build" },
+    { name: "tsrs", purpose: "template-build" },
     { name: "smol-toml", purpose: "template-execution" },
     { name: "typescript-7", purpose: "template-build" },
   ],
