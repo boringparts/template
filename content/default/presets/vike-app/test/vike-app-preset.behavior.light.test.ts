@@ -272,13 +272,8 @@ void describe("Vike 应用组合预设公开行为", () => {
       const packageTurbo = await readJson<{
         tasks: Record<string, { readonly dependsOn?: readonly string[] }>;
       }>(path.join(targetRoot, packagePath, "turbo.json"));
-      assert.deepEqual(packageTurbo.tasks.lint?.dependsOn, [
-        "@demo/db#build",
-        "^lint",
-      ]);
-      assert.deepEqual(packageTurbo.tasks["lint:fix"]?.dependsOn, [
-        "@demo/db#build",
-      ]);
+      assert.deepEqual(packageTurbo.tasks.lint?.dependsOn, ["^build", "^lint"]);
+      assert.deepEqual(packageTurbo.tasks["lint:fix"]?.dependsOn, ["^build"]);
     }
 
     const checker = await readFile(

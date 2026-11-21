@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 
 import {
   loadEditorCustomizationDeclarations,
+  parseWorkspaceTemplateConfiguration,
   prepareWorkspaceDevelopmentContainerResources,
   projectWorkspaceEditorCustomization,
 } from "@ykdz/reference-workspace-root/environment";
@@ -98,5 +99,27 @@ void describe("根环境编辑器设置组合", () => {
   void it("validates workspace devcontainer template configuration shape", () => {
     const resources = prepareWorkspaceDevelopmentContainerResources();
     assert.equal(typeof resources.configuration.features, "object");
+
+    const valid = parseWorkspaceTemplateConfiguration({
+      features: { "ghcr.io/devcontainers/features/node:1": {} },
+    });
+    assert.deepEqual(valid.features, {
+      "ghcr.io/devcontainers/features/node:1": {},
+    });
+
+    for (const invalid of [{}, { features: [] }]) {
+      assert.throws(
+        () => parseWorkspaceTemplateConfiguration(invalid),
+        /@ykdz\/reference-workspace-root#\.\/environment workspace-template\.json must contain a features object/u,
+      );
+    }
+
+    assert.throws(
+      () =>
+        parseWorkspaceTemplateConfiguration({
+          features: { node: "bad" },
+        }),
+      /@ykdz\/reference-workspace-root#\.\/environment workspace-template\.json features\.node must be an object/u,
+    );
   });
 });

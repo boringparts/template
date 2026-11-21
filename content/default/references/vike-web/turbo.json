@@ -3,12 +3,12 @@
   "tags": ["app"],
   "tasks": {
     "build": {
-      "dependsOn": ["@ykdz/reference-vike-db#build"],
+      "dependsOn": ["^build"],
       "outputs": ["dist/**"],
       "tags": ["quality:light"]
     },
     "dev": {
-      "dependsOn": ["@ykdz/reference-vike-db#build"],
+      "dependsOn": ["^build"],
       "cache": false,
       "persistent": true,
       "tags": ["work:development"]
@@ -23,21 +23,12 @@
       "tags": ["work:repair"]
     },
     "lint": {
-      "dependsOn": [
-        "@ykdz/reference-vike-db#build",
-        "@ykdz/template-core#build",
-        "@ykdz/default-content-authoring#build",
-        "^lint"
-      ],
+      "dependsOn": ["^build", "^lint"],
       "outputs": [],
       "tags": ["quality:light"]
     },
     "lint:fix": {
-      "dependsOn": [
-        "@ykdz/reference-vike-db#build",
-        "@ykdz/template-core#build",
-        "@ykdz/default-content-authoring#build"
-      ],
+      "dependsOn": ["^build"],
       "cache": false,
       "tags": ["work:repair"]
     },
@@ -64,7 +55,7 @@
     "test:e2e": {
       "dependsOn": [
         "//#database:prepare:e2e",
-        "@ykdz/reference-vike-db#build",
+        "^build",
         "build",
         "browser:prepare"
       ],
@@ -72,11 +63,7 @@
       "tags": ["quality:heavy"]
     },
     "typecheck": {
-      "dependsOn": [
-        "@ykdz/reference-vike-db#build",
-        "@ykdz/template-core#build",
-        "@ykdz/default-content-authoring#build"
-      ],
+      "dependsOn": ["^build"],
       "outputs": [],
       "tags": ["quality:light"]
     },

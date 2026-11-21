@@ -15,7 +15,7 @@
       "tags": ["quality:light"]
     },
     "build": {
-      "dependsOn": [],
+      "dependsOn": ["^build"],
       "inputs": [],
       "outputs": ["dist/**"],
       "cache": false,

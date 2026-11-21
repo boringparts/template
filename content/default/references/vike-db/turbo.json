@@ -25,11 +25,19 @@
       "tags": ["work:repair"]
     },
     "lint": {
-      "dependsOn": ["^lint"],
+      "dependsOn": [
+        "@ykdz/template-core#build",
+        "@ykdz/default-content-authoring#build",
+        "^lint"
+      ],
       "outputs": [],
       "tags": ["quality:light"]
     },
     "lint:fix": {
+      "dependsOn": [
+        "@ykdz/template-core#build",
+        "@ykdz/default-content-authoring#build"
+      ],
       "cache": false,
       "tags": ["work:repair"]
     },
