@@ -74,11 +74,7 @@ export const referencePackage = defineReferencePackage({
     "@ykdz/reference-workspace-root",
     "@ykdz/reference-tooling-config",
   ],
-  templateScripts: [
-    "build:template",
-    "typecheck:template",
-    "check:author-planning-roles",
-  ],
+  templateScripts: ["build:template", "check:author-planning-roles"],
   foundation: {
     toolchains: {},
     editorCapabilities: ["oxc-format-lint"],

@@ -1,4 +1,5 @@
 {
+  "globalDependencies": ["oxfmt.config.ts", "oxlint.config.ts"],
   "tasks": {
     "//#boundaries": {
       "tags": ["quality:light"]
