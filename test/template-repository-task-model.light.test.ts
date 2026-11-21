@@ -554,4 +554,66 @@ void describe("Template Repository native task model", () => {
       !cli.scripts["test:e2e:distribution"]?.includes("--conditions=source"),
     );
   });
+
+  void it("compiles each Vike reference template project once in the light gate while keeping independent typecheck", async () => {
+    const vikeReferences = [
+      "@ykdz/reference-vike-web",
+      "@ykdz/reference-vike-db",
+      "@ykdz/reference-vike-migrations",
+    ] as const;
+
+    const gate = inspectTaskGate(
+      "check",
+      process.cwd(),
+      "node --conditions=source scripts/run-task-gate.ts",
+    );
+    assert.deepStrictEqual(gate.diagnostics, []);
+
+    const lightTasks = gate.plans[0]?.tasks ?? [];
+    const lightPlan = await runTurboDryRun(
+      ...lightTasks
+        .filter((task) =>
+          vikeReferences.includes(
+            task.packageName as (typeof vikeReferences)[number],
+          ),
+        )
+        .map((task) => task.fullName),
+    );
+    const plannedById = new Map(
+      lightPlan.tasks.map((task) => [task.taskId, task]),
+    );
+
+    for (const packageName of vikeReferences) {
+      const selectedForPackage = lightTasks.filter(
+        (task) => task.packageName === packageName,
+      );
+      const selectedNames = new Set(
+        selectedForPackage.map((task) => task.name),
+      );
+      assert.ok(selectedNames.has("build:template"));
+      assert.ok(selectedNames.has("typecheck"));
+      assert.deepStrictEqual(
+        selectedForPackage
+          .map((task) => task.name)
+          .filter((name) => name.includes("template")),
+        ["build:template"],
+      );
+
+      const templateCompileTasks = lightPlan.tasks.filter(
+        (task) =>
+          task.taskId.startsWith(`${packageName}#`) &&
+          task.command.includes("tsconfig.template.json"),
+      );
+      assert.deepStrictEqual(
+        templateCompileTasks.map((task) => task.taskId),
+        [`${packageName}#build:template`],
+      );
+      assert.deepStrictEqual(
+        plannedById.get(`${packageName}#build:template`)?.resolvedTaskDefinition
+          .outputs,
+        ["template-dist/**"],
+      );
+      assert.ok(plannedById.has(`${packageName}#typecheck`));
+    }
+  });
 });
