@@ -440,6 +440,70 @@ void describe("公开生成计算", () => {
     });
   });
 
+  void it("rejects valid JSON generation records whose domain fields fail owner validation on restore", async () => {
+    const { generator } = documentationEngine();
+    await withTemporaryTarget(async (targetRoot) => {
+      const initialized = await generator.init({
+        targetRoot,
+        selection: {
+          roots: [
+            {
+              nodeIdentity: "root-guide",
+              contentIdentity: referenceIdentity,
+              creationInput: { path: "." },
+            },
+          ],
+        },
+        conventions: { edition: "draft" },
+        operationFacts: { currentProvider: "provider-snapshot" },
+      });
+      assert.equal(initialized.status, "success", JSON.stringify(initialized));
+
+      const recordPath = path.join(targetRoot, ".template/generation.json");
+      const originalText = await readFile(recordPath, "utf8");
+      const record = JSON.parse(originalText) as {
+        composition: { conventions: unknown };
+        packages: { creationInput: unknown }[];
+      };
+
+      await writeFile(
+        recordPath,
+        JSON.stringify({
+          ...record,
+          packages: [
+            {
+              ...record.packages[0],
+              creationInput: { path: 123 },
+            },
+          ],
+        }),
+      );
+      await assert.rejects(
+        documentationEngine().generator.restoreProject({
+          repositoryRoot: targetRoot,
+        }),
+        /包创建输入必须包含路径/u,
+      );
+
+      await writeFile(
+        recordPath,
+        JSON.stringify({
+          ...record,
+          composition: {
+            ...record.composition,
+            conventions: {},
+          },
+        }),
+      );
+      await assert.rejects(
+        documentationEngine().generator.restoreProject({
+          repositoryRoot: targetRoot,
+        }),
+        /缺少 edition 约定/u,
+      );
+    });
+  });
+
   void it("恢复预设选择并连续加包时保留实例标识与选择", async () => {
     const { generator } = documentationEngine();
     await withTemporaryTarget(async (targetRoot) => {

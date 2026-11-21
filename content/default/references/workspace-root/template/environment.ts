@@ -92,6 +92,30 @@ const workspaceDockerfileResources = [
   "shellcheck.Dockerfile",
 ] as const;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseWorkspaceTemplateConfiguration(
+  value: unknown,
+): PreparedWorkspaceDevelopmentContainerResources["configuration"] {
+  if (!isRecord(value) || !isRecord(value.features)) {
+    throw new Error(
+      "根环境资源 @ykdz/reference-workspace-root#./environment 的 workspace-template.json 必须包含 features 对象",
+    );
+  }
+  const features: Record<string, Record<string, unknown>> = {};
+  for (const [key, entry] of Object.entries(value.features)) {
+    if (!isRecord(entry)) {
+      throw new Error(
+        `根环境资源 @ykdz/reference-workspace-root#./environment 的 workspace-template.json features.${key} 必须是对象`,
+      );
+    }
+    features[key] = entry;
+  }
+  return { ...value, features };
+}
+
 /** 根参考包在准备阶段读取自有配置和 Dockerfile 片段。 */
 export function prepareWorkspaceDevelopmentContainerResources(): PreparedWorkspaceDevelopmentContainerResources {
   const read = (source: typeof environmentSources.base, file: string) => {
@@ -115,9 +139,9 @@ export function prepareWorkspaceDevelopmentContainerResources(): PreparedWorkspa
       ),
     ]),
   );
-  let configuration: PreparedWorkspaceDevelopmentContainerResources["configuration"];
+  let parsedConfiguration: unknown;
   try {
-    configuration = JSON.parse(
+    parsedConfiguration = JSON.parse(
       readFileSync(
         resolveTemplateSource(
           environmentSources.devcontainer,
@@ -125,13 +149,15 @@ export function prepareWorkspaceDevelopmentContainerResources(): PreparedWorkspa
         ),
         "utf8",
       ),
-    ) as PreparedWorkspaceDevelopmentContainerResources["configuration"];
+    ) as unknown;
   } catch (cause) {
     throw new Error(
       "根环境资源 @ykdz/reference-workspace-root#./environment prepare 阶段无法读取 workspace-template.json",
       { cause },
     );
   }
+  const configuration =
+    parseWorkspaceTemplateConfiguration(parsedConfiguration);
   return { configuration, dockerfileFragments };
 }
 
