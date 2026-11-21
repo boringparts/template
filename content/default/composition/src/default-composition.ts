@@ -1529,6 +1529,16 @@ export function createDefaultComposition(options: {
           contribution.facts.workspaceConfiguration?.kind ===
           "typescript-workspace-configuration",
       );
+      const rootOxcConfigurationDependencies = toolingConfigurations.flatMap(
+        ({ contribution }) =>
+          contribution.facts.compositionFiles
+            .map((file) => filePath(file.path))
+            .filter(
+              (target) =>
+                target === "oxfmt.config.ts" || target === "oxlint.config.ts",
+            )
+            .sort(),
+      );
       const packageGlobalDependencies = toolingConfigurations.flatMap(
         ({ package: item }) =>
           ["oxfmt.config.ts", "oxlint.config.ts"].map((file) =>
@@ -1544,6 +1554,7 @@ export function createDefaultComposition(options: {
                 (entry): entry is string => typeof entry === "string",
               )
             : []),
+          ...rootOxcConfigurationDependencies,
           ...packageGlobalDependencies,
         ]),
       ];
