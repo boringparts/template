@@ -425,4 +425,247 @@ void describe("Upstream type declarations and cross-package lint cache invalidat
       assert.match(cachedOutput, /FULL TURBO/u, cachedOutput);
     },
   );
+
+  void it(
+    "builds added source-exposing ts-lib dependency before clean Vike lint, lint:fix, and check",
+    { timeout: 300_000 },
+    async (testContext) => {
+      const workspace = await mkdtemp(
+        path.join(tmpdir(), "template-upstream-types-vike-shared-"),
+      );
+      const targetRoot = path.join(workspace, "demo-vike-shared");
+      testContext.after(async () =>
+        rm(workspace, { recursive: true, force: true }),
+      );
+
+      const vikePreset = presetFor("@ykdz/preset-vike-app");
+      const libPreset = presetFor("@ykdz/preset-ts-lib");
+      const generator = createDefaultGenerator({ content: templateContent });
+
+      const initialized = await generator.init({
+        targetRoot,
+        selection: { presets: [{ contentIdentity: vikePreset.identity }] },
+        conventions: {
+          repositoryName: "demo-vike-shared",
+          defaultPackageScope: "demo",
+        },
+      });
+      assert.strictEqual(
+        initialized.status,
+        "success",
+        JSON.stringify(initialized),
+      );
+
+      const added = await generator.add({
+        repositoryRoot: targetRoot,
+        preset: libPreset.identity,
+        creationInput: {
+          leafName: "shared",
+          packagePath: "packages/shared",
+          linkFrom: ["apps/web"],
+        },
+      });
+      assert.strictEqual(added.status, "success", JSON.stringify(added));
+
+      throwIfInstalledIntegrationWasCancelled();
+      const childEnvironment = createChildEnvironment();
+      await execa("pnpm", ["install"], {
+        cwd: targetRoot,
+        env: childEnvironment,
+        cancelSignal: installedIntegrationSignal(),
+      });
+
+      const sharedIndexPath = path.join(
+        targetRoot,
+        "packages/shared/src/index.ts",
+      );
+      const webTelefuncPath = path.join(
+        targetRoot,
+        "apps/web/pages/index/+Page.telefunc.ts",
+      );
+      const sharedDistDir = path.join(targetRoot, "packages/shared/dist");
+      const dbDistDir = path.join(targetRoot, "packages/db/dist");
+
+      const originalSharedIndex = await readFile(sharedIndexPath, "utf8");
+      await writeFile(
+        sharedIndexPath,
+        [
+          originalSharedIndex.trimEnd(),
+          "",
+          "export async function notifyShared(): Promise<void> {}",
+          "",
+        ].join("\n"),
+      );
+      await writeFile(
+        webTelefuncPath,
+        [
+          'import { createTodo, listTodos } from "@demo/db/queries/todos";',
+          'import { notifyShared } from "@demo/shared";',
+          'import { getContext } from "telefunc";',
+          "",
+          "export async function onLoadTodos() {",
+          "  const { db } = getContext();",
+          "  return listTodos(db);",
+          "}",
+          "",
+          "export async function onAddTodo(title: string) {",
+          "  const { db } = getContext();",
+          "  return createTodo(db, { title });",
+          "}",
+          "",
+          "export async function onCheckSharedFloatingPromise() {",
+          "  notifyShared();",
+          "}",
+          "",
+        ].join("\n"),
+      );
+
+      const runTurbo = (args: readonly string[]) =>
+        execa("pnpm", ["exec", "turbo", "run", ...args], {
+          cwd: targetRoot,
+          env: childEnvironment,
+          cancelSignal: installedIntegrationSignal(),
+          reject: false,
+        });
+
+      for (const task of ["lint", "lint:fix"] as const) {
+        await rm(sharedDistDir, { recursive: true, force: true });
+        await assert.rejects(stat(sharedDistDir), { code: "ENOENT" });
+        const result = await runTurbo([task, "--filter=@demo/web"]);
+        const output = combinedOutput(result);
+        assert.notStrictEqual(result.exitCode, 0, output);
+        assert.match(output, /no-floating-promises/u, output);
+      }
+
+      await writeFile(
+        webTelefuncPath,
+        (await readFile(webTelefuncPath, "utf8")).replace(
+          "  notifyShared();",
+          "  await notifyShared();",
+        ),
+      );
+      await rm(sharedDistDir, { recursive: true, force: true });
+      await rm(dbDistDir, { recursive: true, force: true });
+      const checkResult = await execa("pnpm", ["run", "check"], {
+        cwd: targetRoot,
+        env: childEnvironment,
+        cancelSignal: installedIntegrationSignal(),
+        reject: false,
+      });
+      assert.strictEqual(checkResult.exitCode, 0, combinedOutput(checkResult));
+    },
+  );
+
+  void it(
+    "builds non-source hono-api provider before clean linked ts-cli lint, lint:fix, and check",
+    { timeout: 300_000 },
+    async (testContext) => {
+      const workspace = await mkdtemp(
+        path.join(tmpdir(), "template-upstream-types-vue-hono-cli-"),
+      );
+      const targetRoot = path.join(workspace, "demo-vue-hono-cli");
+      testContext.after(async () =>
+        rm(workspace, { recursive: true, force: true }),
+      );
+
+      const vueHonoPreset = presetFor("@ykdz/preset-vue-hono-app");
+      const cliPreset = presetFor("@ykdz/preset-ts-cli");
+      const generator = createDefaultGenerator({ content: templateContent });
+
+      const initialized = await generator.init({
+        targetRoot,
+        selection: { presets: [{ contentIdentity: vueHonoPreset.identity }] },
+        conventions: {
+          repositoryName: "demo-vue-hono-cli",
+          defaultPackageScope: "demo",
+        },
+      });
+      assert.strictEqual(
+        initialized.status,
+        "success",
+        JSON.stringify(initialized),
+      );
+
+      const added = await generator.add({
+        repositoryRoot: targetRoot,
+        preset: cliPreset.identity,
+        creationInput: { linkTo: { nodeIdentity: "api" } },
+      });
+      assert.strictEqual(added.status, "success", JSON.stringify(added));
+
+      throwIfInstalledIntegrationWasCancelled();
+      const childEnvironment = createChildEnvironment();
+      await execa("pnpm", ["install"], {
+        cwd: targetRoot,
+        env: childEnvironment,
+        cancelSignal: installedIntegrationSignal(),
+      });
+
+      const apiIndexPath = path.join(targetRoot, "apps/api/src/index.ts");
+      const cliCheckPath = path.join(
+        targetRoot,
+        "packages/cli/src/api-check.ts",
+      );
+      const apiDistDir = path.join(targetRoot, "apps/api/dist");
+
+      const originalApiIndex = await readFile(apiIndexPath, "utf8");
+      await writeFile(
+        apiIndexPath,
+        [
+          originalApiIndex.trimEnd(),
+          "",
+          "export async function pingApi(): Promise<void> {}",
+          "",
+        ].join("\n"),
+      );
+      await writeFile(
+        cliCheckPath,
+        [
+          'import { pingApi } from "@demo/api";',
+          "",
+          "export async function verifyApiCall(): Promise<void> {",
+          "  pingApi();",
+          "}",
+          "",
+        ].join("\n"),
+      );
+
+      const runTurbo = (args: readonly string[]) =>
+        execa("pnpm", ["exec", "turbo", "run", ...args], {
+          cwd: targetRoot,
+          env: childEnvironment,
+          cancelSignal: installedIntegrationSignal(),
+          reject: false,
+        });
+
+      for (const task of ["lint", "lint:fix"] as const) {
+        await rm(apiDistDir, { recursive: true, force: true });
+        await assert.rejects(stat(apiDistDir), { code: "ENOENT" });
+        const result = await runTurbo([task, "--filter=@demo/cli"]);
+        const output = combinedOutput(result);
+        assert.notStrictEqual(result.exitCode, 0, output);
+        assert.match(output, /no-floating-promises/u, output);
+      }
+
+      await writeFile(
+        cliCheckPath,
+        [
+          'import { pingApi } from "@demo/api";',
+          "",
+          "export async function verifyApiCall(): Promise<void> {",
+          "  await pingApi();",
+          "}",
+          "",
+        ].join("\n"),
+      );
+      await rm(apiDistDir, { recursive: true, force: true });
+      const checkResult = await execa("pnpm", ["run", "check"], {
+        cwd: targetRoot,
+        env: childEnvironment,
+        cancelSignal: installedIntegrationSignal(),
+        reject: false,
+      });
+      assert.strictEqual(checkResult.exitCode, 0, combinedOutput(checkResult));
+    },
+  );
 });

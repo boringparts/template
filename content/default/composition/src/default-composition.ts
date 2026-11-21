@@ -767,24 +767,59 @@ function requestsInjectedProvider(
   return isRecord(metadata) && metadata.injected === true;
 }
 
-/** 在已计算的贡献中应用新模型的ID连接，并只改完整原生manifest值。 */
-function linkedManifestOverrides(options: {
+/** Apply ID-based link intents onto computed package manifests and non-source consumer turbo graphs. */
+function linkedPackageOverrides(options: {
   readonly packages: readonly DefaultEvaluation[];
   readonly intents: readonly PackageLinkIntent[];
-}): ReadonlyMap<PackageDefinitionId, Readonly<Record<string, unknown>>> {
+}): {
+  readonly manifestOverrides: ReadonlyMap<
+    PackageDefinitionId,
+    Readonly<Record<string, unknown>>
+  >;
+  readonly turboOverrides: ReadonlyMap<
+    PackageDefinitionId,
+    Readonly<Record<string, unknown>>
+  >;
+} {
   const byId = new Map(
     options.packages.map((item) => [item.package.packageDefinitionId, item]),
   );
-  const overrides = new Map<PackageDefinitionId, Record<string, unknown>>();
+  const manifestOverrides = new Map<
+    PackageDefinitionId,
+    Record<string, unknown>
+  >();
+  const turboOverrides = new Map<
+    PackageDefinitionId,
+    Record<string, unknown>
+  >();
   const linkedNames = new Map<string, PackageDefinitionId>();
-  const getOverride = (item: DefaultEvaluation): Record<string, unknown> => {
-    const existing = overrides.get(item.package.packageDefinitionId);
+  const getManifestOverride = (
+    item: DefaultEvaluation,
+  ): Record<string, unknown> => {
+    const existing = manifestOverrides.get(item.package.packageDefinitionId);
     if (existing !== undefined) return existing;
     const next = structuredClone(
       item.contribution.facts.packageInput?.targetManifest ??
         item.contribution.facts.manifest,
     ) as Record<string, unknown>;
-    overrides.set(item.package.packageDefinitionId, next);
+    manifestOverrides.set(item.package.packageDefinitionId, next);
+    return next;
+  };
+  const getTurboOverride = (
+    item: DefaultEvaluation,
+  ): Record<string, unknown> | undefined => {
+    const existing = turboOverrides.get(item.package.packageDefinitionId);
+    if (existing !== undefined) return existing;
+    const turboDocument = item.contribution.facts.deferredNativeDocuments.find(
+      (document) =>
+        document.path === "turbo.json" && document.scope === "package",
+    );
+    if (turboDocument === undefined) return undefined;
+    const next = structuredClone(turboDocument.value) as Record<
+      string,
+      unknown
+    >;
+    turboOverrides.set(item.package.packageDefinitionId, next);
     return next;
   };
 
@@ -887,13 +922,13 @@ function linkedManifestOverrides(options: {
     const injected =
       !exposesSourceConditions(providerCurrent) ||
       requestsInjectedProvider(consumerCurrent, providerName);
-    const consumerManifest = getOverride(consumer);
+    const consumerManifest = getManifestOverride(consumer);
     const dependencies = isRecord(consumerManifest.dependencies)
       ? { ...consumerManifest.dependencies }
       : {};
     dependencies[providerName] = "workspace:*";
     consumerManifest.dependencies = dependencies;
-    const providerManifest = getOverride(provider);
+    const providerManifest = getManifestOverride(provider);
     if (injected) {
       const metadata = isRecord(consumerManifest.dependenciesMeta)
         ? { ...consumerManifest.dependenciesMeta }
@@ -924,9 +959,46 @@ function linkedManifestOverrides(options: {
       }
       providerManifest.devDependencies = devDependencies;
       providerManifest.dependencies = runtimeDependencies;
+
+      const providerHasBuild =
+        isRecord(providerCurrent.scripts) &&
+        typeof providerCurrent.scripts.build === "string";
+      if (providerHasBuild) {
+        const consumerTurbo = getTurboOverride(consumer);
+        if (consumerTurbo !== undefined && isRecord(consumerTurbo.tasks)) {
+          const tasks = consumerTurbo.tasks;
+          const buildDependency = `${providerName}#build`;
+          for (const taskName of [
+            "build",
+            "lint",
+            "lint:fix",
+            "typecheck",
+          ] as const) {
+            const task = tasks[taskName];
+            if (!isRecord(task)) continue;
+            if (
+              task.dependsOn !== undefined &&
+              !Array.isArray(task.dependsOn)
+            ) {
+              continue;
+            }
+            const dependsOn = task.dependsOn ?? [];
+            if (
+              dependsOn.includes("^build") ||
+              dependsOn.includes(buildDependency)
+            ) {
+              continue;
+            }
+            tasks[taskName] = {
+              ...task,
+              dependsOn: [...dependsOn, buildDependency],
+            };
+          }
+        }
+      }
     }
   }
-  return overrides;
+  return { manifestOverrides, turboOverrides };
 }
 
 function assertUniqueWorkspaceBinaryNames(options: {
@@ -1330,6 +1402,9 @@ export function createDefaultComposition(options: {
           providerId,
         ]),
       );
+      const linkedConsumerIds = new Set(
+        packageLinkIntents.map(({ consumerId }) => consumerId),
+      );
       const packageInputs = new Map<PackageDefinitionId, DefaultPackageInput>(
         resolveOptions.packages.map((item) => {
           const deferredNativeDocumentPaths = new Set<string>();
@@ -1340,6 +1415,9 @@ export function createDefaultComposition(options: {
           }
           if (linkedPackageIds.has(item.packageDefinitionId)) {
             deferredNativeDocumentPaths.add("package.json");
+          }
+          if (linkedConsumerIds.has(item.packageDefinitionId)) {
+            deferredNativeDocumentPaths.add("turbo.json");
           }
           return [
             item.packageDefinitionId,
@@ -1394,7 +1472,7 @@ export function createDefaultComposition(options: {
       const allFacts = combineOptions.packages.map(
         ({ contribution }) => contribution.facts,
       );
-      const manifestOverrides = linkedManifestOverrides({
+      const { manifestOverrides, turboOverrides } = linkedPackageOverrides({
         packages: combineOptions.packages,
         intents: combineOptions.blueprint.packageLinkIntents,
       });
@@ -1972,15 +2050,21 @@ export function createDefaultComposition(options: {
           item.document.path === "package.json"
             ? manifestOverrides.get(item.packageDefinitionId)
             : undefined;
+        const linkedTurbo =
+          item.document.path === "turbo.json" && !isRootTurbo
+            ? turboOverrides.get(item.packageDefinitionId)
+            : undefined;
         const document = isRootDocument
           ? { ...item.document, value: manifest }
           : isRootTurbo
             ? { ...item.document, value: turbo }
             : isRootTypeScript && rootTypeScript !== undefined
               ? rootTypeScript
-              : linkedManifest === undefined
-                ? item.document
-                : { ...item.document, value: linkedManifest };
+              : linkedManifest !== undefined
+                ? { ...item.document, value: linkedManifest }
+                : linkedTurbo !== undefined
+                  ? { ...item.document, value: linkedTurbo }
+                  : item.document;
         processedDocuments.push({
           packageDefinitionId: item.packageDefinitionId,
           file: {

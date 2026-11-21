@@ -96,19 +96,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function parseWorkspaceTemplateConfiguration(
+export function parseWorkspaceTemplateConfiguration(
   value: unknown,
 ): PreparedWorkspaceDevelopmentContainerResources["configuration"] {
   if (!isRecord(value) || !isRecord(value.features)) {
     throw new Error(
-      "根环境资源 @ykdz/reference-workspace-root#./environment 的 workspace-template.json 必须包含 features 对象",
+      "@ykdz/reference-workspace-root#./environment workspace-template.json must contain a features object",
     );
   }
   const features: Record<string, Record<string, unknown>> = {};
   for (const [key, entry] of Object.entries(value.features)) {
     if (!isRecord(entry)) {
       throw new Error(
-        `根环境资源 @ykdz/reference-workspace-root#./environment 的 workspace-template.json features.${key} 必须是对象`,
+        `@ykdz/reference-workspace-root#./environment workspace-template.json features.${key} must be an object`,
       );
     }
     features[key] = entry;
