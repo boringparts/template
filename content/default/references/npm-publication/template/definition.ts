@@ -4,7 +4,6 @@ import type {
   DefaultRootDeclarationData,
   ReferencePackageManifest,
 } from "@ykdz/default-content-authoring/reference-package";
-import type { JsonValue } from "@ykdz/template-core/json";
 import type { ResourceFileSnapshot } from "@ykdz/template-core/reference-package";
 
 import referenceManifest from "../package.json" with { type: "json" };
@@ -53,10 +52,7 @@ function rootDeclaration(
   };
 }
 
-export const referencePackage = defineReferencePackage<
-  JsonValue,
-  PublicationOwnerFacts
->({
+export const referencePackage = defineReferencePackage({
   manifest: referenceManifest,
   resourceRoot: new URL("../", import.meta.url),
   alias: "npm-publication",
@@ -90,7 +86,7 @@ export const referencePackage = defineReferencePackage<
     },
   },
   environmentNeeds: [],
-  prepareFacts(resources) {
+  prepareFacts(resources): PublicationOwnerFacts {
     const config = resource(resources, ".changeset/config.json");
     const release = resource(resources, "resources/release.yml");
     const gitignore = resource(resources, "resources/gitignore");

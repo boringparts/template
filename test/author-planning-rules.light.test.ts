@@ -283,6 +283,49 @@ export const reference = defineReferencePackage({
     }
   });
 
+  void it("rejects filesystem and process reads in defineReferencePackage parseCreationInput", async () => {
+    const fixture = await createOwnerFixture(
+      "author-planning-parse-creation-input-",
+      "@fixture/parse-input-owner",
+    );
+    try {
+      await writeFile(
+        fixture.entryFile,
+        `import { readFileSync } from "node:fs";
+import { defineReferencePackage } from "@ykdz/default-content-authoring/reference-package";
+
+export const reference = defineReferencePackage({
+  parseCreationInput(value) {
+    readFileSync(new URL("./owner.txt", import.meta.url), "utf8");
+    void process.env.TARGET_NAME;
+    return value;
+  },
+});
+`,
+      );
+
+      const violations = findOwnerViolations(
+        fixture,
+        "@fixture/parse-input-owner#./template",
+      );
+
+      assert.deepEqual(
+        [...new Set(violations.map(({ effect }) => effect))].sort(),
+        ["filesystem", "process-global"],
+      );
+      assert.ok(
+        violations.every(
+          (violation) =>
+            violation.role ===
+              "@fixture/parse-input-owner#./template:reference.parseCreationInput" &&
+            violation.file === fixture.entryFile,
+        ),
+      );
+    } finally {
+      await rm(fixture.fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
   for (const sdk of [
     {
       label: "已安装声明",
