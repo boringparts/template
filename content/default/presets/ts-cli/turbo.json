@@ -31,7 +31,7 @@
       "persistent": false
     },
     "lint": {
-      "dependsOn": [],
+      "dependsOn": ["^lint"],
       "tags": ["quality:light"],
       "cache": true,
       "inputs": ["$TURBO_DEFAULT$"],

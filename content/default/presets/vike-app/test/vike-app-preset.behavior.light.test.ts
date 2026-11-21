@@ -260,12 +260,26 @@ void describe("Vike 应用组合预设公开行为", () => {
     const turbo = await readJson<{
       tasks: Record<string, { readonly dependsOn: readonly string[] }>;
     }>(path.join(targetRoot, "turbo.json"));
+    assert.deepEqual(turbo.tasks["//#lint"]?.dependsOn, ["^lint"]);
     assert.deepEqual(turbo.tasks["//#deployment"]?.dependsOn, [
       "@demo/web#build",
       "@demo/web#browser:prepare",
       "@demo/db#build",
       "@demo/db-migrations#build",
     ]);
+
+    for (const packagePath of ["apps/web", "packages/db-migrations"] as const) {
+      const packageTurbo = await readJson<{
+        tasks: Record<string, { readonly dependsOn?: readonly string[] }>;
+      }>(path.join(targetRoot, packagePath, "turbo.json"));
+      assert.deepEqual(packageTurbo.tasks.lint?.dependsOn, [
+        "@demo/db#build",
+        "^lint",
+      ]);
+      assert.deepEqual(packageTurbo.tasks["lint:fix"]?.dependsOn, [
+        "@demo/db#build",
+      ]);
+    }
 
     const checker = await readFile(
       path.join(targetRoot, "scripts/check-standalone-deployment.ts"),

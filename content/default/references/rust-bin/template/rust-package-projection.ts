@@ -81,6 +81,15 @@ export function projectRustTurboTasks(
   const tasks = { ...source };
   delete tasks["lint:fix"];
   delete tasks.typecheck;
+  const lintTask = tasks.lint as
+    | { readonly dependsOn?: readonly string[] }
+    | undefined;
+  if (lintTask?.dependsOn !== undefined) {
+    tasks.lint = {
+      ...lintTask,
+      dependsOn: lintTask.dependsOn.filter((task) => task !== "^lint"),
+    };
+  }
   const formatWrite = tasks["format:write"] as {
     readonly dependsOn: readonly string[];
   };
