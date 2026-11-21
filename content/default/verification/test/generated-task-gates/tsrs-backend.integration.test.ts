@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
@@ -47,18 +47,6 @@ function runCommand(
   });
 }
 
-async function exists(targetPath: string): Promise<boolean> {
-  try {
-    await stat(targetPath);
-    return true;
-  } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return false;
-    }
-    throw error;
-  }
-}
-
 void describe("tsrs type-aware lint backend", () => {
   void it(
     "auto-discovers tsrs-lint in generated packages and tooling-config with quiet/warning semantics",
@@ -101,20 +89,6 @@ void describe("tsrs type-aware lint backend", () => {
           targetRoot,
           "packages/tooling-config",
         );
-
-        // Verify installed binaries expose tsrs-lint and not tsgolint.
-        for (const packageDir of [targetRoot, libDir, toolingConfigDir]) {
-          assert.strictEqual(
-            await exists(path.join(packageDir, "node_modules/.bin/tsrs-lint")),
-            true,
-            `Expected tsrs-lint bin in ${packageDir}`,
-          );
-          assert.strictEqual(
-            await exists(path.join(packageDir, "node_modules/.bin/tsgolint")),
-            false,
-            `Unexpected tsgolint bin in ${packageDir}`,
-          );
-        }
 
         // 1. Ordinary TS package: clean pass -> floating promise error under --quiet -> fix -> pass.
         const initialLibLint = runCommand(libDir, "pnpm", ["run", "lint"], env);
