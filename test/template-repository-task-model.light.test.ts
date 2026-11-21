@@ -346,9 +346,59 @@ void describe("Template Repository native task model", () => {
         "@ykdz/template-content-artifacts#build",
       ],
       [
+        "@ykdz/template-content-artifacts#lint",
+        "@ykdz/template-content-artifacts#lint:fix",
+        "@ykdz/template-content-artifacts#build",
+      ],
+      [
         "@ykdz/reference-workspace-root#lint",
         "@ykdz/reference-workspace-root#lint:fix",
         "@ykdz/template-environment#build",
+      ],
+      [
+        "@ykdz/reference-workspace-root#lint",
+        "@ykdz/reference-workspace-root#lint:fix",
+        "@ykdz/template-core#build",
+      ],
+      [
+        "@ykdz/reference-workspace-root#lint",
+        "@ykdz/reference-workspace-root#lint:fix",
+        "@ykdz/default-content-authoring#build",
+      ],
+      [
+        "@ykdz/reference-vike-web#lint",
+        "@ykdz/reference-vike-web#lint:fix",
+        "@ykdz/reference-vike-db#build",
+      ],
+      [
+        "@ykdz/reference-vike-web#lint",
+        "@ykdz/reference-vike-web#lint:fix",
+        "@ykdz/template-core#build",
+      ],
+      [
+        "@ykdz/reference-vike-web#lint",
+        "@ykdz/reference-vike-web#lint:fix",
+        "@ykdz/default-content-authoring#build",
+      ],
+      [
+        "@ykdz/reference-vike-migrations#lint",
+        "@ykdz/reference-vike-migrations#lint:fix",
+        "@ykdz/reference-vike-db#build",
+      ],
+      [
+        "@ykdz/reference-vike-migrations#lint",
+        "@ykdz/reference-vike-migrations#lint:fix",
+        "@ykdz/template-core#build",
+      ],
+      [
+        "@ykdz/reference-vike-migrations#lint",
+        "@ykdz/reference-vike-migrations#lint:fix",
+        "@ykdz/default-content-authoring#build",
+      ],
+      [
+        "@ykdz/reference-vue-hono-web#lint",
+        "@ykdz/reference-vue-hono-web#lint:fix",
+        "@ykdz/reference-hono-api#build",
       ],
     ] as const) {
       assert.ok(
@@ -362,6 +412,23 @@ void describe("Template Repository native task model", () => {
           .find(({ taskId }) => taskId === fixTaskId)
           ?.dependencies.includes(dependencyId),
         `${fixTaskId} 应等待 ${dependencyId}`,
+      );
+    }
+
+    for (const [lintTaskId, upstreamLintId] of [
+      ["//#lint", "@ykdz/template-core#lint"],
+      ["//#lint", "@ykdz/default-content-authoring#lint"],
+      ["@ykdz/template#lint", "@ykdz/template-workspace#lint"],
+      ["@ykdz/default-content-verification#lint", "@ykdz/template-core#lint"],
+      ["@ykdz/reference-vike-web#lint", "@ykdz/reference-vike-db#lint"],
+      ["@ykdz/reference-vike-migrations#lint", "@ykdz/reference-vike-db#lint"],
+      ["@ykdz/reference-vue-hono-web#lint", "@ykdz/reference-hono-api#lint"],
+    ] as const) {
+      assert.ok(
+        lintGraph.tasks
+          .find(({ taskId }) => taskId === lintTaskId)
+          ?.dependencies.includes(upstreamLintId),
+        `${lintTaskId} should depend on ${upstreamLintId} for upstream type invalidation`,
       );
     }
 

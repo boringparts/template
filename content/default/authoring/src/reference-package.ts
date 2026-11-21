@@ -665,6 +665,11 @@ export function defineReferencePackage<
   const templateDependencyNames = new Set(
     templateDependencies.map(({ name }) => name),
   );
+  const templateOnlyDependencyNames = new Set(
+    dependencyUses
+      .filter(({ purposes }) => !purposes.includes("target"))
+      .map(({ name }) => name),
+  );
   const executionDependencies = options.executionDependencies ?? [];
   for (const name of executionDependencies) {
     if (!templateDependencyNames.has(name)) {
@@ -867,6 +872,28 @@ export function defineReferencePackage<
           for (const script of templateScripts) {
             delete tasks[script];
             delete tasks[`${input.definition.name}#${script}`];
+          }
+          if (templateOnlyDependencyNames.size > 0) {
+            for (const [taskName, taskValue] of Object.entries(tasks)) {
+              if (!isRecord(taskValue) || !Array.isArray(taskValue.dependsOn)) {
+                continue;
+              }
+              const dependsOn = taskValue.dependsOn.filter(
+                (dependency: unknown) => {
+                  if (typeof dependency !== "string") return true;
+                  const separator = dependency.indexOf("#");
+                  return (
+                    separator < 0 ||
+                    !templateOnlyDependencyNames.has(
+                      dependency.slice(0, separator),
+                    )
+                  );
+                },
+              );
+              if (dependsOn.length !== taskValue.dependsOn.length) {
+                tasks[taskName] = { ...taskValue, dependsOn };
+              }
+            }
           }
           value.tasks = tasks;
         }

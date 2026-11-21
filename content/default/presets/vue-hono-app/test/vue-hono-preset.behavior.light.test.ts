@@ -182,6 +182,16 @@ void describe("Vue-Hono 组合预设公开行为", () => {
       await readFile(path.join(targetRoot, "apps/web/package.json"), "utf8"),
     ) as { dependencies: Record<string, string> };
     assert.strictEqual(webManifest.dependencies["@demo/api"], "workspace:*");
+    const webTurbo = JSON.parse(
+      await readFile(path.join(targetRoot, "apps/web/turbo.json"), "utf8"),
+    ) as { tasks: Record<string, { dependsOn?: readonly string[] }> };
+    assert.deepStrictEqual(webTurbo.tasks.lint?.dependsOn, [
+      "@demo/api#build",
+      "^lint",
+    ]);
+    assert.deepStrictEqual(webTurbo.tasks["lint:fix"]?.dependsOn, [
+      "@demo/api#build",
+    ]);
 
     const rootManifest = JSON.parse(
       await readFile(path.join(targetRoot, "package.json"), "utf8"),

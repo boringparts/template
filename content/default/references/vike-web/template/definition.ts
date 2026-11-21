@@ -47,55 +47,6 @@ const templateDependencies = [
   { name: "typescript-7", purpose: "template-build" },
 ] as const satisfies readonly ReferenceTemplateDependency[];
 
-const targetDependencyNames = new Set<string>(
-  templateDependencies
-    .filter(({ purpose }) => purpose === "target")
-    .map(({ name }) => name),
-);
-const templateOnlyDependencyNames = new Set<string>(
-  templateDependencies
-    .filter(
-      ({ purpose }) =>
-        purpose === "template-execution" || purpose === "template-build",
-    )
-    .map(({ name }) => name)
-    .filter((name) => !targetDependencyNames.has(name)),
-);
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function removeTemplateTaskDependencies(
-  value: Readonly<Record<string, unknown>>,
-): Readonly<Record<string, unknown>> {
-  if (!isRecord(value.tasks)) return value;
-
-  let changed = false;
-  const projectedTasks: Record<string, unknown> = {};
-  for (const [name, task] of Object.entries(value.tasks)) {
-    if (!isRecord(task) || !Array.isArray(task.dependsOn)) {
-      projectedTasks[name] = task;
-      continue;
-    }
-    const dependsOn = task.dependsOn.filter((dependency: unknown) => {
-      if (typeof dependency !== "string") return true;
-      const separator = dependency.indexOf("#");
-      return (
-        separator < 0 ||
-        !templateOnlyDependencyNames.has(dependency.slice(0, separator))
-      );
-    });
-    if (dependsOn.length === task.dependsOn.length) {
-      projectedTasks[name] = task;
-      continue;
-    }
-    changed = true;
-    projectedTasks[name] = { ...task, dependsOn };
-  }
-  return changed ? { ...value, tasks: projectedTasks } : value;
-}
-
 export const databaseDependencyKey = databaseDependency.key;
 
 export const referencePackage = defineReferencePackage({
@@ -174,6 +125,4 @@ export const referencePackage = defineReferencePackage({
       owner: { kind: "package-boundary", path: definition.path },
     },
   ],
-  transformDocument: ({ path, value }) =>
-    path === "turbo.json" ? removeTemplateTaskDependencies(value) : value,
 });

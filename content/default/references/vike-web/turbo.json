@@ -23,10 +23,21 @@
       "tags": ["work:repair"]
     },
     "lint": {
+      "dependsOn": [
+        "@ykdz/reference-vike-db#build",
+        "@ykdz/template-core#build",
+        "@ykdz/default-content-authoring#build",
+        "^lint"
+      ],
       "outputs": [],
       "tags": ["quality:light"]
     },
     "lint:fix": {
+      "dependsOn": [
+        "@ykdz/reference-vike-db#build",
+        "@ykdz/template-core#build",
+        "@ykdz/default-content-authoring#build"
+      ],
       "cache": false,
       "tags": ["work:repair"]
     },

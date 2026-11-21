@@ -138,6 +138,12 @@ void describe("Rust 原生内容公开组合行为", () => {
     assert.strictEqual(packageManifest.scripts.test, "cargo test --workspace");
     assert.strictEqual(packageManifest.scripts.typecheck, undefined);
     assert.strictEqual(packageManifest.scripts["lint:fix"], undefined);
+    const packageTurbo = JSON.parse(
+      await readFile(path.join(targetRoot, "packages/app/turbo.json"), "utf8"),
+    ) as { tasks: Record<string, { dependsOn?: readonly string[] }> };
+    assert.deepStrictEqual(packageTurbo.tasks.lint?.dependsOn, [
+      "//#toolchain:prepare",
+    ]);
     assert.strictEqual(
       (await stat(path.join(targetRoot, "packages/app/src/main.rs"))).isFile(),
       true,
