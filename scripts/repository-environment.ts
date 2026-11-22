@@ -81,6 +81,7 @@ export async function repositoryDevelopmentEnvironment(
   const container = projectWorkspaceDevelopmentContainer({
     nodeVersion: declarations.rootNodeEngine.trim(),
     packageManagerPin: declarations.packageManagerDeclaration.trim(),
+    turboVersion: declarations.turboVersion.trim(),
     layers,
     resources: {
       ...environmentResources,

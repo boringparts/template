@@ -218,6 +218,7 @@ function baseDevelopmentContainerToolLayer(
 function completeWorkspaceDevelopmentContainer(options: {
   readonly nodeVersion: string;
   readonly packageManagerPin: string;
+  readonly turboVersion: string;
   readonly layers?: readonly DevelopmentContainerToolLayer[];
   readonly resources: PreparedWorkspaceDevelopmentContainerResources;
 }): DevelopmentContainerToolLayerPlan & {
@@ -231,9 +232,12 @@ function completeWorkspaceDevelopmentContainer(options: {
   ];
   const fragmentTexts = {
     ...options.resources.dockerfileFragments,
-    "base.Dockerfile": projectPnpmBootstrapDockerfile(
-      options.resources.dockerfileFragments["base.Dockerfile"]!,
-      options.packageManagerPin,
+    "base.Dockerfile": projectTurboBootstrapDockerfile(
+      projectPnpmBootstrapDockerfile(
+        options.resources.dockerfileFragments["base.Dockerfile"]!,
+        options.packageManagerPin,
+      ),
+      options.turboVersion,
     ),
   };
   const plan = planDevelopmentContainerToolLayersFromTexts({
@@ -280,6 +284,7 @@ function completeWorkspaceDevelopmentContainer(options: {
 export function projectWorkspaceDevelopmentContainer(options: {
   readonly nodeVersion: string;
   readonly packageManagerPin: string;
+  readonly turboVersion: string;
   readonly layers?: readonly DevelopmentContainerToolLayer[];
   readonly resources: PreparedWorkspaceDevelopmentContainerResources;
 }): ReturnType<typeof completeWorkspaceDevelopmentContainer> {
@@ -346,5 +351,23 @@ export function projectPnpmBootstrapDockerfile(
   return source.replaceAll(
     "ghcr.io/pnpm/pnpm:__PNPM_VERSION__",
     `ghcr.io/pnpm/pnpm:${version}`,
+  );
+}
+
+/** Substitutes the pinned standalone Turborepo version derived from the catalog `turbo` entry. */
+export function projectTurboBootstrapDockerfile(
+  source: string,
+  turboVersion: string,
+): string {
+  const version = /^(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)$/u.exec(
+    turboVersion.trim(),
+  )?.[1];
+  if (version === undefined)
+    throw new Error(
+      "Turborepo bootstrap requires an exact version in catalog turbo",
+    );
+  return source.replaceAll(
+    "--version __TURBO_VERSION__",
+    `--version ${version}`,
   );
 }

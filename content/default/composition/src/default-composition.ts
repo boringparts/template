@@ -1865,9 +1865,16 @@ export function createDefaultComposition(options: {
               .dockerfileFragments,
         }),
       };
+      const turboVersion = dependencyCatalog.turbo;
+      if (turboVersion === undefined) {
+        throw new Error(
+          "Workspace dependency catalog must provide turbo for the development container base layer",
+        );
+      }
       const developmentContainer = projectWorkspaceDevelopmentContainer({
         nodeVersion: combineOptions.stableCommon.nodeDeclaration,
         packageManagerPin: combineOptions.stableCommon.packageManagerPin,
+        turboVersion,
         layers: developmentContainerLayers,
         resources: developmentContainerResources,
       });

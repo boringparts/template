@@ -118,7 +118,7 @@ async function repositoryFixture(): Promise<string> {
   );
   await writeFile(
     path.join(root, "pnpm-workspace.yaml"),
-    'catalog:\n  "@playwright/test": 1.64.0\n',
+    'catalog:\n  "@playwright/test": 1.64.0\n  turbo: 2.11.13\n',
   );
   await installOwnerFixture(
     root,
@@ -176,6 +176,10 @@ void it("rebuilds repository config projections from root toolchain declarations
     assert.strictEqual(
       container.build.args.PLAYWRIGHT_CLI_PACKAGE,
       "@playwright/test@1.64.0",
+    );
+    assert.match(
+      await readFile(path.join(root, ".devcontainer/Dockerfile"), "utf8"),
+      /--version 2\.11\.13 --install-dir \/usr\/local\/bin/u,
     );
     const settings = JSON.parse(
       await readFile(path.join(root, ".vscode/settings.json"), "utf8"),

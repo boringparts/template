@@ -30,7 +30,8 @@ RUN apt-get update \
     && pnpm config set store-dir /pnpm/store/root --global \
     && su -s /bin/sh node -c 'pnpm config set store-dir /pnpm/store/node --global'
 
-RUN curl -fsSL https://turborepo.dev/install | sh -s -- --install-dir /usr/local/bin --no-modify-path
+# Pin the standalone Turborepo version so container builds download release assets directly without hitting unauthenticated GitHub API rate limits.
+RUN curl -fsSL https://turborepo.dev/install | sh -s -- --version 2.11.13 --install-dir /usr/local/bin --no-modify-path
 
 ARG PLAYWRIGHT_CLI_PACKAGE
 RUN npx --yes --package "${PLAYWRIGHT_CLI_PACKAGE}" playwright install --with-deps chromium

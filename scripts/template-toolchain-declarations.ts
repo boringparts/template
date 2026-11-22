@@ -9,6 +9,7 @@ export type TemplateToolchainDeclarations = {
   readonly packageManagerDeclaration: string;
   readonly rustToolchainChannel: string;
   readonly playwrightTestVersion: string;
+  readonly turboVersion: string;
 };
 
 /**
@@ -42,6 +43,15 @@ export function deriveTemplateToolchain(
   if (declarations.playwrightTestVersion.trim().length === 0) {
     diagnostics.push(
       "Root pnpm-workspace.yaml must declare @playwright/test in catalog",
+    );
+  }
+  if (
+    !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?$/u.test(
+      declarations.turboVersion.trim(),
+    )
+  ) {
+    diagnostics.push(
+      `Root pnpm-workspace.yaml must declare an exact turbo version in catalog (e.g. 2.11.13), got ${declarations.turboVersion}`,
     );
   }
   return { diagnostics, cliNodeEngine: `^${node}`, pnpmVersion };
@@ -97,6 +107,7 @@ export async function readTemplateToolchainDeclarations(
       : undefined;
   const playwrightTestVersion =
     workspaceCatalog?.["@playwright/test"] ?? workspaceCatalog?.playwright;
+  const turboVersion = workspaceCatalog?.turbo;
   const toolchain = rustDeclaration.toolchain;
   const channel =
     typeof toolchain === "object" &&
@@ -116,5 +127,7 @@ export async function readTemplateToolchainDeclarations(
         : "(missing rust-toolchain.toml channel)",
     playwrightTestVersion:
       typeof playwrightTestVersion === "string" ? playwrightTestVersion : "",
+    turboVersion:
+      typeof turboVersion === "string" ? turboVersion : "(missing turbo)",
   };
 }

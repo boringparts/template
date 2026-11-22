@@ -38,7 +38,7 @@ void it("runs frozen checks on the current working tree snapshot, removes it on 
     );
     await writeFile(
       path.join(root, "pnpm-workspace.yaml"),
-      'catalog:\n  "@playwright/test": 1.64.0\n',
+      'catalog:\n  "@playwright/test": 1.64.0\n  turbo: 2.11.13\n',
     );
     await writeFile(path.join(root, "pnpm-lock.yaml"), "untouched lockfile\n");
     await writeFile(
