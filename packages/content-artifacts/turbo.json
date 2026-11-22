@@ -30,7 +30,7 @@
       "persistent": false
     },
     "lint": {
-      "dependsOn": [],
+      "dependsOn": ["build", "^lint"],
       "tags": ["quality:light"],
       "cache": true,
       "inputs": ["$TURBO_DEFAULT$"],
@@ -38,7 +38,7 @@
       "persistent": false
     },
     "lint:fix": {
-      "dependsOn": [],
+      "dependsOn": ["build"],
       "tags": ["work:repair"],
       "cache": false,
       "inputs": [],

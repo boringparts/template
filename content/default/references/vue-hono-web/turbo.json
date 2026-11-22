@@ -31,11 +31,13 @@
     },
     "lint": {
       "cache": true,
+      "dependsOn": ["@ykdz/reference-hono-api#build", "^lint"],
       "outputs": [],
       "tags": ["quality:light"]
     },
     "lint:fix": {
       "cache": false,
+      "dependsOn": ["@ykdz/reference-hono-api#build"],
       "outputs": [],
       "tags": ["work:repair"]
     },

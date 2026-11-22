@@ -584,10 +584,10 @@ export type DefaultReferencePackageDefinition<
   ) => DefaultRootDeclarationData | undefined;
 };
 
-export function defineReferencePackage<
-  CreationInput extends JsonValue = JsonValue,
-  OwnerFacts = undefined,
->(options: {
+type DefineReferencePackageOptions<
+  CreationInput extends JsonValue,
+  OwnerFacts,
+> = {
   readonly manifest: ReferencePackageManifest;
   /** 可选的作者包名别名；生成时映射到当前目标包。 */
   readonly sourcePackageName?: string;
@@ -599,6 +599,8 @@ export function defineReferencePackage<
   readonly instance: "shared" | "independent";
   readonly defaultLeafName: string;
   readonly defaultPath?: string;
+  /** Validate and narrow JSON creation input after JSON structure verification. */
+  readonly parseCreationInput?: (value: JsonValue) => CreationInput;
   /** 可选的包内名称规则；目标路径不会自动改变包名。 */
   readonly targetName?: (input: {
     readonly conventions: DefaultWorkspaceConventions;
@@ -654,7 +656,27 @@ export function defineReferencePackage<
       OwnerFacts
     >,
   ) => Readonly<Record<string, unknown>>;
-}): DefaultReferencePackageDefinition<CreationInput, OwnerFacts> {
+};
+
+export function defineReferencePackage<
+  CreationInput extends JsonValue,
+  OwnerFacts = undefined,
+>(
+  options: DefineReferencePackageOptions<CreationInput, OwnerFacts> & {
+    readonly parseCreationInput: (value: JsonValue) => CreationInput;
+  },
+): DefaultReferencePackageDefinition<CreationInput, OwnerFacts>;
+export function defineReferencePackage<OwnerFacts = undefined>(
+  options: DefineReferencePackageOptions<JsonValue, OwnerFacts> & {
+    readonly parseCreationInput?: undefined;
+  },
+): DefaultReferencePackageDefinition<JsonValue, OwnerFacts>;
+export function defineReferencePackage<
+  CreationInput extends JsonValue = JsonValue,
+  OwnerFacts = undefined,
+>(
+  options: DefineReferencePackageOptions<CreationInput, OwnerFacts>,
+): DefaultReferencePackageDefinition<CreationInput, OwnerFacts> {
   const defaultPath =
     options.defaultPath ?? `packages/${options.defaultLeafName}`;
   const templateDependencies = options.templateDependencies ?? [];
@@ -664,6 +686,11 @@ export function defineReferencePackage<
   );
   const templateDependencyNames = new Set(
     templateDependencies.map(({ name }) => name),
+  );
+  const templateOnlyDependencyNames = new Set(
+    dependencyUses
+      .filter(({ purposes }) => !purposes.includes("target"))
+      .map(({ name }) => name),
   );
   const executionDependencies = options.executionDependencies ?? [];
   for (const name of executionDependencies) {
@@ -784,7 +811,9 @@ export function defineReferencePackage<
     },
     parseCreationInput(value: unknown): CreationInput {
       assertJsonValue(value, "原生参考包创建输入");
-      return value as CreationInput;
+      return options.parseCreationInput === undefined
+        ? (value as CreationInput)
+        : options.parseCreationInput(value);
     },
     createDefinition(input: {
       readonly conventions: DefaultWorkspaceConventions;
@@ -867,6 +896,28 @@ export function defineReferencePackage<
           for (const script of templateScripts) {
             delete tasks[script];
             delete tasks[`${input.definition.name}#${script}`];
+          }
+          if (templateOnlyDependencyNames.size > 0) {
+            for (const [taskName, taskValue] of Object.entries(tasks)) {
+              if (!isRecord(taskValue) || !Array.isArray(taskValue.dependsOn)) {
+                continue;
+              }
+              const dependsOn = taskValue.dependsOn.filter(
+                (dependency: unknown) => {
+                  if (typeof dependency !== "string") return true;
+                  const separator = dependency.indexOf("#");
+                  return (
+                    separator < 0 ||
+                    !templateOnlyDependencyNames.has(
+                      dependency.slice(0, separator),
+                    )
+                  );
+                },
+              );
+              if (dependsOn.length !== taskValue.dependsOn.length) {
+                tasks[taskName] = { ...taskValue, dependsOn };
+              }
+            }
           }
           value.tasks = tasks;
         }

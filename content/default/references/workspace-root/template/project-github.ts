@@ -111,10 +111,48 @@ export function projectCheckWorkflow(
 }
 
 type DependabotUpdate = Readonly<Record<string, unknown>> & {
-  readonly "package-ecosystem": DependencyMaintenancePolicy["ecosystems"][number];
+  readonly "package-ecosystem": string;
   readonly directory: `/${string}`;
   readonly schedule: Readonly<Record<string, unknown>>;
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseDependabotUpdates(value: unknown): readonly DependabotUpdate[] {
+  if (!isRecord(value) || !Array.isArray(value.updates)) {
+    throw new Error("Dependabot template must contain an updates array");
+  }
+  return value.updates.map((entry, index) => {
+    if (!isRecord(entry)) {
+      throw new Error(`Dependabot update entry at index ${index} must be an object`);
+    }
+    const ecosystem = entry["package-ecosystem"];
+    if (typeof ecosystem !== "string" || ecosystem.length === 0) {
+      throw new Error(
+        `Dependabot update entry at index ${index} must declare package-ecosystem`,
+      );
+    }
+    const directory = entry.directory;
+    if (typeof directory !== "string" || !directory.startsWith("/")) {
+      throw new Error(
+        `Dependabot update entry at index ${index} must declare a /-prefixed directory`,
+      );
+    }
+    if (!isRecord(entry.schedule)) {
+      throw new Error(
+        `Dependabot update entry at index ${index} must declare a schedule object`,
+      );
+    }
+    return {
+      ...entry,
+      "package-ecosystem": ecosystem,
+      directory: `/${directory.slice(1)}`,
+      schedule: entry.schedule,
+    };
+  });
+}
 
 /** 版本维护政策保留在原生 YAML，描述只提供生态、目录与频率。 */
 export function projectDependabotConfig(
@@ -122,8 +160,7 @@ export function projectDependabotConfig(
   template: string,
 ): string {
   const document = parseDocument(template);
-  const declarations = (document.toJS() as { updates: DependabotUpdate[] })
-    .updates;
+  const declarations = parseDependabotUpdates(document.toJS());
   const updates = policy.ecosystems.flatMap((ecosystem) => {
     const candidates = declarations.filter(
       (update) => update["package-ecosystem"] === ecosystem,

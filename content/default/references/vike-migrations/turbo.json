@@ -3,7 +3,7 @@
   "tags": ["library"],
   "tasks": {
     "build": {
-      "dependsOn": ["@ykdz/reference-vike-db#build"],
+      "dependsOn": ["^build"],
       "outputs": [],
       "tags": ["quality:light"]
     },
@@ -37,15 +37,17 @@
       "tags": ["work:repair"]
     },
     "lint": {
+      "dependsOn": ["^build", "^lint"],
       "outputs": [],
       "tags": ["quality:light"]
     },
     "lint:fix": {
+      "dependsOn": ["^build"],
       "cache": false,
       "tags": ["work:repair"]
     },
     "typecheck": {
-      "dependsOn": ["@ykdz/reference-vike-db#build"],
+      "dependsOn": ["^build"],
       "outputs": [],
       "tags": ["quality:light"]
     },
@@ -56,15 +58,6 @@
         "@ykdz/default-content-authoring#build"
       ],
       "outputs": ["template-dist/**"],
-      "tags": ["quality:light"]
-    },
-    "typecheck:template": {
-      "dependsOn": [
-        "@ykdz/reference-vike-db#build",
-        "@ykdz/template-core#build",
-        "@ykdz/default-content-authoring#build"
-      ],
-      "outputs": [],
       "tags": ["quality:light"]
     },
     "check:author-planning-roles": {

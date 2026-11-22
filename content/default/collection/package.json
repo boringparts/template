@@ -55,7 +55,7 @@
     "execa": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
-    "oxlint-tsgolint": "catalog:",
+    "tsrs": "catalog:",
     "typescript-7": "catalog:"
   }
 }

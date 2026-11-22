@@ -33,7 +33,7 @@
       "tags": ["quality:light"]
     },
     "lint": {
-      "dependsOn": [],
+      "dependsOn": ["^lint"],
       "inputs": [],
       "outputs": [],
       "tags": ["quality:light"]

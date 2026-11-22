@@ -1,6 +1,6 @@
 {
   "name": "@ykdz/template",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": false,
   "description": "Project template generator for YKDZ starter projects.",
   "keywords": [
@@ -95,7 +95,7 @@
     "execa": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
-    "oxlint-tsgolint": "catalog:",
+    "tsrs": "catalog:",
     "typescript-7": "catalog:"
   },
   "bundleDependencies": [

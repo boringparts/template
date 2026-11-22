@@ -4,13 +4,13 @@ import {
   assertContentIdentity,
   type ContentIdentity,
 } from "./content-identity.ts";
-import { assertJsonValue } from "./json.ts";
+import { assertJsonValue, type JsonValue } from "./json.ts";
 import type {
   PackageDefinitionId,
   ProjectBlueprint,
 } from "./project-blueprint.ts";
 
-export type GenerationRecordPackage<CreationInput = unknown> = {
+export type GenerationRecordPackage<CreationInput = JsonValue> = {
   readonly packageDefinitionId: PackageDefinitionId;
   readonly contentIdentity: ContentIdentity;
   readonly createdBy: "initialization" | "addition" | "shared-dependency";
@@ -24,7 +24,10 @@ export type GenerationRecordSelection = {
   readonly nodes: Readonly<Record<string, PackageDefinitionId>>;
 };
 
-export type GenerationRecord<Conventions = unknown, CreationInput = unknown> = {
+export type GenerationRecord<
+  Conventions = JsonValue,
+  CreationInput = JsonValue,
+> = {
   readonly schemaVersion: 6;
   readonly composition: {
     readonly identity: ContentIdentity;
@@ -72,11 +75,14 @@ function failStructure(): never {
   throw new Error("生成记录不符合 schema6 结构");
 }
 
+function isPackageDefinitionId(value: string): value is PackageDefinitionId {
+  return /^package-[a-f0-9]{64}$/u.test(value);
+}
+
 /** 严格解析 schema6 的通用结构；内容拥有者继续验证自己的持久事实。 */
-export function parseGenerationRecordStructure<
-  Conventions = unknown,
-  CreationInput = unknown,
->(value: unknown): GenerationRecord<Conventions, CreationInput> {
+export function parseGenerationRecordStructure(
+  value: unknown,
+): GenerationRecord<JsonValue, JsonValue> {
   if (isRecord(value) && value.schemaVersion !== 6) {
     throw new Error(
       `不支持的生成记录 schema ${String(value.schemaVersion)}；当前只支持 schema6`,
@@ -88,18 +94,30 @@ export function parseGenerationRecordStructure<
   const record = parsed.data;
   assertContentIdentity(record.composition.identity);
   assertJsonValue(record.composition.conventions, "生成记录组合约定");
+  const packages: GenerationRecordPackage<JsonValue>[] = [];
   for (const item of record.packages) {
+    if (!isPackageDefinitionId(item.packageDefinitionId)) failStructure();
     assertContentIdentity(item.contentIdentity);
     if (item.creationInput !== null) {
       assertJsonValue(item.creationInput, "生成记录包创建输入");
     }
+    const dependencyBindings: Record<string, PackageDefinitionId> = {};
     for (const [key, packageId] of Object.entries(item.dependencyBindings)) {
-      if (key.length === 0 || !/^package-[a-f0-9]{64}$/u.test(packageId)) {
+      if (key.trim().length === 0 || !isPackageDefinitionId(packageId)) {
         throw new Error("生成记录 dependencyBindings 无效");
       }
+      dependencyBindings[key] = packageId;
     }
+    packages.push({
+      packageDefinitionId: item.packageDefinitionId,
+      contentIdentity: item.contentIdentity,
+      createdBy: item.createdBy,
+      creationInput: item.creationInput,
+      dependencyBindings,
+    });
   }
   const seenSelections = new Set<string>();
+  const selections: GenerationRecordSelection[] = [];
   for (const selection of record.selections) {
     if (seenSelections.has(selection.selectionId)) {
       throw new Error("生成记录 selectionId 必须唯一");
@@ -111,20 +129,35 @@ export function parseGenerationRecordStructure<
     if (Object.keys(selection.nodes).length === 0) {
       throw new Error("生成记录 selection 至少包含一个节点");
     }
+    const nodes: Record<string, PackageDefinitionId> = {};
     for (const [node, packageId] of Object.entries(selection.nodes)) {
-      if (node.length === 0 || !/^package-[a-f0-9]{64}$/u.test(packageId)) {
+      if (node.trim().length === 0 || !isPackageDefinitionId(packageId)) {
         throw new Error("生成记录 selection 节点映射无效");
       }
+      nodes[node] = packageId;
     }
+    selections.push({
+      selectionId: selection.selectionId,
+      presetIdentity: selection.presetIdentity,
+      nodes,
+    });
   }
-  return record as GenerationRecord<Conventions, CreationInput>;
+  return {
+    schemaVersion: record.schemaVersion,
+    composition: {
+      identity: record.composition.identity,
+      conventions: record.composition.conventions,
+    },
+    packages,
+    selections,
+  };
 }
 
 /** 验证记录与蓝图通过持续包实例身份一一对应。 */
 export function assertGenerationRecordMatchesBlueprint(
   recordValue: unknown,
   blueprint: ProjectBlueprint,
-): GenerationRecord {
+): GenerationRecord<JsonValue, JsonValue> {
   const record = parseGenerationRecordStructure(recordValue);
   const blueprintPackages = new Map(
     blueprint.packages.map((definition) => [

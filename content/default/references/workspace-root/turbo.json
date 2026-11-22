@@ -34,13 +34,22 @@
       "tags": ["work:repair"]
     },
     "lint": {
-      "dependsOn": ["@ykdz/template-environment#build"],
+      "dependsOn": [
+        "@ykdz/template-core#build",
+        "@ykdz/template-environment#build",
+        "@ykdz/default-content-authoring#build",
+        "^lint"
+      ],
       "outputs": [],
       "tags": ["quality:light"]
     },
     "lint:fix": {
       "cache": false,
-      "dependsOn": ["@ykdz/template-environment#build"],
+      "dependsOn": [
+        "@ykdz/template-core#build",
+        "@ykdz/template-environment#build",
+        "@ykdz/default-content-authoring#build"
+      ],
       "outputs": [],
       "tags": ["work:repair"]
     },

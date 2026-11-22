@@ -25,10 +25,19 @@
       "tags": ["work:repair"]
     },
     "lint": {
+      "dependsOn": [
+        "@ykdz/template-core#build",
+        "@ykdz/default-content-authoring#build",
+        "^lint"
+      ],
       "outputs": [],
       "tags": ["quality:light"]
     },
     "lint:fix": {
+      "dependsOn": [
+        "@ykdz/template-core#build",
+        "@ykdz/default-content-authoring#build"
+      ],
       "cache": false,
       "tags": ["work:repair"]
     },
@@ -48,14 +57,6 @@
         "@ykdz/default-content-authoring#build"
       ],
       "outputs": ["template-dist/**"],
-      "tags": ["quality:light"]
-    },
-    "typecheck:template": {
-      "dependsOn": [
-        "@ykdz/template-core#build",
-        "@ykdz/default-content-authoring#build"
-      ],
-      "outputs": [],
       "tags": ["quality:light"]
     },
     "check:author-planning-roles": {

@@ -152,12 +152,12 @@ void describe("TypeScript CLI 公开预设", () => {
       defaultPackageScope: "demo",
     };
     const presetResult = await createDefaultGenerator({ content }).init({
-      targetRoot: targets[0]!,
+      targetRoot: targets[0],
       selection: { presets: [{ contentIdentity: preset.identity }] },
       conventions,
     });
     const referenceResult = await createDefaultGenerator({ content }).init({
-      targetRoot: targets[1]!,
+      targetRoot: targets[1],
       selection: {
         roots: [{ nodeIdentity: "cli", contentIdentity: cli.identity }],
       },
@@ -174,8 +174,8 @@ void describe("TypeScript CLI 公开预设", () => {
       "success",
       JSON.stringify(referenceResult),
     );
-    const presetManifest = await readManifest(targets[0]!, "packages/cli");
-    const referenceManifest = await readManifest(targets[1]!, "packages/cli");
+    const presetManifest = await readManifest(targets[0], "packages/cli");
+    const referenceManifest = await readManifest(targets[1], "packages/cli");
     for (const manifest of [presetManifest, referenceManifest]) {
       assert.strictEqual(manifest.private, true);
       assert.deepStrictEqual(manifest.bin, { cli: "./dist/cli.js" });
@@ -185,13 +185,13 @@ void describe("TypeScript CLI 公开预设", () => {
         "@types/node": "catalog:",
         oxfmt: "catalog:",
         oxlint: "catalog:",
-        "oxlint-tsgolint": "catalog:",
+        tsrs: "catalog:",
         "typescript-7": "catalog:",
       });
     }
     assert.deepStrictEqual(presetManifest, referenceManifest);
     const generatedTurbo = JSON.parse(
-      await readFile(path.join(targets[0]!, "packages/cli/turbo.json"), "utf8"),
+      await readFile(path.join(targets[0], "packages/cli/turbo.json"), "utf8"),
     ) as {
       readonly tasks: { readonly build: { readonly dependsOn: string[] } };
     };

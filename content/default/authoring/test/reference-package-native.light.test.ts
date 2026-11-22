@@ -5,7 +5,11 @@ import path from "node:path";
 import test from "node:test";
 import { pathToFileURL } from "node:url";
 
-import { defineReferencePackage } from "@ykdz/default-content-authoring/reference-package";
+import {
+  defineReferencePackage,
+  type DefaultReferencePackageDefinition,
+} from "@ykdz/default-content-authoring/reference-package";
+import type { JsonValue } from "@ykdz/template-core/json";
 import type { PackageBinding } from "@ykdz/template-core/reference-package";
 import { createTemplateSourceHandle } from "@ykdz/template-core/template-source";
 
@@ -480,4 +484,99 @@ await test("每包输入明确延后跨包文档并携带自身当前manifest", 
     ["package.json"],
   );
   assert.deepEqual(contribution.facts.packageInput, packageInput);
+});
+
+await test("defineReferencePackage without parseCreationInput only promises JsonValue", () => {
+  const owner = defineReferencePackage({
+    manifest: {
+      name: "@fixture/plain",
+      version: "1.0.0",
+      type: "module",
+      exports: { "./reference": "./package.json" },
+    },
+    resourceRoot: new URL("../", import.meta.url),
+    alias: "plain",
+    instance: "independent",
+    defaultLeafName: "plain",
+    role: "shared-library",
+    resources: [],
+  });
+
+  const parsed: JsonValue = owner.parseCreationInput({ leafName: "demo" });
+  assert.deepEqual(parsed, { leafName: "demo" });
+
+  // @ts-expect-error unvalidated parseCreationInput cannot promise a domain object type
+  const _domainInput: { readonly leafName: string } = owner.parseCreationInput({
+    leafName: "demo",
+  });
+  void _domainInput;
+
+  type LeafInput = { readonly leafName: string };
+  const fabricatedOptions = {
+    manifest: {
+      name: "@fixture/fabricated",
+      version: "1.0.0",
+      type: "module",
+      exports: { "./reference": "./package.json" },
+    },
+    resourceRoot: new URL("../", import.meta.url),
+    alias: "fabricated",
+    instance: "independent" as const,
+    defaultLeafName: "fabricated",
+    role: "shared-library" as const,
+    resources: [],
+  };
+  const _fabricated = defineReferencePackage<LeafInput, undefined>(
+    // @ts-expect-error cannot fabricate CreationInput type arguments without parseCreationInput
+    fabricatedOptions,
+  );
+  void _fabricated;
+
+  assert.throws(() => owner.parseCreationInput(Number.NaN), /有效 JSON 数据/u);
+});
+
+await test("defineReferencePackage with parseCreationInput validates JSON first and narrows output", () => {
+  type CustomInput = { readonly leafName: string };
+  let validatorCalled = false;
+
+  const owner: DefaultReferencePackageDefinition<CustomInput> =
+    defineReferencePackage({
+      manifest: {
+        name: "@fixture/validated",
+        version: "1.0.0",
+        type: "module",
+        exports: { "./reference": "./package.json" },
+      },
+      resourceRoot: new URL("../", import.meta.url),
+      alias: "validated",
+      instance: "independent",
+      defaultLeafName: "validated",
+      role: "shared-library",
+      resources: [],
+      parseCreationInput(value): CustomInput {
+        validatorCalled = true;
+        if (
+          typeof value !== "object" ||
+          value === null ||
+          Array.isArray(value) ||
+          !("leafName" in value) ||
+          typeof value.leafName !== "string"
+        ) {
+          throw new Error("validated reference requires string leafName");
+        }
+        return { leafName: value.leafName };
+      },
+    });
+
+  assert.throws(() => owner.parseCreationInput(Number.NaN), /有效 JSON 数据/u);
+  assert.equal(validatorCalled, false);
+
+  assert.throws(
+    () => owner.parseCreationInput({ leafName: 123 }),
+    /requires string leafName/u,
+  );
+  assert.equal(validatorCalled, true);
+
+  const valid: CustomInput = owner.parseCreationInput({ leafName: "custom" });
+  assert.deepEqual(valid, { leafName: "custom" });
 });

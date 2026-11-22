@@ -27,7 +27,7 @@
       "outputs": []
     },
     "lint": {
-      "dependsOn": [],
+      "dependsOn": ["^lint"],
       "tags": ["quality:light"],
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": []

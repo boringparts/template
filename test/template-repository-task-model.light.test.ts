@@ -346,9 +346,59 @@ void describe("Template Repository native task model", () => {
         "@ykdz/template-content-artifacts#build",
       ],
       [
+        "@ykdz/template-content-artifacts#lint",
+        "@ykdz/template-content-artifacts#lint:fix",
+        "@ykdz/template-content-artifacts#build",
+      ],
+      [
         "@ykdz/reference-workspace-root#lint",
         "@ykdz/reference-workspace-root#lint:fix",
         "@ykdz/template-environment#build",
+      ],
+      [
+        "@ykdz/reference-workspace-root#lint",
+        "@ykdz/reference-workspace-root#lint:fix",
+        "@ykdz/template-core#build",
+      ],
+      [
+        "@ykdz/reference-workspace-root#lint",
+        "@ykdz/reference-workspace-root#lint:fix",
+        "@ykdz/default-content-authoring#build",
+      ],
+      [
+        "@ykdz/reference-vike-web#lint",
+        "@ykdz/reference-vike-web#lint:fix",
+        "@ykdz/reference-vike-db#build",
+      ],
+      [
+        "@ykdz/reference-vike-web#lint",
+        "@ykdz/reference-vike-web#lint:fix",
+        "@ykdz/template-core#build",
+      ],
+      [
+        "@ykdz/reference-vike-web#lint",
+        "@ykdz/reference-vike-web#lint:fix",
+        "@ykdz/default-content-authoring#build",
+      ],
+      [
+        "@ykdz/reference-vike-migrations#lint",
+        "@ykdz/reference-vike-migrations#lint:fix",
+        "@ykdz/reference-vike-db#build",
+      ],
+      [
+        "@ykdz/reference-vike-migrations#lint",
+        "@ykdz/reference-vike-migrations#lint:fix",
+        "@ykdz/template-core#build",
+      ],
+      [
+        "@ykdz/reference-vike-migrations#lint",
+        "@ykdz/reference-vike-migrations#lint:fix",
+        "@ykdz/default-content-authoring#build",
+      ],
+      [
+        "@ykdz/reference-vue-hono-web#lint",
+        "@ykdz/reference-vue-hono-web#lint:fix",
+        "@ykdz/reference-hono-api#build",
       ],
     ] as const) {
       assert.ok(
@@ -362,6 +412,23 @@ void describe("Template Repository native task model", () => {
           .find(({ taskId }) => taskId === fixTaskId)
           ?.dependencies.includes(dependencyId),
         `${fixTaskId} 应等待 ${dependencyId}`,
+      );
+    }
+
+    for (const [lintTaskId, upstreamLintId] of [
+      ["//#lint", "@ykdz/template-core#lint"],
+      ["//#lint", "@ykdz/default-content-authoring#lint"],
+      ["@ykdz/template#lint", "@ykdz/template-workspace#lint"],
+      ["@ykdz/default-content-verification#lint", "@ykdz/template-core#lint"],
+      ["@ykdz/reference-vike-web#lint", "@ykdz/reference-vike-db#lint"],
+      ["@ykdz/reference-vike-migrations#lint", "@ykdz/reference-vike-db#lint"],
+      ["@ykdz/reference-vue-hono-web#lint", "@ykdz/reference-hono-api#lint"],
+    ] as const) {
+      assert.ok(
+        lintGraph.tasks
+          .find(({ taskId }) => taskId === lintTaskId)
+          ?.dependencies.includes(upstreamLintId),
+        `${lintTaskId} should depend on ${upstreamLintId} for upstream type invalidation`,
       );
     }
 
@@ -553,5 +620,67 @@ void describe("Template Repository native task model", () => {
     assert.ok(
       !cli.scripts["test:e2e:distribution"]?.includes("--conditions=source"),
     );
+  });
+
+  void it("compiles each Vike reference template project once in the light gate while keeping independent typecheck", async () => {
+    const vikeReferences = [
+      "@ykdz/reference-vike-web",
+      "@ykdz/reference-vike-db",
+      "@ykdz/reference-vike-migrations",
+    ] as const;
+
+    const gate = inspectTaskGate(
+      "check",
+      process.cwd(),
+      "node --conditions=source scripts/run-task-gate.ts",
+    );
+    assert.deepStrictEqual(gate.diagnostics, []);
+
+    const lightTasks = gate.plans[0]?.tasks ?? [];
+    const lightPlan = await runTurboDryRun(
+      ...lightTasks
+        .filter((task) =>
+          vikeReferences.includes(
+            task.packageName as (typeof vikeReferences)[number],
+          ),
+        )
+        .map((task) => task.fullName),
+    );
+    const plannedById = new Map(
+      lightPlan.tasks.map((task) => [task.taskId, task]),
+    );
+
+    for (const packageName of vikeReferences) {
+      const selectedForPackage = lightTasks.filter(
+        (task) => task.packageName === packageName,
+      );
+      const selectedNames = new Set(
+        selectedForPackage.map((task) => task.name),
+      );
+      assert.ok(selectedNames.has("build:template"));
+      assert.ok(selectedNames.has("typecheck"));
+      assert.deepStrictEqual(
+        selectedForPackage
+          .map((task) => task.name)
+          .filter((name) => name.includes("template")),
+        ["build:template"],
+      );
+
+      const templateCompileTasks = lightPlan.tasks.filter(
+        (task) =>
+          task.taskId.startsWith(`${packageName}#`) &&
+          task.command.includes("tsconfig.template.json"),
+      );
+      assert.deepStrictEqual(
+        templateCompileTasks.map((task) => task.taskId),
+        [`${packageName}#build:template`],
+      );
+      assert.deepStrictEqual(
+        plannedById.get(`${packageName}#build:template`)?.resolvedTaskDefinition
+          .outputs,
+        ["template-dist/**"],
+      );
+      assert.ok(plannedById.has(`${packageName}#typecheck`));
+    }
   });
 });

@@ -173,7 +173,7 @@ type PackageSelectionDraft<CreationInput extends JsonValue = JsonValue> = {
 
 type RestoredProject = {
   readonly blueprint: ProjectBlueprint;
-  readonly generationRecord: GenerationRecord;
+  readonly generationRecord: GenerationRecord<JsonValue, JsonValue>;
   readonly normalizedDependencies?: readonly GeneratorDependencyIdentity[];
 };
 

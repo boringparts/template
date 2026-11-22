@@ -71,6 +71,7 @@ export const referencePackage = defineReferencePackage({
     },
     { name: "@ykdz/template-core", purpose: "template-build" },
     { name: "@ykdz/default-content-authoring", purpose: "template-execution" },
+    { name: "typescript-7", purpose: "template-build" },
   ],
   executionDependencies: [
     "@ykdz/reference-hono-api",

@@ -61,8 +61,7 @@
     "lint:fix": "oxlint --format=unix . --fix",
     "test": "DATABASE_PROFILE=test node --conditions=source --test --test-reporter=spec 'test/**/*.test.ts'",
     "typecheck": "tsc --build --noEmit --pretty false",
-    "build:template": "rm -rf template-dist && tsc -p tsconfig.template.json --pretty false",
-    "typecheck:template": "tsc -p tsconfig.template.json --noEmit --pretty false"
+    "build:template": "rm -rf template-dist && tsc -p tsconfig.template.json --pretty false"
   },
   "dependencies": {
     "drizzle-orm": "catalog:"
@@ -76,7 +75,7 @@
     "@ykdz/tooling-config": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
-    "oxlint-tsgolint": "catalog:",
+    "tsrs": "catalog:",
     "typescript-7": "catalog:"
   }
 }
