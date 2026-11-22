@@ -2,12 +2,12 @@ import path from "node:path";
 
 import { z } from "zod";
 
-/** 角色由内容与所属组合解释；它不决定包目录的输出权限。 */
+/** Interpreted by content definitions and composition; does not govern directory write boundaries. */
 export type PackageRole = string;
 
 export type PackageDefinition = {
   readonly name: string;
-  /** 规范包目录；`.` 表示目标根目录。 */
+  /** Canonical package directory; "." represents the target workspace root. */
   readonly path: string;
   readonly role: PackageRole;
 };
@@ -18,7 +18,7 @@ export type PersistedPackageDefinition = PackageDefinition & {
   readonly packageDefinitionId: PackageDefinitionId;
 };
 
-/** 蓝图只通过持续实例身份表达包连接。 */
+/** Package link expressed solely through persistent packageDefinitionId values. */
 export type PackageLinkIntent = {
   readonly consumerId: PackageDefinitionId;
   readonly providerId: PackageDefinitionId;
@@ -136,28 +136,28 @@ function validateBlueprintSemantics(
     if (definition.name.trim().length === 0) {
       issues.push({
         path: `${itemPath}.name`,
-        message: "软件包名称不能为空",
+        message: "Package name must not be empty",
         packageIdentityIssue: { kind: "invalid", field: "name" },
       });
     }
     if (definition.role.trim().length === 0) {
       issues.push({
         path: `${itemPath}.role`,
-        message: "软件包角色不能为空",
+        message: "Package role must not be empty",
       });
     }
     if (!isNormalizedPackagePath(definition.path)) {
       issues.push({
         path: `${itemPath}.path`,
-        message: "软件包路径必须是规范化的安全相对路径",
+        message: "Package path must be a normalized safe relative path",
         packageIdentityIssue: { kind: "invalid", field: "path" },
       });
     }
   }
 
   for (const [property, label] of [
-    ["name", "软件包名称"],
-    ["path", "软件包路径"],
+    ["name", "Package name"],
+    ["path", "Package path"],
   ] as const) {
     const seen = new Map<string, PackageDefinition>();
     for (const definition of blueprint.packages) {
@@ -166,7 +166,7 @@ function validateBlueprintSemantics(
       if (existing !== undefined) {
         issues.push({
           path: ".packages",
-          message: `${label}必须唯一：${member}`,
+          message: `${label} must be unique: ${member}`,
           packageIdentityIssue: {
             kind: "duplicate",
             field: property,
@@ -196,7 +196,7 @@ function validateBlueprintSemantics(
     if (ids.has(packageId)) {
       issues.push({
         path: `.packages[${index}].packageDefinitionId`,
-        message: `包实例标识必须唯一：${packageId}`,
+        message: `Package definition ID must be unique: ${packageId}`,
       });
     }
     ids.add(packageId);
@@ -208,26 +208,28 @@ function validateBlueprintSemantics(
     if (!ids.has(intent.consumerId)) {
       issues.push({
         path: `${itemPath}.consumerId`,
-        message: "包连接引用了不存在的使用方实例",
+        message:
+          "Package link references a non-existent consumer package instance",
       });
     }
     if (!ids.has(intent.providerId)) {
       issues.push({
         path: `${itemPath}.providerId`,
-        message: "包连接引用了不存在的提供方实例",
+        message:
+          "Package link references a non-existent provider package instance",
       });
     }
     if (intent.consumerId === intent.providerId) {
       issues.push({
         path: itemPath,
-        message: "包连接不能指向自身",
+        message: "Package link must not target itself",
       });
     }
     const key = `${intent.consumerId}\0${intent.providerId}`;
     if (links.has(key)) {
       issues.push({
         path: itemPath,
-        message: "包连接不能重复",
+        message: "Package link must not be duplicated",
       });
     }
     links.add(key);
@@ -243,7 +245,7 @@ function structureIssues(
     if (issue.code === "unrecognized_keys") {
       return issue.keys.map((key) => ({
         path: blueprintIssuePath([...issue.path, key]),
-        message: "蓝图 v4 包含未知字段",
+        message: "Blueprint v4 contains an unknown field",
       }));
     }
     const issuePath = blueprintIssuePath(issue.path);
@@ -251,7 +253,7 @@ function structureIssues(
       return [
         {
           path: issuePath,
-          message: `不支持的本地模板元数据版本 ${String(isObject(value) ? value.schemaVersion : undefined)}；当前只支持 schema4`,
+          message: `Unsupported local template metadata version ${String(isObject(value) ? value.schemaVersion : undefined)}; only schema4 is supported`,
         },
       ];
     }
@@ -273,7 +275,9 @@ function structureIssues(
     return [
       {
         path: issuePath,
-        message: missing ? "蓝图缺少必需字段" : "字段类型或结构不符合蓝图要求",
+        message: missing
+          ? "Blueprint is missing a required field"
+          : "Field type or structure does not match the blueprint schema",
       },
     ];
   });
@@ -306,7 +310,7 @@ export function assertProjectBlueprintDraft(
   value: ProjectBlueprintDraft,
 ): ProjectBlueprintDraft {
   if (value.schemaVersion !== 4) {
-    throw new Error("项目蓝图草稿必须使用 schema4");
+    throw new Error("Project blueprint draft must use schema4");
   }
   const issues = validateBlueprintSemantics({
     schemaVersion: value.schemaVersion,

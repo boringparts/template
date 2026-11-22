@@ -67,7 +67,7 @@ const composition: Composition<
       value === null ||
       typeof (value as Record<string, unknown>).edition !== "string"
     ) {
-      throw new Error("需要edition约定");
+      throw new Error("Missing edition convention");
     }
     return value as Conventions;
   },
@@ -110,7 +110,7 @@ function referenceDefinition(
         value === null ||
         typeof (value as Record<string, unknown>).path !== "string"
       ) {
-        throw new Error("需要包路径");
+        throw new Error("Package path is required");
       }
       return value as CreationInput;
     },
@@ -121,7 +121,9 @@ function referenceDefinition(
       readonly creationInput: CreationInput | undefined;
       readonly layout?: unknown;
     }): PackageDefinition {
-      if (creationInput === undefined) throw new Error("缺少包路径");
+      if (creationInput === undefined) {
+        throw new Error("Missing package path");
+      }
       return {
         name: creationInput.path,
         path: creationInput.path,
@@ -239,8 +241,8 @@ async function withTemporaryTarget(
   }
 }
 
-void describe("owner-local内容依赖", () => {
-  void it("删除当前依赖槽后仍从持久图恢复共享实例并可继续加包", async () => {
+void describe("owner-local content dependencies", () => {
+  void it("restores shared instances from the persisted graph after a dependency slot is removed and allows further additions", async () => {
     const featureIdentity: ContentIdentity = {
       namespace: "source",
       packageName: "@fixture/feature",
@@ -405,7 +407,7 @@ void describe("owner-local内容依赖", () => {
         themeDefinition.path,
         "src/theme.ts",
       );
-      const customizedTheme = "export const theme = '用户定制';\n";
+      const customizedTheme = "export const theme = 'user-customized';\n";
       await writeFile(themeSourcePath, customizedTheme);
       await chmod(themeSourcePath, 0o600);
 
@@ -546,7 +548,7 @@ void describe("owner-local内容依赖", () => {
     });
   });
 
-  void it("将独立 provider 绑定到显式预设节点并在恢复后保留关系", async () => {
+  void it("binds an independent provider to an explicit preset node and preserves the relation across restore", async () => {
     const consumerIdentity: ContentIdentity = {
       namespace: "source",
       packageName: "@fixture/web",
@@ -749,7 +751,7 @@ void describe("owner-local内容依赖", () => {
     }
   });
 
-  void it("重复选择同一预设时复用恢复的节点绑定", async () => {
+  void it("reuses restored node bindings when selecting the same preset again", async () => {
     const webIdentity: ContentIdentity = {
       namespace: "source",
       packageName: "@fixture/web",
@@ -850,7 +852,7 @@ void describe("owner-local内容依赖", () => {
     });
   });
 
-  void it("重复选择同一预设时复用自动依赖闭包", async () => {
+  void it("reuses automatic dependency closure when selecting the same preset again", async () => {
     const webIdentity: ContentIdentity = {
       namespace: "source",
       packageName: "@fixture/web",
@@ -946,7 +948,7 @@ void describe("owner-local内容依赖", () => {
     });
   });
 
-  void it("direct add 按持久ID复用自定义独立provider并跨恢复保留", async () => {
+  void it("direct add reuses a custom independent provider by persisted ID and preserves it across restore", async () => {
     const consumerIdentity: ContentIdentity = {
       namespace: "source",
       packageName: "@fixture/web",
@@ -1063,7 +1065,7 @@ void describe("owner-local内容依赖", () => {
     });
   });
 
-  void it("direct add 在多个provider中只接受显式ID、身份与输入一致者", async () => {
+  void it("direct add accepts only a provider matching explicit ID, identity, and input among multiple providers", async () => {
     const webIdentity: ContentIdentity = {
       namespace: "source",
       packageName: "@fixture/web",
@@ -1254,7 +1256,7 @@ void describe("owner-local内容依赖", () => {
     });
   });
 
-  void it("拒绝错误身份、冲突输入和预设实例循环", async () => {
+  void it("rejects mismatched identity, conflicting input, and preset instance cycles", async () => {
     const consumerIdentity: ContentIdentity = {
       namespace: "source",
       packageName: "@fixture/web",
@@ -1351,7 +1353,7 @@ void describe("owner-local内容依赖", () => {
         conventions: { edition: "stable" },
         operationFacts: null,
       }),
-      /依赖绑定身份不一致/u,
+      /Selection node dependency binding identity mismatch/u,
     );
 
     const cyclePresetIdentity: ContentIdentity = {
@@ -1394,11 +1396,11 @@ void describe("owner-local内容依赖", () => {
         conventions: { edition: "stable" },
         operationFacts: null,
       }),
-      /依赖形成循环/u,
+      /Preset node dependencies form a cycle/u,
     );
   });
 
-  void it("恢复时拒绝改绑到同内容的另一个 independent 实例", async () => {
+  void it("rejects rebinding to another independent instance of the same content on restore", async () => {
     const consumerIdentity: ContentIdentity = {
       namespace: "source",
       packageName: "@fixture/web",
@@ -1479,13 +1481,13 @@ void describe("owner-local内容依赖", () => {
 
       await assert.rejects(
         createEngine(content).restoreProject({ repositoryRoot: targetRoot }),
-        /预设节点依赖绑定不一致/u,
+        /Preset node dependency binding mismatch in generation record/u,
       );
       assert.deepEqual(await readFile(recordPath), corruptedRecord);
     });
   });
 
-  void it("按所属命名空间、公开入口与owner解析结果绑定", async () => {
+  void it("binds by owning namespace, public entry, and owner-resolved module URL", async () => {
     let firstResolutionCount = 0;
     const providerIdentity = {
       packageName: "@fixture/tooling",
@@ -1587,11 +1589,11 @@ void describe("owner-local内容依赖", () => {
     ]);
     await assert.rejects(
       prepareOne(wrongNamespaceEngine, secondIdentity),
-      /同一命名空间/u,
+      /same namespace/u,
     );
   });
 
-  void it("按完整公开地址解析同模块别名并拒绝错误入口或其他修订", async () => {
+  void it("resolves same-module aliases by full public address and rejects wrong entries or revisions", async () => {
     const dependency = {
       key: "tooling",
       ownerLocal: {
@@ -1668,7 +1670,7 @@ void describe("owner-local内容依赖", () => {
     ]);
     await assert.rejects(
       prepareOne(wrongAddressEngine, identity),
-      /公开地址与实际内容入口不一致/u,
+      /public address does not match the actual content entry/u,
     );
 
     assert.throws(
@@ -1689,7 +1691,7 @@ void describe("owner-local内容依赖", () => {
             provider,
           ),
         ]),
-      /同一规范身份存在多个未明确选择的来源修订/u,
+      /Multiple unselected source revisions for canonical content identity/u,
     );
 
     const wrongRevisionEngine = createEngine([
@@ -1710,11 +1712,11 @@ void describe("owner-local内容依赖", () => {
     ]);
     await assert.rejects(
       prepareOne(wrongRevisionEngine, identity),
-      /未解析到当前内容修订/u,
+      /did not resolve to the current content revision/u,
     );
   });
 
-  void it("保留显式完整身份的跨命名空间依赖", async () => {
+  void it("preserves cross-namespace dependencies with explicit full identity", async () => {
     const consumerIdentity: ContentIdentity = {
       namespace: "consumer-source",
       packageName: "@fixture/consumer",
@@ -1755,7 +1757,7 @@ void describe("owner-local内容依赖", () => {
     );
   });
 
-  void it("同一准备结果完成共享提供者的连续加包规划与提交", async () => {
+  void it("plans and commits consecutive additions for a shared provider from a single preparation", async () => {
     let resolutionCount = 0;
     const dependency = {
       key: "tooling",
@@ -1851,7 +1853,9 @@ void describe("owner-local内容依赖", () => {
       });
       assert.equal(planned.status, "planned", JSON.stringify(planned));
       if (planned.status !== "planned") {
-        throw new Error("owner-local依赖的连续加包应形成计划");
+        throw new Error(
+          "Consecutive addition with owner-local dependency should produce a plan",
+        );
       }
       const committed = await engine.commitPlan(planned.plan);
       assert.equal(committed.status, "success", JSON.stringify(committed));

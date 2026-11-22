@@ -15,7 +15,7 @@ export const referencePackage = {
       !("seed" in value) ||
       typeof value.seed !== "string"
     ) {
-      throw new Error("创建输入无效");
+      throw new Error("Invalid creation input");
     }
     return { seed: value.seed };
   },

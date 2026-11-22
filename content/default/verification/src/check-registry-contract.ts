@@ -6,7 +6,7 @@ import {
 import { validateGeneratedScenarioReceipt } from "./registry-checks.ts";
 import { sourceGeneratedScenarioRuntime } from "./source-generated-runtime.ts";
 
-/** 检查唯一内容集合的真实 init/add 投影与工作区原生约束。 */
+/** Validates init and add projections and native workspace constraints for the default content collection. */
 export async function checkPresetRegistryContract(): Promise<void> {
   await forEachGeneratedScenario({
     runtime: sourceGeneratedScenarioRuntime,

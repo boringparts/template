@@ -113,7 +113,7 @@ function normalizeResourcePath(value: string): string {
     normalized.startsWith("../") ||
     /[!*?{}[\]]/u.test(value)
   ) {
-    throw new Error(`原生参考包资源路径无效：${value}`);
+    throw new Error(`Invalid native reference package resource path: ${value}`);
   }
   return normalized;
 }
@@ -136,7 +136,9 @@ function ownerResource(
       relative.startsWith(`..${path.sep}`) ||
       path.isAbsolute(relative)
     ) {
-      throw new Error(`原生参考包资源越过所属包目录：${mapping.path}`);
+      throw new Error(
+        `Native reference package resource escapes its owning package directory: ${mapping.path}`,
+      );
     }
     source = createTemplateSourceHandle(absolutePath);
   }
@@ -185,19 +187,19 @@ function normalizeDependencyUses(
       !dependencyPurposeOrder.includes(dependency.purpose)
     ) {
       throw new Error(
-        `模板依赖用途无效：${dependency.name} (${dependency.purpose})`,
+        `Invalid template dependency purpose: ${dependency.name} (${dependency.purpose})`,
       );
     }
     const purposes = uses.get(dependency.name);
     if (purposes === undefined) {
       throw new Error(
-        `模板依赖未在原生清单声明：${dependency.name} (${dependency.purpose})`,
+        `Template dependency is not declared in the native manifest: ${dependency.name} (${dependency.purpose})`,
       );
     }
     const key = `${dependency.name}\u0000${dependency.purpose}`;
     if (seen.has(key)) {
       throw new Error(
-        `模板依赖用途重复：${dependency.name} (${dependency.purpose})`,
+        `Duplicate template dependency purpose: ${dependency.name} (${dependency.purpose})`,
       );
     }
     seen.add(key);
@@ -227,7 +229,9 @@ function dependencyPackageName(specifier: string): string {
     parts.length < packageLength ||
     parts.slice(0, packageLength).some((part) => part.length === 0)
   ) {
-    throw new Error(`原生依赖公开入口无效：${specifier}`);
+    throw new Error(
+      `Invalid native dependency public entry specifier: ${specifier}`,
+    );
   }
   return parts.slice(0, packageLength).join("/");
 }
@@ -247,12 +251,14 @@ function assertNativeDocument(
       },
     );
   } catch (error) {
-    throw new Error(`原生JSON文档不是有效UTF-8：${sourcePath}`, {
+    throw new Error(`Native JSON document is not valid UTF-8: ${sourcePath}`, {
       cause: error,
     });
   }
   if (!isRecord(value) || errors.length > 0) {
-    throw new Error(`原生工具配置必须是有效的JSONC对象：${sourcePath}`);
+    throw new Error(
+      `Native tool configuration must be a valid JSONC object: ${sourcePath}`,
+    );
   }
   return value;
 }
@@ -300,7 +306,7 @@ function formatJsonValue(
       .join(`,\n${itemIndent}`)}\n${indent}]`;
   }
   if (!isRecord(value)) {
-    throw new Error("原生JSON文档只能包含普通对象");
+    throw new Error("Native JSON document must contain only plain objects");
   }
   const entries = Object.entries(value);
   if (entries.length === 0) return "{}";
@@ -320,6 +326,10 @@ function formatJsonValue(
     .join(`,\n${childIndent}`)}\n${indent}}`;
 }
 
+/**
+ * Serializes a JSON value with 2-space indentation, inline scalar arrays up to 80 columns,
+ * and a trailing newline. Paths in `multilineArrayPaths` are always expanded across lines.
+ */
 export function serializeNativeJson(
   value: unknown,
   options: { readonly multilineArrayPaths?: readonly string[] } = {},
@@ -367,7 +377,9 @@ function packageNameMapping(options: {
   for (const dependency of options.dependencies) {
     const binding = options.bindings.get(dependency.key);
     if (binding === undefined) {
-      throw new Error(`原生参考依赖缺少提供者绑定：${dependency.key}`);
+      throw new Error(
+        `Native reference dependency is missing a provider binding: ${dependency.key}`,
+      );
     }
     names.set(binding.contentIdentity.packageName, binding.definition.name);
     if (
@@ -426,7 +438,9 @@ function outputManifest(options: {
         : dependencyPackageName(dependency.ownerLocal.specifier);
     const binding = options.bindings.get(dependency.key);
     if (binding === undefined) {
-      throw new Error(`原生参考依赖缺少提供者绑定：${dependency.key}`);
+      throw new Error(
+        `Native reference dependency is missing a provider binding: ${dependency.key}`,
+      );
     }
     dependencyBindings.set(sourcePackageName, binding);
   }
@@ -449,7 +463,9 @@ function outputManifest(options: {
         continue;
       }
       if (typeof specifier !== "string") {
-        throw new Error(`原生依赖版本必须是字符串：${sourceName}`);
+        throw new Error(
+          `Native dependency version must be a string: ${sourceName}`,
+        );
       }
       if (
         !specifier.startsWith("link:") &&
@@ -522,7 +538,7 @@ function packagePath(options: {
     selected.startsWith("../") ||
     selected.includes("\\")
   ) {
-    throw new Error(`默认参考包目录无效：${selected}`);
+    throw new Error(`Invalid default reference package directory: ${selected}`);
   }
   return selected;
 }
@@ -554,7 +570,7 @@ function packageName<CreationInput extends JsonValue>(options: {
   return `@${options.conventions.defaultPackageScope}/${leaf}`;
 }
 
-/** 以所属原生manifest和资源快照生成统一ReferencePackageDefinition。 */
+/** Unified ReferencePackageDefinition built from the owning package's native manifest and resource snapshots. */
 export type DefaultReferencePackageDefinition<
   CreationInput extends JsonValue = JsonValue,
   OwnerFacts = undefined,
@@ -589,9 +605,9 @@ type DefineReferencePackageOptions<
   OwnerFacts,
 > = {
   readonly manifest: ReferencePackageManifest;
-  /** 可选的作者包名别名；生成时映射到当前目标包。 */
+  /** Optional authoring package name alias rewritten to the target package name during generation. */
   readonly sourcePackageName?: string;
-  /** 原生内容为目标清单提供的完整公开导出面。 */
+  /** Complete public exports map emitted into the target package manifest. */
   readonly targetExports?: Readonly<Record<string, unknown>>;
   readonly artifactVersion?: string;
   readonly resourceRoot: URL;
@@ -601,7 +617,7 @@ type DefineReferencePackageOptions<
   readonly defaultPath?: string;
   /** Validate and narrow JSON creation input after JSON structure verification. */
   readonly parseCreationInput?: (value: JsonValue) => CreationInput;
-  /** 可选的包内名称规则；目标路径不会自动改变包名。 */
+  /** Optional package naming rule; changing the target path does not automatically change the package name. */
   readonly targetName?: (input: {
     readonly conventions: DefaultWorkspaceConventions;
     readonly creationInput: CreationInput | undefined;
@@ -613,7 +629,7 @@ type DefineReferencePackageOptions<
   readonly resources: readonly NativeReferenceResourceMapping[];
   readonly compositionResources?: readonly NativeReferenceResourceMapping[];
   readonly dependencies?: readonly ReferenceDependency<CreationInput>[];
-  /** 不创建包实例、只声明所需原生根附件owner的引用。 */
+  /** References to required native root attachment owners that do not instantiate packages. */
   readonly rootAttachmentDependencies?: readonly ReferenceDependency[];
   readonly templateDependencies?: readonly ReferenceTemplateDependency[];
   readonly executionDependencies?: readonly string[];
@@ -642,14 +658,14 @@ type DefineReferencePackageOptions<
     resources: readonly ResourceFileSnapshot[],
     options: Readonly<{ readonly excludedPackagePaths: readonly string[] }>,
   ) => OwnerFacts;
-  /** 在默认原生清单投影后应用本包的纯清单规则。 */
+  /** Pure manifest transform applied after default native manifest projection. */
   readonly transformManifest?: (
     options: DefaultReferenceManifestTransformOptions<
       CreationInput,
       OwnerFacts
     >,
   ) => Readonly<Record<string, unknown>>;
-  /** 在所属原生 JSON 文档投影后应用本包的纯变换。 */
+  /** Pure document transform applied after projecting each owning native JSON document. */
   readonly transformDocument?: (
     options: DefaultReferenceDocumentTransformOptions<
       CreationInput,
@@ -658,6 +674,7 @@ type DefineReferencePackageOptions<
   ) => Readonly<Record<string, unknown>>;
 };
 
+/** Validates resource and dependency declarations upfront and returns a frozen native reference package definition. */
 export function defineReferencePackage<
   CreationInput extends JsonValue,
   OwnerFacts = undefined,
@@ -696,7 +713,7 @@ export function defineReferencePackage<
   for (const name of executionDependencies) {
     if (!templateDependencyNames.has(name)) {
       throw new Error(
-        `模板执行依赖必须同时声明模板用途：${options.manifest.name}/${name}`,
+        `Template execution dependency must also declare a template purpose: ${options.manifest.name}/${name}`,
       );
     }
   }
@@ -725,7 +742,9 @@ export function defineReferencePackage<
   const resourcePaths = new Set<string>();
   for (const resource of resourceMappings) {
     if (resourcePaths.has(resource.path)) {
-      throw new Error(`原生参考包重复声明资源：${resource.path}`);
+      throw new Error(
+        `Duplicate resource declaration in native reference package: ${resource.path}`,
+      );
     }
     resourcePaths.add(resource.path);
   }
@@ -757,7 +776,7 @@ export function defineReferencePackage<
       rootAttachmentKeys.has(dependency.key)
     ) {
       throw new Error(
-        `原生根附件依赖键不能为空且不能重复：${options.manifest.name}/${dependency.key}`,
+        `Native root attachment dependency key must be non-empty and unique: ${options.manifest.name}/${dependency.key}`,
       );
     }
     rootAttachmentKeys.add(dependency.key);
@@ -810,7 +829,7 @@ export function defineReferencePackage<
       return options.rootDeclaration?.(ownerFacts);
     },
     parseCreationInput(value: unknown): CreationInput {
-      assertJsonValue(value, "原生参考包创建输入");
+      assertJsonValue(value, "Native reference package creation input");
       return options.parseCreationInput === undefined
         ? (value as CreationInput)
         : options.parseCreationInput(value);
@@ -954,7 +973,9 @@ export function defineReferencePackage<
       for (const resource of input.prepared.resources) {
         const mapping = mappingsBySourcePath.get(resource.path);
         if (mapping === undefined) {
-          throw new Error(`准备结果包含未声明资源：${resource.path}`);
+          throw new Error(
+            `Prepared snapshot contains an undeclared resource: ${resource.path}`,
+          );
         }
         if (mapping.prepareOnly === true) continue;
         const document = documentBySourcePath.get(resource.path);
@@ -992,7 +1013,9 @@ export function defineReferencePackage<
         if (compositionResourcePaths.has(resource.path)) {
           const targetPath = mapping.targetPath;
           if (targetPath === undefined) {
-            throw new Error(`组合资源必须声明根目标路径：${resource.path}`);
+            throw new Error(
+              `Composition resource must declare a root targetPath: ${resource.path}`,
+            );
           }
           compositionFiles.push({
             path: targetPath,
@@ -1173,7 +1196,9 @@ export function defineReferencePackage<
       for (const resource of snapshot) {
         const mapping = mappingsBySourcePath.get(resource.path);
         if (mapping === undefined) {
-          throw new Error(`原生配置没有资源映射：${resource.path}`);
+          throw new Error(
+            `Native configuration has no resource mapping: ${resource.path}`,
+          );
         }
         const targetPath = mapping.targetPath ?? resource.path;
         if (!isNativeDocumentPath(targetPath)) continue;
@@ -1214,6 +1239,10 @@ export function defineReferencePackage<
   });
 }
 
+/**
+ * Serializes a native reference document. For `package.json`, applies canonical top-level key
+ * ordering, sorts dependency maps alphabetically, and formats `files` across multiple lines.
+ */
 export function serializeNativeReferenceDocument(
   document: DefaultNativeDocument,
 ): Uint8Array {

@@ -53,9 +53,9 @@ const preset = content.find(
 );
 assert.ok(preset);
 
-void describe("Vike 应用公开预设安装行为", () => {
+void describe("Vike app public preset installation behavior", () => {
   void it(
-    "在真实生成仓库中准备数据、验收部署并解析数据库导出",
+    "prepares databases, verifies deployment, and resolves database exports in a generated repository",
     { timeout: 600_000 },
     async (testContext) => {
       const workspace = await mkdtemp(

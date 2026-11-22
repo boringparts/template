@@ -44,7 +44,7 @@ function assertPartialDeepStrictEqual(
   actual: unknown,
   expected: unknown,
 ): void {
-  // Vitest 的 toMatchObject 要求数组等长；Node 的部分深比较允许子集。
+  // Vitest's toMatchObject requires equal array lengths; Node's partialDeepStrictEqual allows subsets.
   assertArrayShape(actual, expected);
   assert.partialDeepStrictEqual(actual, expected);
 }
@@ -177,7 +177,7 @@ void describe("template CLI command control", () => {
     assert.equal(output.stderr(), "");
   });
 
-  void it("初始化记录生成实例身份和绑定并默认保持包私有", async () => {
+  void it("records generated instance identities and bindings on init while keeping packages private", async () => {
     const workspace = await mkdtemp(
       path.join(tmpdir(), "template-cli-generation-record-"),
     );
@@ -309,26 +309,27 @@ void describe("template CLI command control", () => {
     }
   });
 
-  void it("renders bare command and help as Chinese discoverability output", async () => {
-    for (const args of [[], ["--help", "--output-format", "structured"]]) {
+  void it("renders bare command and help as English discoverability output", async () => {
+    for (const args of [[], ["--help", "--output", "structured"]]) {
       const output = testRuntime(args);
       assert.equal(await runCli(output.runtime), 0);
-      assert.ok(output.stdout().includes("用法"));
-      for (const command of ["init", "add", "presets", "blueprint", "schema"])
+      assert.ok(output.stdout().includes("Usage"));
+      for (const command of ["init", "add", "presets", "blueprint"])
         assert.ok(output.stdout().includes(command));
+      assert.ok(output.stdout().includes("--schema"));
       assert.equal(output.stderr(), "");
     }
   });
 
-  void it("lists deterministic Presets through declared human and JSON modes without writes", async () => {
+  void it("lists deterministic Presets through declared text and structured modes without writes", async () => {
     const workspace = await mkdtemp(
       path.join(tmpdir(), "template-cli-presets-"),
     );
     try {
       await writeFile(path.join(workspace, "marker"), "unchanged");
       const before = await workspaceByteSnapshot(workspace);
-      const output = testRuntime(["presets", "--output-format", "text"]);
-      const repeat = testRuntime(["presets", "--output-format", "text"]);
+      const output = testRuntime(["presets", "--output", "text"]);
+      const repeat = testRuntime(["presets", "--output", "text"]);
       const jsonOutput = testRuntime(["presets"], "9.8.7");
 
       assert.deepEqual(
@@ -339,7 +340,7 @@ void describe("template CLI command control", () => {
         ]),
         [0, 0, 0],
       );
-      assert.match(output.stdout(), /^内置预设/mu);
+      assert.match(output.stdout(), /^Built-in presets/mu);
       assert.equal(output.stdout(), repeat.stdout());
       assert.match(output.stdout(), /\n  [^:\s]+:/u);
       const cliPreset = templatePresets.find(
@@ -354,11 +355,12 @@ void describe("template CLI command control", () => {
             `${cliPreset.metadata.title} - ${cliPreset.metadata.description}`,
           ),
       );
-      assert.ok(!output.stdout().includes("TypeScript command-line package."));
+      assert.doesNotMatch(output.stdout(), /\p{Script=Han}/u);
       assert.equal(output.stderr(), "");
       assertPartialDeepStrictEqual(JSON.parse(jsonOutput.stdout()), {
-        schemaVersion: "2",
+        schemaVersion: "3",
         command: "presets",
+        outputMode: "structured",
         kind: "data",
         variant: "listed",
         data: {
@@ -374,7 +376,7 @@ void describe("template CLI command control", () => {
     }
   });
 
-  void it("validates a Project Blueprint through declared human and JSON modes without writes", async () => {
+  void it("validates a Project Blueprint through declared text and structured modes without writes", async () => {
     const workspace = await mkdtemp(
       path.join(tmpdir(), "template-cli-blueprint-"),
     );
@@ -399,7 +401,7 @@ void describe("template CLI command control", () => {
         "blueprint",
         "validate",
         blueprintPath,
-        "--output-format",
+        "--output",
         "text",
       ]);
       const jsonOutput = testRuntime(
@@ -412,11 +414,12 @@ void describe("template CLI command control", () => {
         await Promise.all([runCli(output.runtime), runCli(jsonOutput.runtime)]),
         [0, 0],
       );
-      assert.ok(output.stdout().includes("蓝图有效。"));
+      assert.ok(output.stdout().includes("Blueprint is valid."));
       assert.equal(output.stderr(), "");
       assert.deepEqual(JSON.parse(jsonOutput.stdout()), {
-        schemaVersion: "2",
+        schemaVersion: "3",
         command: "validateBlueprint",
+        outputMode: "structured",
         kind: "data",
         variant: "valid",
         data: { path: blueprintPath },
@@ -446,7 +449,7 @@ void describe("template CLI command control", () => {
         "blueprint",
         "validate",
         blueprintPath,
-        "--output-format",
+        "--output",
         "text",
       ]);
       const json = testRuntime(["blueprint", "validate", blueprintPath]);
@@ -455,11 +458,12 @@ void describe("template CLI command control", () => {
         [1, 1],
       );
       assert.equal(human.stdout(), "");
-      assert.ok(human.stderr().includes("蓝图无效"));
+      assert.ok(human.stderr().includes("Blueprint is invalid."));
       assert.ok(human.stderr().includes(".schemaVersion"));
       assertPartialDeepStrictEqual(JSON.parse(json.stderr()), {
-        schemaVersion: "2",
+        schemaVersion: "3",
         command: "validateBlueprint",
+        outputMode: "structured",
         kind: "failure",
         variant: "invalid",
         data: { path: blueprintPath, issues: [{ path: ".schemaVersion" }] },
@@ -520,7 +524,10 @@ void describe("template CLI command control", () => {
     );
     assert.equal(result.exitCode, 70);
     assert.equal(result.stdout, "");
-    assert.equal(result.stderr, "命令执行失败；请检查运行环境或报告此问题。");
+    assert.equal(
+      result.stderr,
+      "Command execution failed; check your runtime environment or report this issue.",
+    );
   });
 
   void it("reports unexpected argv failures without leaking implementation details", async () => {
@@ -533,7 +540,7 @@ void describe("template CLI command control", () => {
     });
     assert.equal(await runCli({ ...output.runtime, argv }), 70);
     assert.equal(output.stdout(), "");
-    assert.ok(output.stderr().includes("命令执行失败"));
+    assert.ok(output.stderr().includes("Command execution failed"));
     assert.ok(!output.stderr().includes("private detail"));
   });
 
@@ -545,12 +552,12 @@ void describe("template CLI command control", () => {
       ["init", "destination", "--preset"],
       ["presets", "extra"],
     ]) {
-      const output = testRuntime([...args, "--output-format", "text"]);
+      const output = testRuntime([...args, "--output", "text"]);
       assert.equal(await runCli(output.runtime), 2);
       assert.equal(output.stdout(), "");
       const failure = JSON.parse(output.stderr());
       assertPartialDeepStrictEqual(failure, {
-        schemaVersion: "2",
+        schemaVersion: "3",
         kind: "usageFailure",
       });
       assert.ok(Array.isArray(failure.issues));
@@ -583,7 +590,7 @@ void describe("template CLI command control", () => {
       }),
       70,
     );
-    assert.ok(output.stderr().includes("命令执行失败"));
+    assert.ok(output.stderr().includes("Command execution failed"));
     const usage = testRuntime(["unknown"]);
     assert.equal(
       await runCli({
@@ -608,7 +615,8 @@ void describe("template CLI command control", () => {
         "--name",
         "--path",
         "--dry-run",
-        "--output-format",
+        "--output",
+        "--schema",
       ])
         assert.ok(output.stdout().includes(option));
       assert.ok(output.stdout().includes(addablePresetName));
@@ -630,7 +638,9 @@ void describe("template CLI command control", () => {
       ]);
       assert.equal(await runCli({ ...output.runtime, cwd: workspace }), 0);
       assertPartialDeepStrictEqual(JSON.parse(output.stdout()), {
+        schemaVersion: "3",
         command: "init",
+        outputMode: "structured",
         kind: "data",
         variant: "planned",
         data: {
@@ -653,7 +663,7 @@ void describe("template CLI command control", () => {
         "--path",
         "packages/utility",
         "--dry-run",
-        "--output-format",
+        "--output",
         "text",
       ]);
       assert.equal(await runCli({ ...human.runtime, cwd: workspace }), 0);
@@ -740,16 +750,17 @@ void describe("template CLI command control", () => {
         ".git/invalid/source",
         "--scope",
         "Bad Scope",
-        "--output-format",
+        "--output",
         "text",
       ]);
       assert.equal(await runCli({ ...output.runtime, cwd: workspace }), 2);
       assert.equal(output.stdout(), "");
       assertPartialDeepStrictEqual(JSON.parse(output.stderr()), {
+        schemaVersion: "3",
         kind: "usageFailure",
       });
-      assert.ok(output.stderr().includes("包叶名称"));
-      assert.ok(output.stderr().includes("安全路径段"));
+      assert.ok(output.stderr().includes("unscoped package leaf name"));
+      assert.ok(output.stderr().includes("safe path segments"));
       assert.ok(output.stderr().includes("npm scope"));
       assert.deepEqual(await readdir(workspace), []);
     } finally {
@@ -757,7 +768,7 @@ void describe("template CLI command control", () => {
     }
   });
 
-  void it("经正式规划拒绝基础配置包身份冲突且不创建目标", async () => {
+  void it("rejects base tooling-config identity conflicts via formal planning without creating target", async () => {
     const workspace = await mkdtemp(
       path.join(tmpdir(), "template-cli-init-identity-conflict-"),
     );
@@ -800,7 +811,7 @@ void describe("template CLI command control", () => {
     }
   });
 
-  void it("经正式规划映射完整包名的name、scope与repository-scope诊断", async () => {
+  void it("maps full-package-name name, scope, and repository-scope diagnostics through formal planning", async () => {
     const workspace = await mkdtemp(
       path.join(tmpdir(), "template-cli-init-identity-validation-"),
     );
@@ -918,7 +929,10 @@ void describe("template CLI command control", () => {
         variant: "operationFailed",
         data: {
           targetDir: "demo",
-          error: { message: "初始化要求目标目录为空或不存在；当前为目录" },
+          error: {
+            message:
+              "Initialization requires the target directory to be empty or not exist; currently directory",
+          },
         },
       });
       assert.deepEqual(await workspaceByteSnapshot(workspace), before);
@@ -927,78 +941,213 @@ void describe("template CLI command control", () => {
     }
   });
 
-  void it("exports the executable contract through schema", async () => {
-    const output = testRuntime(["schema"]);
-    assert.equal(await runCli(output.runtime), 0);
-    assert.equal(output.stderr(), "");
-    const result = JSON.parse(output.stdout());
-    assertPartialDeepStrictEqual(result, {
-      schemaVersion: "2",
-      command: "schema",
-      kind: "data",
-      variant: "exported",
-    });
-    const humanSchema = testRuntime(["schema", "--output-format", "text"]);
-    assert.equal(await runCli(humanSchema.runtime), 0);
-    assert.ok(humanSchema.stdout().includes("CLI 契约"));
-    assert.ok(humanSchema.stdout().includes('"commands"'));
-    const manifest = result.data.manifest;
-    assertPartialDeepStrictEqual(manifest, {
-      schemaVersion: "4",
-      root: "template",
-      commands: {
-        init: {
-          input: {
-            inputSchema: {},
-          },
-          success: {
-            variants: {
-              initialized: { exitCode: 0 },
-              planned: { exitCode: 0 },
-            },
-          },
-        },
-        addPackage: {
-          failures: { conflict: { exitCode: 1 } },
-        },
-        validateBlueprint: {
-          failures: {
-            invalid: { exitCode: 1 },
-            operationFailed: { exitCode: 1 },
-          },
-        },
-        presets: { success: { variants: { listed: { exitCode: 0 } } } },
-        schema: { success: { variants: { exported: { exitCode: 0 } } } },
-      },
-      controls: {
-        output: {
-          defaultFormat: "structured",
-          formats: ["structured", "text"],
-        },
-      },
-      usageFailure: { exitCode: 2 },
-    });
-    const requiredFields = manifest.commands.init.input.inputSchema.required;
-    assert.ok(requiredFields.includes("dir"));
-    assert.ok(requiredFields.includes("preset"));
-    const packageFields = manifest.commands.addPackage.fields as {
-      readonly key: string;
-      readonly kind: string;
-      readonly longOption: string;
-      readonly required: boolean;
-      readonly description: string;
-    }[];
-    const linkFromField = packageFields.find(
-      (field) => field.key === "linkFrom",
+  void it("exposes the executable contract through native --schema discovery and replayable examples", async () => {
+    const workspace = await mkdtemp(
+      path.join(tmpdir(), "template-cli-schema-discovery-"),
     );
-    assert.ok(linkFromField);
-    assertPartialDeepStrictEqual(linkFromField, {
-      key: "linkFrom",
-      kind: "repeatableOption",
-      longOption: "--link-from",
-      required: false,
-    });
-    assert.equal(typeof linkFromField.description, "string");
+    try {
+      const rootDirectory = testRuntime(["--schema"]);
+      assert.equal(
+        await runCli({ ...rootDirectory.runtime, cwd: workspace }),
+        0,
+      );
+      assert.equal(rootDirectory.stderr(), "");
+      const directory = JSON.parse(rootDirectory.stdout()) as {
+        readonly kind: string;
+        readonly schemaVersion: string;
+        readonly command: string;
+        readonly children: readonly { readonly name: string }[];
+      };
+      assert.equal(directory.kind, "directory");
+      assert.equal(directory.schemaVersion, "5");
+      assert.equal(directory.command, "template");
+      assert.deepEqual(
+        directory.children.map((child) => child.name).toSorted(),
+        ["add", "blueprint", "init", "presets"],
+      );
+
+      const initSummary = testRuntime(["init", "--schema"]);
+      assert.equal(await runCli({ ...initSummary.runtime, cwd: workspace }), 0);
+      assert.equal(initSummary.stderr(), "");
+      const initSummaryDocument = JSON.parse(initSummary.stdout()) as {
+        readonly examples: readonly {
+          readonly argv: readonly string[];
+          readonly shell: string;
+        }[];
+      };
+      assertPartialDeepStrictEqual(initSummaryDocument, {
+        kind: "summary",
+        schemaVersion: "5",
+        command: "init",
+        outputs: {
+          default: "structured",
+          modes: {
+            structured: { delivery: "atomic", format: "structured" },
+            text: { delivery: "atomic", format: "text" },
+          },
+        },
+      });
+      assert.ok(initSummaryDocument.examples.length >= 2);
+      for (const example of initSummaryDocument.examples) {
+        const replay = testRuntime(example.argv);
+        assert.equal(
+          await runCli({ ...replay.runtime, cwd: workspace }),
+          0,
+          example.shell,
+        );
+        assert.equal(replay.stderr(), "");
+      }
+
+      const initInput = testRuntime(["init", "--schema=input"]);
+      assert.equal(await runCli({ ...initInput.runtime, cwd: workspace }), 0);
+      const initInputDoc = JSON.parse(initInput.stdout());
+      assertPartialDeepStrictEqual(initInputDoc, {
+        kind: "input",
+        schemaVersion: "5",
+        command: "init",
+      });
+      assert.ok(initInputDoc.input.inputSchema.required.includes("dir"));
+      assert.ok(initInputDoc.input.inputSchema.required.includes("preset"));
+
+      const initSuccess = testRuntime(["init", "--schema=success:structured"]);
+      assert.equal(await runCli({ ...initSuccess.runtime, cwd: workspace }), 0);
+      assertPartialDeepStrictEqual(JSON.parse(initSuccess.stdout()), {
+        kind: "success",
+        schemaVersion: "5",
+        command: "init",
+        mode: "structured",
+        success: {
+          kind: "data",
+          variants: {
+            initialized: { exitCode: 0 },
+            planned: { exitCode: 0 },
+          },
+        },
+      });
+
+      const addInput = testRuntime(["add", "package", "--schema=input"]);
+      assert.equal(await runCli({ ...addInput.runtime, cwd: workspace }), 0);
+      const addInputDoc = JSON.parse(addInput.stdout());
+      const packageFields = addInputDoc.fields as {
+        readonly key: string;
+        readonly kind: string;
+        readonly longOption: string;
+        readonly required: boolean;
+        readonly description: string;
+      }[];
+      const linkFromField = packageFields.find(
+        (field) => field.key === "linkFrom",
+      );
+      assert.ok(linkFromField);
+      assertPartialDeepStrictEqual(linkFromField, {
+        key: "linkFrom",
+        kind: "repeatableOption",
+        longOption: "--link-from",
+        required: false,
+      });
+      assert.equal(typeof linkFromField.description, "string");
+
+      const addFailures = testRuntime([
+        "add",
+        "package",
+        "--schema=failures:structured",
+      ]);
+      assert.equal(await runCli({ ...addFailures.runtime, cwd: workspace }), 0);
+      assertPartialDeepStrictEqual(JSON.parse(addFailures.stdout()), {
+        kind: "failures",
+        schemaVersion: "5",
+        command: "addPackage",
+        mode: "structured",
+        failures: { conflict: { exitCode: 1 } },
+      });
+
+      const blueprintFailures = testRuntime([
+        "blueprint",
+        "validate",
+        "--schema=failures:structured",
+      ]);
+      assert.equal(
+        await runCli({ ...blueprintFailures.runtime, cwd: workspace }),
+        0,
+      );
+      assertPartialDeepStrictEqual(JSON.parse(blueprintFailures.stdout()), {
+        kind: "failures",
+        schemaVersion: "5",
+        command: "validateBlueprint",
+        mode: "structured",
+        failures: {
+          invalid: { exitCode: 1 },
+          operationFailed: { exitCode: 1 },
+        },
+      });
+
+      const presetsSummary = testRuntime(["presets", "--schema"]);
+      assert.equal(
+        await runCli({ ...presetsSummary.runtime, cwd: workspace }),
+        0,
+      );
+      const presetsSummaryDoc = JSON.parse(presetsSummary.stdout()) as {
+        readonly examples: readonly {
+          readonly argv: readonly string[];
+          readonly shell: string;
+        }[];
+      };
+      for (const example of presetsSummaryDoc.examples) {
+        const replay = testRuntime(example.argv);
+        assert.equal(
+          await runCli({ ...replay.runtime, cwd: workspace }),
+          0,
+          example.shell,
+        );
+        assert.equal(replay.stderr(), "");
+      }
+
+      const presetsWire = testRuntime(["presets", "--schema=wire:structured"]);
+      assert.equal(await runCli({ ...presetsWire.runtime, cwd: workspace }), 0);
+      assertPartialDeepStrictEqual(JSON.parse(presetsWire.stdout()), {
+        kind: "wire",
+        schemaVersion: "5",
+        command: "presets",
+        mode: "structured",
+      });
+
+      // Replay add-package and blueprint-validate examples inside a real initialized project.
+      const initProject = testRuntime([
+        "init",
+        "demo",
+        "--preset",
+        addablePresetName,
+        "--scope",
+        "acme",
+      ]);
+      assert.equal(await runCli({ ...initProject.runtime, cwd: workspace }), 0);
+      const projectDir = path.join(workspace, "demo");
+      for (const commandArgs of [
+        ["add", "package", "--schema"],
+        ["blueprint", "validate", "--schema"],
+      ]) {
+        const summary = testRuntime(commandArgs);
+        assert.equal(await runCli({ ...summary.runtime, cwd: projectDir }), 0);
+        const summaryDoc = JSON.parse(summary.stdout()) as {
+          readonly examples: readonly {
+            readonly argv: readonly string[];
+            readonly shell: string;
+          }[];
+        };
+        assert.ok(summaryDoc.examples.length >= 2);
+        for (const example of summaryDoc.examples) {
+          const replay = testRuntime(example.argv);
+          assert.equal(
+            await runCli({ ...replay.runtime, cwd: projectDir }),
+            0,
+            example.shell,
+          );
+          assert.equal(replay.stderr(), "");
+        }
+      }
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
   });
 
   void it("plans add package from injected cwd with path and link intent without writing", async () => {
@@ -1239,9 +1388,10 @@ void describe("template CLI command control", () => {
       2,
     );
     assertPartialDeepStrictEqual(JSON.parse(json.stderr()), {
+      schemaVersion: "3",
       kind: "usageFailure",
     });
-    assert.ok(json.stderr().includes("不能使用保留工作区目录"));
+    assert.ok(json.stderr().includes("reserved workspace directory"));
 
     const human = testRuntime([
       "add",
@@ -1257,7 +1407,7 @@ void describe("template CLI command control", () => {
       await runCli({ ...human.runtime, cwd: "/not-a-generated-repository" }),
       2,
     );
-    assert.ok(human.stderr().includes("不能使用保留工作区目录"));
+    assert.ok(human.stderr().includes("reserved workspace directory"));
     assert.equal(human.stdout(), "");
   });
 
@@ -1381,7 +1531,10 @@ void describe("template CLI command control", () => {
       const conflicts = JSON.parse(output.stderr()).data.conflicts;
       assert.equal(conflicts.length, 1);
       assert.match(conflicts[0].sources[0].label, /services\/existing/u);
-      assert.ok(conflicts[0].reason.trim().length > 0, "冲突包含可读原因");
+      assert.ok(
+        conflicts[0].reason.trim().length > 0,
+        "conflict must include a readable reason",
+      );
       assertPartialDeepStrictEqual(JSON.parse(output.stderr()).data, {
         dryRun,
         actions: [],
@@ -1443,7 +1596,7 @@ void describe("template CLI command control", () => {
     );
     const linkConflicts = JSON.parse(output.stderr()).data.conflicts;
     assert.equal(linkConflicts.length, 1, JSON.stringify(linkConflicts));
-    assert.ok(linkConflicts[0].reason.includes("当前为符号链接"));
+    assert.ok(linkConflicts[0].reason.includes("currently symbolic link"));
     assertPartialDeepStrictEqual(JSON.parse(output.stderr()).data, {
       actions: [],
       conflicts: [
@@ -1505,7 +1658,7 @@ void describe("template CLI command control", () => {
     );
     const fileConflicts = JSON.parse(output.stderr()).data.conflicts;
     assert.equal(fileConflicts.length, 1, JSON.stringify(fileConflicts));
-    assert.ok(fileConflicts[0].reason.includes("当前为文件"));
+    assert.ok(fileConflicts[0].reason.includes("currently file"));
     assertPartialDeepStrictEqual(JSON.parse(output.stderr()).data, {
       actions: [],
       conflicts: [
@@ -1560,9 +1713,10 @@ void describe("template CLI command control", () => {
       2,
     );
     assertPartialDeepStrictEqual(JSON.parse(output.stderr()), {
+      schemaVersion: "3",
       kind: "usageFailure",
     });
-    assert.ok(output.stderr().includes("不能使用保留工作区目录"));
+    assert.ok(output.stderr().includes("reserved workspace directory"));
     assert.equal(output.stdout(), "");
     assert.deepEqual(await workspaceByteSnapshot(target), before);
   });

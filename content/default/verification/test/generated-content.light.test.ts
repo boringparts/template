@@ -62,7 +62,8 @@ async function focusedProviderRuntime(withExports: boolean) {
     metadata: {
       alias: "focused-provider",
       title: "Focused provider",
-      description: "以公开清单变换提供 source 条件导出。",
+      description:
+        "Provides source conditional exports via public manifest transformation.",
     },
     owner: {
       packageName: "@fixture/focused-provider",
@@ -114,8 +115,8 @@ async function focusedProviderRuntime(withExports: boolean) {
   return { ...sourceGeneratedScenarioRuntime, content };
 }
 
-void describe("唯一内容集合的真实生成检查场景", () => {
-  void it("按声明操作派生初始化和完整实际 init/add 矩阵", async () => {
+void describe("real generated check scenarios for the single content collection", () => {
+  void it("derives initialization scenarios and the full init/add matrix from declared operations", async () => {
     const initializations = deriveInitializationScenarios(
       sourceGeneratedScenarioRuntime,
     );
@@ -181,7 +182,7 @@ void describe("唯一内容集合的真实生成检查场景", () => {
     }
   });
 
-  void it("按公开清单求值结果判断 focused provider 能力", async () => {
+  void it("determines focused provider eligibility from public manifest evaluation", async () => {
     const runtime = await focusedProviderRuntime(true);
     const scenario = deriveFocusedProjectLinkScenarios(runtime).find(
       (candidate) =>

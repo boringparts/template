@@ -38,8 +38,8 @@ function blueprintWithPackage(
   return blueprintWithPackages([packageDefinition(name, packagePath, role)]);
 }
 
-void describe("项目蓝图包身份", () => {
-  void it("保留通用包名称与角色，并接受安全相对路径", () => {
+void describe("project blueprint package identity", () => {
+  void it("preserves generic package names and roles and accepts safe relative paths", () => {
     const blueprint = blueprintWithPackage(
       "north:overview",
       "docs/guides/overview",
@@ -52,7 +52,7 @@ void describe("项目蓝图包身份", () => {
     });
   });
 
-  void it("要求包角色为字符串", () => {
+  void it("requires package role to be a string", () => {
     assert.deepStrictEqual(
       validateProjectBlueprint(
         blueprintWithPackages([
@@ -69,7 +69,8 @@ void describe("项目蓝图包身份", () => {
         issues: [
           {
             path: ".packages[0].role",
-            message: "字段类型或结构不符合蓝图要求",
+            message:
+              "Field type or structure does not match the blueprint schema",
           },
         ],
       },
@@ -77,10 +78,10 @@ void describe("项目蓝图包身份", () => {
   });
 
   for (const [field, duplicateValue, message] of [
-    ["name", "@demo/tool", "软件包名称必须唯一：@demo/tool"],
-    ["path", "packages/tool", "软件包路径必须唯一：packages/tool"],
+    ["name", "@demo/tool", "Package name must be unique: @demo/tool"],
+    ["path", "packages/tool", "Package path must be unique: packages/tool"],
   ] as const) {
-    void it(`拒绝重复包${field === "name" ? "名称" : "路径"}并定位双方`, () => {
+    void it(`rejects duplicate package ${field} and identifies both sides`, () => {
       const existing = packageDefinition("@demo/tool");
       const requested = packageDefinition(
         field === "name" ? duplicateValue : "@demo/other",
@@ -119,11 +120,11 @@ void describe("项目蓝图包身份", () => {
   }
 
   for (const [label, packageDefinitionId] of [
-    ["空值", ""],
-    ["短值", "package-short"],
-    ["大写摘要", `package-${"G".repeat(64)}`],
+    ["empty string", ""],
+    ["short value", "package-short"],
+    ["uppercase digest", `package-${"G".repeat(64)}`],
   ] as const) {
-    void it(`拒绝格式错误的持久实例标识：${label}`, () => {
+    void it(`rejects malformed persistent package definition ID: ${label}`, () => {
       assert.deepStrictEqual(
         validateProjectBlueprint(
           blueprintWithPackages([
@@ -138,7 +139,8 @@ void describe("项目蓝图包身份", () => {
           issues: [
             {
               path: ".packages[0].packageDefinitionId",
-              message: "字段类型或结构不符合蓝图要求",
+              message:
+                "Field type or structure does not match the blueprint schema",
             },
           ],
         },
@@ -146,7 +148,7 @@ void describe("项目蓝图包身份", () => {
     });
   }
 
-  void it("拒绝缺失的持久实例标识", () => {
+  void it("rejects a missing persistent package definition ID", () => {
     const definition = {
       ...packageDefinition("@demo/tool"),
     } as Record<string, unknown>;
@@ -159,14 +161,14 @@ void describe("项目蓝图包身份", () => {
         issues: [
           {
             path: ".packages[0].packageDefinitionId",
-            message: "蓝图缺少必需字段",
+            message: "Blueprint is missing a required field",
           },
         ],
       },
     );
   });
 
-  void it("独立拒绝重复实例标识", () => {
+  void it("independently rejects duplicate package definition IDs", () => {
     const original = packageDefinition("@demo/tool");
 
     assert.deepStrictEqual(
@@ -186,7 +188,7 @@ void describe("项目蓝图包身份", () => {
         issues: [
           {
             path: ".packages[1].packageDefinitionId",
-            message: `包实例标识必须唯一：${firstPackageId}`,
+            message: `Package definition ID must be unique: ${firstPackageId}`,
           },
         ],
       },
@@ -194,7 +196,7 @@ void describe("项目蓝图包身份", () => {
   });
 });
 
-void describe("项目蓝图路径", () => {
+void describe("project blueprint paths", () => {
   for (const packagePath of [
     "",
     "../escape",
@@ -205,7 +207,7 @@ void describe("项目蓝图路径", () => {
     "packages/./tool",
     "packages/tool/",
   ]) {
-    void it(`拒绝不安全相对路径 ${JSON.stringify(packagePath)}`, () => {
+    void it(`rejects unsafe relative path ${JSON.stringify(packagePath)}`, () => {
       assert.deepStrictEqual(
         validateProjectBlueprint(
           blueprintWithPackage("@demo/tool", packagePath),
@@ -215,7 +217,7 @@ void describe("项目蓝图路径", () => {
           issues: [
             {
               path: ".packages[0].path",
-              message: "软件包路径必须是规范化的安全相对路径",
+              message: "Package path must be a normalized safe relative path",
               packageIdentityIssue: { kind: "invalid", field: "path" },
             },
           ],
@@ -224,7 +226,7 @@ void describe("项目蓝图路径", () => {
     });
   }
 
-  void it("在分配持久实例标识前拒绝不安全路径", () => {
+  void it("rejects unsafe paths before assigning persistent package definition IDs", () => {
     assert.throws(
       () =>
         assertProjectBlueprintDraft({
@@ -240,14 +242,14 @@ void describe("项目蓝图路径", () => {
       (error) =>
         error instanceof Error &&
         error.message.includes(
-          ".packages[0].path: 软件包路径必须是规范化的安全相对路径",
+          ".packages[0].path: Package path must be a normalized safe relative path",
         ),
     );
   });
 });
 
-void describe("项目蓝图包连接意图", () => {
-  void it("接受已有实例间的显式连接", () => {
+void describe("project blueprint package link intents", () => {
+  void it("accepts explicit links between existing instances", () => {
     const blueprint = blueprintWithPackages(
       [
         packageDefinition("@demo/consumer", "packages/consumer"),
@@ -269,25 +271,25 @@ void describe("项目蓝图包连接意图", () => {
 
   for (const [label, packageLinkIntents, path, message] of [
     [
-      "缺失的使用方",
+      "missing consumer",
       [{ consumerId: missingPackageId, providerId: firstPackageId }],
       ".packageLinkIntents[0].consumerId",
-      "包连接引用了不存在的使用方实例",
+      "Package link references a non-existent consumer package instance",
     ],
     [
-      "缺失的提供方",
+      "missing provider",
       [{ consumerId: firstPackageId, providerId: missingPackageId }],
       ".packageLinkIntents[0].providerId",
-      "包连接引用了不存在的提供方实例",
+      "Package link references a non-existent provider package instance",
     ],
     [
-      "连接自身",
+      "self-link",
       [{ consumerId: firstPackageId, providerId: firstPackageId }],
       ".packageLinkIntents[0]",
-      "包连接不能指向自身",
+      "Package link must not target itself",
     ],
   ] as const) {
-    void it(`拒绝${label}`, () => {
+    void it(`rejects ${label}`, () => {
       assert.deepStrictEqual(
         validateProjectBlueprint(
           blueprintWithPackages(
@@ -300,7 +302,7 @@ void describe("项目蓝图包连接意图", () => {
     });
   }
 
-  void it("拒绝重复的显式连接", () => {
+  void it("rejects duplicate explicit links", () => {
     const connection = {
       consumerId: firstPackageId,
       providerId: secondPackageId,
@@ -322,13 +324,18 @@ void describe("项目蓝图包连接意图", () => {
       ),
       {
         ok: false,
-        issues: [{ path: ".packageLinkIntents[1]", message: "包连接不能重复" }],
+        issues: [
+          {
+            path: ".packageLinkIntents[1]",
+            message: "Package link must not be duplicated",
+          },
+        ],
       },
     );
   });
 });
 
-void describe("项目蓝图结构与格式", () => {
+void describe("project blueprint structure and format", () => {
   for (const [value, path] of [
     [
       { schemaVersion: 4, packages: [42], packageLinkIntents: [] },
@@ -339,15 +346,21 @@ void describe("项目蓝图结构与格式", () => {
       ".packageLinkIntents[0]",
     ],
   ] as const) {
-    void it("为结构错误指出可处理的位置", () => {
+    void it("reports actionable paths for structural errors", () => {
       assert.deepStrictEqual(validateProjectBlueprint(value), {
         ok: false,
-        issues: [{ path, message: "字段类型或结构不符合蓝图要求" }],
+        issues: [
+          {
+            path,
+            message:
+              "Field type or structure does not match the blueprint schema",
+          },
+        ],
       });
     });
   }
 
-  void it("先报告结构错误，不继续执行跨文档语义校验", () => {
+  void it("reports structural errors first without running cross-document semantic validation", () => {
     assert.deepStrictEqual(
       validateProjectBlueprint({
         schemaVersion: 4,
@@ -368,14 +381,15 @@ void describe("项目蓝图结构与格式", () => {
         issues: [
           {
             path: ".packages[0].name",
-            message: "字段类型或结构不符合蓝图要求",
+            message:
+              "Field type or structure does not match the blueprint schema",
           },
         ],
       },
     );
   });
 
-  void it("在嵌套持久字段拒绝未知字段", () => {
+  void it("rejects unknown fields in nested persisted objects", () => {
     assert.deepStrictEqual(
       validateProjectBlueprint({
         schemaVersion: 4,
@@ -398,11 +412,11 @@ void describe("项目蓝图结构与格式", () => {
         issues: [
           {
             path: ".packages[0].inferredFromManifest",
-            message: "蓝图 v4 包含未知字段",
+            message: "Blueprint v4 contains an unknown field",
           },
           {
             path: ".packageLinkIntents[0].inferredFromWorkspace",
-            message: "蓝图 v4 包含未知字段",
+            message: "Blueprint v4 contains an unknown field",
           },
         ],
       },
@@ -410,7 +424,7 @@ void describe("项目蓝图结构与格式", () => {
   });
 
   for (const schemaVersion of [3, 5]) {
-    void it(`拒绝旧版或不支持的蓝图 schema ${schemaVersion}`, () => {
+    void it(`rejects legacy or unsupported blueprint schema ${schemaVersion}`, () => {
       assert.deepStrictEqual(
         validateProjectBlueprint({
           schemaVersion,
@@ -422,7 +436,7 @@ void describe("项目蓝图结构与格式", () => {
           issues: [
             {
               path: ".schemaVersion",
-              message: `不支持的本地模板元数据版本 ${schemaVersion}；当前只支持 schema4`,
+              message: `Unsupported local template metadata version ${schemaVersion}; only schema4 is supported`,
             },
           ],
         },
@@ -430,7 +444,7 @@ void describe("项目蓝图结构与格式", () => {
     });
   }
 
-  void it("拒绝蓝图未拥有的根字段", () => {
+  void it("rejects root fields not owned by the blueprint", () => {
     assert.deepStrictEqual(
       validateProjectBlueprint({
         schemaVersion: 4,
@@ -440,7 +454,12 @@ void describe("项目蓝图结构与格式", () => {
       }),
       {
         ok: false,
-        issues: [{ path: ".repositoryName", message: "蓝图 v4 包含未知字段" }],
+        issues: [
+          {
+            path: ".repositoryName",
+            message: "Blueprint v4 contains an unknown field",
+          },
+        ],
       },
     );
   });

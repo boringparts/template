@@ -84,7 +84,7 @@ function testComposition(): Composition {
     identity,
     parseConventions(value) {
       if (typeof value !== "object" || value === null || Array.isArray(value)) {
-        throw new Error("约定必须是对象");
+        throw new Error("Conventions must be an object");
       }
       return {};
     },
@@ -108,8 +108,8 @@ after(async () => {
   );
 });
 
-void describe("类型化来源公开入口", () => {
-  void it("保留具体参考包、预设定义和作者扩展类型", async () => {
+void describe("typed content source public entry", () => {
+  void it("preserves concrete reference package, preset definition, and author extension types", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "template-content-typed-"));
     temporaryDirectories.push(root);
     const manifests = new Map([
@@ -164,7 +164,7 @@ void describe("类型化来源公开入口", () => {
         reference.definition.prepare().facts.phase;
       assert.equal(extension, "from-reference");
       assert.equal(preparedFacts, "prepared-reference");
-      // @ts-expect-error 参考包专有字段不属于其他成员种类。
+      // @ts-expect-error Reference package-specific fields do not belong to other member kinds.
       const invalid: number = reference.definition.externalMarker;
       void invalid;
     }
@@ -173,13 +173,13 @@ void describe("类型化来源公开入口", () => {
     if (preset.kind === "preset") {
       const presetField: 42 = preset.definition.externalPresetField;
       assert.equal(presetField, 42);
-      // @ts-expect-error 预设定义保留自身元数据类型。
+      // @ts-expect-error Preset definitions preserve their own metadata types.
       const invalid: string = preset.definition.externalPresetField;
       void invalid;
     }
   });
 
-  void it("拒绝类型回调与 resolver 指向不同的公开模块", async () => {
+  void it("rejects a type loader callback that points to a different public module than resolver", async () => {
     const alpha = await createSource({ namespace: "alpha", body: "alpha" });
     assert.ok(alpha[0]);
     const root = await mkdtemp(
@@ -211,13 +211,13 @@ void describe("类型化来源公开入口", () => {
           },
         ],
       }),
-      /类型回调.*公开代码入口不一致/u,
+      /Type loader callback .* did not return the same module as the resolved public code entry/u,
     );
   });
 });
 
-void describe("来源公开入口装载", () => {
-  void it("合法参考定义可由公开加载器装载并完成规划和初始化", async () => {
+void describe("loading content source public entries", () => {
+  void it("loads a valid reference definition and completes planning and initialization", async () => {
     const members = await createSource({
       namespace: "new-contract",
       body: "valid",
@@ -254,7 +254,7 @@ void describe("来源公开入口装载", () => {
     assert.equal(initialized.status, "success", JSON.stringify(initialized));
   });
 
-  void it("以各集合自己的resolver装载同名包并保留两份真实定义", async () => {
+  void it("loads same-name packages using each collection's own resolver and preserves both definitions", async () => {
     const alpha = await createSource({
       namespace: "alpha",
       body: "from alpha",
@@ -277,15 +277,21 @@ void describe("来源公开入口装载", () => {
       (selected.definition as { value: string }).value,
       "from beta",
     );
-    assert.throws(() => index.resolve("shared", "reference"), /歧义/u);
+    assert.throws(
+      () => index.resolve("shared", "reference"),
+      /Ambiguous content alias/u,
+    );
   });
 
-  void it("拒绝一次集合中重复登记的规范身份", async () => {
+  void it("rejects duplicate canonical identities registered within a single collection", async () => {
     const members = await createSource({
       namespace: "duplicate",
       body: "value",
     });
     const member = members[0]!;
-    assert.throws(() => createContentIndex([member, member]), /重复规范身份/u);
+    assert.throws(
+      () => createContentIndex([member, member]),
+      /Duplicate canonical content identity/u,
+    );
   });
 });

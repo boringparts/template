@@ -33,14 +33,14 @@ function assertExactKeys(
 ): void {
   for (const key of Object.keys(value)) {
     if (!allowedKeys.includes(key)) {
-      throw new Error(`${context} 含有未知字段：${key}`);
+      throw new Error(`${context} contains unknown field: ${key}`);
     }
   }
 }
 
 function parseComponentOwner(value: unknown, context: string): ComponentOwner {
   if (!isRecord(value)) {
-    throw new Error(`${context} 必须是组件所有者`);
+    throw new Error(`${context} must be a component owner`);
   }
   assertExactKeys(value, ["kind", "path"], context);
   if (value.kind === "workspace-orchestration" && value.path === ".") {
@@ -53,7 +53,7 @@ function parseComponentOwner(value: unknown, context: string): ComponentOwner {
   ) {
     return { kind: value.kind, path: value.path };
   }
-  throw new Error(`${context} 不是受支持的组件所有者`);
+  throw new Error(`${context} is not a supported component owner`);
 }
 
 function parseCheckEnvironmentNeed(
@@ -61,13 +61,13 @@ function parseCheckEnvironmentNeed(
   context: string,
 ): CheckEnvironmentNeed {
   if (!isRecord(value)) {
-    throw new Error(`${context} 必须是检查环境需求`);
+    throw new Error(`${context} must be a check environment need`);
   }
   switch (value.kind) {
     case "playwright-browser-assets": {
       assertExactKeys(value, ["kind", "browser", "owner"], context);
       if (value.browser !== "chromium") {
-        throw new Error(`${context}.browser 必须是 chromium`);
+        throw new Error(`${context}.browser must be chromium`);
       }
       return {
         kind: value.kind,
@@ -84,7 +84,7 @@ function parseCheckEnvironmentNeed(
     case "rust-toolchain": {
       assertExactKeys(value, ["kind", "owner", "toolchain"], context);
       if (value.toolchain !== "stable") {
-        throw new Error(`${context}.toolchain 必须是 stable`);
+        throw new Error(`${context}.toolchain must be stable`);
       }
       return {
         kind: value.kind,
@@ -93,7 +93,7 @@ function parseCheckEnvironmentNeed(
       };
     }
     default:
-      throw new Error(`${context} 含有不支持的 kind：${String(value.kind)}`);
+      throw new Error(`${context} has unsupported kind: ${String(value.kind)}`);
   }
 }
 
@@ -102,11 +102,11 @@ function parseDeploymentEnvironmentNeed(
   context: string,
 ): DeploymentEnvironmentNeed {
   if (!isRecord(value)) {
-    throw new Error(`${context} 必须是部署环境需求`);
+    throw new Error(`${context} must be a deployment environment need`);
   }
   assertExactKeys(value, ["kind"], context);
   if (value.kind !== "docker-engine") {
-    throw new Error(`${context} 含有不支持的 kind：${String(value.kind)}`);
+    throw new Error(`${context} has unsupported kind: ${String(value.kind)}`);
   }
   return { kind: value.kind };
 }
@@ -141,7 +141,9 @@ function normalizeCheckEnvironmentNeeds(
     const conflictKey = checkEnvironmentNeedConflictKey(need);
     const previousIdentity = identityByConflictKey.get(conflictKey);
     if (previousIdentity !== undefined && previousIdentity !== identity) {
-      throw new Error(`检查环境需求 ${conflictKey} 的语义参数冲突`);
+      throw new Error(
+        `Conflicting semantic parameters for check environment need ${conflictKey}`,
+      );
     }
     identityByConflictKey.set(conflictKey, identity);
     byIdentity.set(identity, need);
@@ -164,7 +166,7 @@ function normalizeDeploymentEnvironmentNeeds(
     .map(([, need]) => need);
 }
 
-/** 校验、去重并按固定顺序排列持久化环境需求。 */
+/** Validates, deduplicates, and canonically sorts persisted environment needs. Throws on invalid shapes or conflicting parameters. */
 export function normalizeEnvironmentNeeds(options: {
   readonly check: readonly CheckEnvironmentNeed[];
   readonly deployment: readonly DeploymentEnvironmentNeed[];
@@ -176,24 +178,24 @@ export function normalizeEnvironmentNeeds(options: {
   };
 }
 
-/** 严格解析加包流程消费的本地模板元数据。 */
+/** Strictly parses local template environment needs metadata consumed by the add flow. Throws on unknown fields or unsupported schema versions. */
 export function parseEnvironmentNeedsMetadata(
   value: unknown,
 ): EnvironmentNeedsMetadata {
   if (!isRecord(value)) {
-    throw new Error("环境需求元数据必须是对象");
+    throw new Error("Environment needs metadata must be an object");
   }
   assertExactKeys(value, ["schemaVersion", "check", "deployment"], "$");
   if (value.schemaVersion !== 1) {
     throw new Error(
-      `不支持环境需求元数据 schemaVersion ${String(value.schemaVersion)}；预期为 1`,
+      `Unsupported environment needs metadata schemaVersion ${String(value.schemaVersion)}; expected 1`,
     );
   }
   if (!Array.isArray(value.check)) {
-    throw new Error("$.check 必须是数组");
+    throw new Error("$.check must be an array");
   }
   if (!Array.isArray(value.deployment)) {
-    throw new Error("$.deployment 必须是数组");
+    throw new Error("$.deployment must be an array");
   }
   return normalizeEnvironmentNeeds({
     check: value.check as CheckEnvironmentNeed[],

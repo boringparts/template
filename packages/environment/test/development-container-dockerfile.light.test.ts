@@ -12,7 +12,7 @@ import {
   prepareDevelopmentContainerToolLayerTexts,
 } from "../src/development-container-tool-layer.ts";
 
-void it("校验开发容器资源并返回 Dockerfile 内容", async () => {
+void it("validates development container resources and returns the combined Dockerfile", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "environment-dockerfile-"));
   const sourceRoot = path.join(root, "source");
   await mkdir(sourceRoot);

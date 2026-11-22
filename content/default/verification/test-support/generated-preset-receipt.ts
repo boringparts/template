@@ -9,7 +9,7 @@ export type GeneratedPreset = Extract<
   (typeof templateContent)[number],
   { readonly kind: "preset" }
 >;
-/** 用同一次公开生成调用返回的收据检查正式投影。 */
+/** Initializes a preset and wraps the returned result as a receipt for validating the projection. */
 export async function initializePreset(options: {
   readonly preset: GeneratedPreset;
   readonly targetRoot: string;
@@ -29,7 +29,7 @@ export async function initializePreset(options: {
   });
   if (result.status !== "success") {
     throw new Error(
-      `${options.preset.definition.metadata.alias}: 公开生成器未返回成功收据：${JSON.stringify(result)}`,
+      `${options.preset.definition.metadata.alias}: public generator did not return a successful receipt: ${JSON.stringify(result)}`,
     );
   }
   const receiptResult: GeneratedPresetReceipt["result"] = result;

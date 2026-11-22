@@ -15,7 +15,7 @@ const cliPath = "packages/commands";
 const cliPackageName = "@acme/public-commands";
 const customizedPublicationPackScript =
   "turbo run build && changeset pack --out-dir .changeset/packed && node --eval \"console.log('publication pack customization retained')\"";
-const customScript = "node --eval \"console.log('用户自定义命令')\"";
+const customScript = "node --eval \"console.log('user custom command')\"";
 
 type PackageManifest = {
   name: string;
@@ -86,7 +86,7 @@ const journey: CliJourney = {
     ];
     return [
       {
-        name: "以自定义身份初始化 library",
+        name: "initialize library with custom identity",
         args: [
           "init",
           "project",
@@ -101,7 +101,7 @@ const journey: CliJourney = {
         ],
       },
       {
-        name: "保留用户修改并预览第二个 library",
+        name: "preserve user edits and preview second library",
         cwd: project,
         args: [...addArgs, "--dry-run"],
         async prepare() {
@@ -126,7 +126,7 @@ const journey: CliJourney = {
           const releaseWorkflowText = await readFile(releaseWorkflow, "utf8");
           await writeFile(
             releaseWorkflow,
-            `${releaseWorkflowText}\n# 用户保留的发布工作流定制\n`,
+            `${releaseWorkflowText}\n# User-retained release workflow customization\n`,
           );
           rootManifest.scripts["user:note"] = "node --version";
           await writeFile(
@@ -137,7 +137,7 @@ const journey: CliJourney = {
           manifest.scripts["user:note"] = customScript;
           manifest.version = "8.7.6";
           const customizedManifest = `${JSON.stringify(manifest, null, 2)}\n`;
-          const customizedSource = `${await readFile(sourcePath, "utf8")}\nexport const userMessage = "用户保留的业务逻辑";\n`;
+          const customizedSource = `${await readFile(sourcePath, "utf8")}\nexport const userMessage = "User-retained business logic";\n`;
           await writeFile(manifestPath, customizedManifest);
           await writeFile(sourcePath, customizedSource);
           await writeFile(
@@ -151,7 +151,7 @@ const journey: CliJourney = {
         },
       },
       {
-        name: "添加第二个 library 并连接依赖",
+        name: "add second library and link dependency",
         cwd: project,
         args: addArgs,
         async prepare() {
@@ -164,7 +164,7 @@ const journey: CliJourney = {
               path.join(context.workDir, "customized-manifest.json"),
               "utf8",
             ),
-            "dry-run 不应改写用户 manifest",
+            "dry-run must not modify user manifest",
           );
           assert.equal(
             await readFile(sourcePath, "utf8"),
@@ -172,22 +172,22 @@ const journey: CliJourney = {
               path.join(context.workDir, "customized-index.ts"),
               "utf8",
             ),
-            "dry-run 不应改写用户源码",
+            "dry-run must not modify user source",
           );
         },
       },
       {
-        name: "再添加默认私有内部库",
+        name: "add default private internal library",
         cwd: project,
         args: addInternalArgs,
       },
       {
-        name: "添加默认私有 CLI 包",
+        name: "add default private CLI package",
         cwd: project,
         args: addCliArgs,
       },
       {
-        name: "安装生成项目的依赖",
+        name: "install generated project dependencies",
         executable: "pnpm",
         cwd: project,
         args: ["install"],
@@ -210,7 +210,7 @@ const journey: CliJourney = {
               path.join(project, ".github/workflows/release.yml"),
               "utf8",
             ),
-            /# 用户保留的发布工作流定制/u,
+            /# User-retained release workflow customization/u,
           );
           provider.name = "@acme/public-utilities";
           provider.version = "1.4.0";
@@ -219,7 +219,10 @@ const journey: CliJourney = {
           command.version = "2.3.4";
           command.private = false;
           const commandBin = command.bin?.commands;
-          assert.ok(commandBin, "CLI 包应声明命令入口");
+          assert.ok(
+            commandBin,
+            "CLI package should declare a command binary entry",
+          );
           command.bin = { "public-commands": commandBin };
           delete consumer.dependencies["@acme/utilities"];
           consumer.dependencies[provider.name] = "workspace:*";
@@ -239,13 +242,13 @@ const journey: CliJourney = {
         },
       },
       {
-        name: "通过正式发布入口构建并打包库",
+        name: "build and pack libraries through the official publication entry point",
         executable: "pnpm",
         cwd: project,
         args: ["run", "publication:pack"],
       },
       {
-        name: "独立安装生成的库归档",
+        name: "install packed library archives in isolation",
         executable: "npm",
         cwd: installedRoot,
         args: ["install", "--no-audit", "--no-fund"],
@@ -265,12 +268,15 @@ const journey: CliJourney = {
           const command = plan.plan
             .flat()
             .find(({ name }) => name === cliPackageName);
-          assert.ok(provider, "发布计划应包含提供方库");
-          assert.ok(command, "发布计划应包含 CLI 包");
+          assert.ok(
+            provider,
+            "Publish plan should include the provider library",
+          );
+          assert.ok(command, "Publish plan should include the CLI package");
           assert.equal(
             plan.plan.flat().some(({ name }) => name === "@acme/internal"),
             false,
-            "private 包不得进入发布计划",
+            "private packages must not enter the publish plan",
           );
           await mkdir(installedRoot);
           await writeFile(
@@ -290,7 +296,7 @@ const journey: CliJourney = {
               'import { greet } from "@acme/public-utilities";',
               'const greeting: { message: string } = greet("Ada");',
               "void greeting;",
-              "// @ts-expect-error greet 的姓名参数必须是字符串。",
+              "// @ts-expect-error greet requires a string name argument.",
               "greet(42);",
               "",
             ].join("\n"),
@@ -310,7 +316,7 @@ const journey: CliJourney = {
         },
       },
       {
-        name: "检查独立安装后库的公开类型正负项",
+        name: "check public types of the isolated installed library (positive and negative)",
         executable: "pnpm",
         cwd: project,
         args: [
@@ -321,7 +327,7 @@ const journey: CliJourney = {
         ],
       },
       {
-        name: "运行安装后库的公开导出与输入校验",
+        name: "run public exports and input validation of the installed library",
         executable: process.execPath,
         cwd: installedRoot,
         args: [
@@ -336,7 +342,7 @@ const journey: CliJourney = {
         ],
       },
       {
-        name: "运行独立安装后 CLI 的版本入口",
+        name: "run version command of the isolated installed CLI",
         executable: path.join(
           installedRoot,
           "node_modules/.bin/public-commands",
@@ -345,7 +351,7 @@ const journey: CliJourney = {
         args: ["--version"],
       },
       {
-        name: "运行独立安装后 CLI 的成功查询",
+        name: "run successful lookup command of the isolated installed CLI",
         executable: path.join(
           installedRoot,
           "node_modules/.bin/public-commands",
@@ -354,7 +360,7 @@ const journey: CliJourney = {
         args: ["lookup", "ada"],
       },
       {
-        name: "运行独立安装后 CLI 的未找到查询",
+        name: "run not-found lookup command of the isolated installed CLI",
         executable: path.join(
           installedRoot,
           "node_modules/.bin/public-commands",
@@ -363,7 +369,7 @@ const journey: CliJourney = {
         args: ["lookup", "missing"],
       },
       {
-        name: "运行独立安装后 CLI 的非法输入",
+        name: "run invalid lookup command of the isolated installed CLI",
         executable: path.join(
           installedRoot,
           "node_modules/.bin/public-commands",
@@ -424,12 +430,12 @@ const journey: CliJourney = {
         path.join(project, ".github/workflows/release.yml"),
         "utf8",
       ),
-      /# 用户保留的发布工作流定制/u,
+      /# User-retained release workflow customization/u,
     );
     assert.equal(
       await readFile(path.join(project, consumerPath, "src/index.ts"), "utf8"),
       await readFile(path.join(context.workDir, "customized-index.ts"), "utf8"),
-      "添加依赖后应逐字节保留用户源码",
+      "User source should be preserved byte-for-byte after linking dependencies",
     );
     assert.match(
       results[6]!.stdout,
@@ -437,18 +443,22 @@ const journey: CliJourney = {
     );
     assert.equal(results[10]!.stdout, "public-commands 2.3.4\n");
     assert.deepEqual(JSON.parse(results[11]!.stdout), {
-      schemaVersion: "2",
+      schemaVersion: "3",
       command: "lookup",
+      outputMode: "structured",
       kind: "data",
       variant: "found",
       data: { name: "ada", title: "Ada Lovelace" },
     });
     assert.partialDeepStrictEqual(JSON.parse(results[12]!.stderr), {
+      schemaVersion: "3",
+      outputMode: "structured",
       kind: "failure",
       variant: "notFound",
       data: { name: "missing" },
     });
     assert.partialDeepStrictEqual(JSON.parse(results[13]!.stderr), {
+      schemaVersion: "3",
       kind: "usageFailure",
     });
   },

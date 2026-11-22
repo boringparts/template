@@ -16,7 +16,9 @@ const vuePresetDefinition = templatePresets.find(
     member.identity.packageName === "@ykdz/preset-vue-app",
 );
 if (vuePresetDefinition?.kind !== "preset") {
-  throw new Error("唯一内容集合缺少 Vue 应用预设");
+  throw new Error(
+    "The content collection is missing the Vue application preset",
+  );
 }
 
 type GenerationRecord = {
@@ -84,7 +86,11 @@ function packageRecord(
   const match = record.packages.find(
     (candidate) => candidate.contentIdentity.packageName === packageName,
   );
-  assert.notEqual(match, undefined, `生成记录缺少内容 ${packageName}`);
+  assert.notEqual(
+    match,
+    undefined,
+    `Generation record is missing content ${packageName}`,
+  );
   return match!;
 }
 
@@ -130,7 +136,7 @@ const journey: CliJourney = {
     );
     return [
       {
-        name: "通过公开生成器进程直接初始化参考组合",
+        name: "initialize reference composition directly through the public generator process",
         executable: process.execPath,
         cwd: context.packageRoot,
         args: [
@@ -145,14 +151,16 @@ const journey: CliJourney = {
             ? [
                 process.env.TEMPLATE_CLI_PACKED_BIN ??
                   (() => {
-                    throw new Error("packed 直接参考初始化缺少 CLI 二进制入口");
+                    throw new Error(
+                      "Packed direct reference initialization is missing the CLI binary entry point",
+                    );
                   })(),
               ]
             : []),
         ],
       },
       {
-        name: "CLI 在直接参考仓库新增 TypeScript CLI 预设",
+        name: "add TypeScript CLI preset to direct-reference repository via CLI",
         cwd: project,
         async prepare() {
           const record = await readGenerationRecord(project);
@@ -170,7 +178,7 @@ const journey: CliJourney = {
             definition!.path,
             "src/index.ts",
           );
-          const customizedSource = `${await readFile(sourcePath, "utf8")}\n// 用户保留的源码定制\n`;
+          const customizedSource = `${await readFile(sourcePath, "utf8")}\n// User-retained source customization\n`;
           await writeFile(sourcePath, customizedSource);
           await writeFile(customizedSourcePath, customizedSource);
 
@@ -200,7 +208,7 @@ const journey: CliJourney = {
         ],
       },
       {
-        name: "新 CLI 进程回放直接参考与 CLI 绑定后新增 Vue 应用",
+        name: "replay direct reference and CLI bindings in a new CLI process when adding Vue app",
         cwd: project,
         async prepare() {
           const rootManifest = JSON.parse(
@@ -373,7 +381,7 @@ const journey: CliJourney = {
         (definition) =>
           definition.packageDefinitionId === vueApplication.packageDefinitionId,
       ),
-      "新增 Vue 预设应将 Vue 应用内容写入蓝图",
+      "Adding the Vue preset should record the Vue app content in the blueprint",
     );
     assert.ok(
       finalBlueprint.packages.some(

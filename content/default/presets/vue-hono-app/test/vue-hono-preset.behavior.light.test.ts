@@ -63,7 +63,10 @@ function member(
   const found = content.find(
     (item) => item.kind === kind && item.identity.packageName === packageName,
   );
-  assert.ok(found, `显式内容集合缺少 ${kind} ${packageName}`);
+  assert.ok(
+    found,
+    `Explicit content collection is missing ${kind} ${packageName}`,
+  );
   return found;
 }
 
@@ -127,8 +130,8 @@ after(async () => {
   );
 });
 
-void describe("Vue-Hono 组合预设公开行为", () => {
-  void it("初始化原生包、绑定、联合验收资源与根声明，并在新generator回放后保留", async () => {
+void describe("Vue-Hono composite preset public behavior", () => {
+  void it("initializes native packages, bindings, joint E2E resources, and root declarations and retains them on replay", async () => {
     const targetRoot = await createTargetRoot("template-vue-hono-preset-");
     const initialized = await generator().init({
       targetRoot,
@@ -313,7 +316,7 @@ void describe("Vue-Hono 组合预设公开行为", () => {
     );
   });
 
-  void it("通过公开内容身份直接绑定web与API实例", async () => {
+  void it("binds web and API instances directly by public content identity", async () => {
     const targetRoot = await createTargetRoot("template-vue-hono-direct-");
     const initialized = await generator().init({
       targetRoot,
@@ -362,7 +365,7 @@ void describe("Vue-Hono 组合预设公开行为", () => {
     assert.strictEqual(manifest.dependencies["@demo/api"], "workspace:*");
   });
 
-  void it("联合根文件冲突时不提交任何生成内容", async () => {
+  void it("commits no generated files when a joint root file conflicts", async () => {
     const targetRoot = await createTargetRoot("template-vue-hono-conflict-");
     await mkdir(targetRoot, { recursive: true });
     await writeFile(

@@ -40,7 +40,7 @@ after(async () => {
   );
 });
 
-void it("同一资源声明为参考包准备快照并保留完整制品", async () => {
+void it("prepares a reference package snapshot from the same resource declaration while preserving the full artifact", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "native-reference-artifact-"));
   roots.push(root);
   await mkdir(path.join(root, "template-dist"), { recursive: true });
@@ -51,9 +51,15 @@ void it("同一资源声明为参考包准备快照并保留完整制品", async
     path.join(root, "template-dist/index.d.ts"),
     'export declare const templateVersion: "v1";\n',
   );
-  await writeFile(path.join(root, "resources/guide.md"), "指南字节\n");
-  await writeFile(path.join(root, "resources/README.md"), "根包资源\n");
-  await writeFile(path.join(root, "packages/child/README.md"), "子包字节\n");
+  await writeFile(path.join(root, "resources/guide.md"), "guide bytes\n");
+  await writeFile(
+    path.join(root, "resources/README.md"),
+    "root package resource\n",
+  );
+  await writeFile(
+    path.join(root, "packages/child/README.md"),
+    "child package bytes\n",
+  );
 
   const manifest = {
     name: "@fixture/native-reference",
@@ -131,9 +137,9 @@ void it("同一资源声明为参考包准备快照并保留完整制品", async
       mode,
     ]),
     [
-      ["resources/README.md", "根包资源\n", 0o644],
-      ["resources/guide.md", "指南字节\n", 0o644],
-      ["packages/child/README.md", "子包字节\n", 0o644],
+      ["resources/README.md", "root package resource\n", 0o644],
+      ["resources/guide.md", "guide bytes\n", 0o644],
+      ["packages/child/README.md", "child package bytes\n", 0o644],
     ],
   );
   assert.ok(
@@ -141,7 +147,7 @@ void it("同一资源声明为参考包准备快照并保留完整制品", async
   );
 });
 
-void it("按当前包目标作用域映射排除资源而保留根资源及完整制品", async () => {
+void it("excludes resources mapped into child package scopes while retaining root resources and the full artifact", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "native-resource-scope-"));
   roots.push(root);
   const parentRoot = path.join(root, "parent-owner");
@@ -163,9 +169,9 @@ void it("按当前包目标作用域映射排除资源而保留根资源及完�
   await mkdir(path.dirname(parentReadme), { recursive: true });
   await mkdir(path.dirname(parentChildReadme), { recursive: true });
   await mkdir(path.dirname(childReadme), { recursive: true });
-  await writeFile(parentReadme, "父包自己的根README\n");
-  await writeFile(parentChildReadme, "属于子作用域的资源\n");
-  await writeFile(childReadme, "子包自己的README\n");
+  await writeFile(parentReadme, "parent package root README\n");
+  await writeFile(parentChildReadme, "resource belonging to child scope\n");
+  await writeFile(childReadme, "child package README\n");
 
   const conventions: ScopeConventions = { policy: "resource-scope" };
   const manifestFor = (name: string) => ({
@@ -185,7 +191,7 @@ void it("按当前包目标作用域映射排除资源而保留根资源及完�
       !("packagePath" in value) ||
       typeof value.packagePath !== "string"
     ) {
-      throw new Error("scope fixture需要packagePath");
+      throw new Error("scope fixture requires packagePath");
     }
     return { packagePath: value.packagePath };
   };
@@ -319,7 +325,7 @@ void it("按当前包目标作用域映射排除资源而保留根资源及完�
         !("policy" in value) ||
         value.policy !== "resource-scope"
       ) {
-        throw new Error("scope conventions无效");
+        throw new Error("Invalid scope conventions");
       }
       return conventions;
     },
@@ -370,8 +376,8 @@ void it("按当前包目标作用域映射排除资源而保留根资源及完�
       data.toString(),
     ]),
     [
-      ["resources/README.md", "父包自己的根README\n"],
-      ["resources/child/README.md", "属于子作用域的资源\n"],
+      ["resources/README.md", "parent package root README\n"],
+      ["resources/child/README.md", "resource belonging to child scope\n"],
     ],
   );
   await rm(parentChildReadme);
@@ -418,25 +424,25 @@ void it("按当前包目标作用域映射排除资源而保留根资源及完�
   await planAndCommit(rootTarget, ".", "resources");
   assert.equal(
     await readFile(path.join(rootTarget, "README.md"), "utf8"),
-    "父包自己的根README\n",
+    "parent package root README\n",
   );
   assert.equal(
     await readFile(path.join(rootTarget, "resources/README.md"), "utf8"),
-    "子包自己的README\n",
+    "child package README\n",
   );
 
   const manualTarget = path.join(root, "manual-project");
   await planAndCommit(manualTarget, "docs/manual", "docs/manual/resources");
   assert.equal(
     await readFile(path.join(manualTarget, "docs/manual/README.md"), "utf8"),
-    "父包自己的根README\n",
+    "parent package root README\n",
   );
   assert.equal(
     await readFile(
       path.join(manualTarget, "docs/manual/resources/README.md"),
       "utf8",
     ),
-    "子包自己的README\n",
+    "child package README\n",
   );
   assert.deepEqual(
     completeParentArtifact.resources.map(

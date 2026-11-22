@@ -29,7 +29,7 @@ function localSdkPackageRoots(): ReadonlyMap<string, string> {
 export type AuthoredContentFixtureOptions = {
   readonly namespace: string;
   readonly marker: string;
-  /** 为并存的原生同名来源提供可区分的精确坐标。 */
+  /** Provides a distinct exact version coordinate for coexisting native sources with the same package name. */
   readonly contentVersion?: string;
   readonly featureMarker?: string;
   readonly featureAlias?: string;
@@ -37,7 +37,7 @@ export type AuthoredContentFixtureOptions = {
   readonly featurePackageName?: string;
   readonly featureDependsOnTheme?: boolean;
   readonly featureNativeDevDependencies?: Readonly<Record<string, string>>;
-  /** 在原创 reference 入口中写入额外的运行时代码。 */
+  /** Prepends additional runtime code to the authored reference entry point. */
   readonly featureTemplatePrelude?: readonly string[];
   readonly featureTemplateDependencies?: readonly ReferenceTemplateDependency[];
   readonly addonDependsOnTheme?: boolean;
@@ -346,7 +346,7 @@ async function writePresetPackage(options: {
   }
 }
 
-/** 创建独立于仓库定义的reference、shared、preset和specifier集合。 */
+/** Creates a fixture set of reference, shared, preset, and specifier collection packages independent of the repository definitions. */
 export async function createAuthoredContentFixture(
   options: AuthoredContentFixtureOptions,
 ): Promise<AuthoredContentFixture> {

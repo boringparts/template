@@ -3,7 +3,7 @@ import { isDeepStrictEqual } from "node:util";
 
 import { z } from "zod";
 
-/** 能力声明由根环境维护，能力选择由内容拥有者贡献。 */
+/** Editor capability identifier declared by the root environment and selected by content owners. */
 export type EditorCustomizationCapability = string;
 
 export type EditorCustomization = {
@@ -46,9 +46,10 @@ function errorMessage(error: unknown): string {
 }
 
 function editorCustomizationSharedResourceLabel(resourcePath: string): string {
-  return `编辑器定制共享资源 ${resourcePath}`;
+  return `editor customization resource ${resourcePath}`;
 }
 
+/** Loads and validates editor capability declarations from a JSON resource file. */
 export function loadEditorCustomizationDeclarations(
   resourcePath: string,
   sourceLabel: string,
@@ -59,7 +60,7 @@ export function loadEditorCustomizationDeclarations(
   try {
     resourceText = readFileSync(resourcePath, "utf8");
   } catch (error) {
-    throw new Error(`${resourceLabel} 无法读取：${errorMessage(error)}`, {
+    throw new Error(`Failed to read ${resourceLabel}: ${errorMessage(error)}`, {
       cause: error,
     });
   }
@@ -69,7 +70,7 @@ export function loadEditorCustomizationDeclarations(
     parsedSource = JSON.parse(resourceText) as unknown;
   } catch (error) {
     throw new Error(
-      `${resourceLabel} 内容无效：JSON 语法错误：${errorMessage(error)}`,
+      `Invalid ${resourceLabel}: JSON syntax error: ${errorMessage(error)}`,
       { cause: error },
     );
   }
@@ -78,7 +79,7 @@ export function loadEditorCustomizationDeclarations(
 
   if (!result.success) {
     throw new Error(
-      `${resourceLabel} 内容无效：${result.error.issues
+      `Invalid ${resourceLabel}: ${result.error.issues
         .map(
           (issue) =>
             `${editorCustomizationDeclarationIssuePath(issue)}: ${issue.message}`,
@@ -94,6 +95,12 @@ function jsonPointerToken(value: string): string {
   return value.replaceAll("~", "~0").replaceAll("/", "~1");
 }
 
+/**
+ * Composes VS Code extensions and settings for the selected capabilities in declared order.
+ *
+ * Throws if an enabled capability is missing from `declarations.capabilities` or if two
+ * capabilities assign conflicting values to the same setting key.
+ */
 export function editorCustomizationForCapabilities(
   capabilities: readonly EditorCustomizationCapability[],
   declarations: EditorCustomizationDeclarations,
@@ -113,7 +120,9 @@ export function editorCustomizationForCapabilities(
 
     const projection = declarations.capabilities[capability];
     if (projection === undefined) {
-      throw new Error(`编辑器定制策略列出了未声明的能力：${capability}`);
+      throw new Error(
+        `Editor customization policy references an undeclared capability: ${capability}`,
+      );
     }
     for (const extension of projection.extensions) {
       extensions.add(extension);
@@ -123,7 +132,7 @@ export function editorCustomizationForCapabilities(
       const previous = settingSources.get(setting);
       if (previous !== undefined && !isDeepStrictEqual(previous.value, value)) {
         throw new Error(
-          `编辑器设置 /settings/${jsonPointerToken(setting)} 冲突：${previous.source} 与 ${source}`,
+          `Conflicting editor setting /settings/${jsonPointerToken(setting)}: ${previous.source} vs ${source}`,
         );
       }
       settingSources.set(setting, { source, value });

@@ -3,7 +3,7 @@ import { createDefaultGenerator } from "@ykdz/template-workspace/default-generat
 
 import type { GeneratedScenarioRuntime } from "./generated-content.ts";
 
-/** 源码作者门使用正式内容集合与默认 SDK。 */
+/** Source author gates run against the canonical content collection and default SDK. */
 export const sourceGeneratedScenarioRuntime: GeneratedScenarioRuntime = {
   content: templateContent,
   createDefaultGenerator,

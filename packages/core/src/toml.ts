@@ -5,7 +5,7 @@ export type TomlStringProjection = {
   readonly value: string;
 };
 
-/** 只投影已存在的 TOML 字符串值，保留注释及其余原生格式。 */
+/** Updates existing TOML string values in place while preserving comments and surrounding formatting; throws if a target path is missing or not a string. */
 export function projectTomlStringValues(
   source: string,
   projections: readonly TomlStringProjection[],
@@ -26,7 +26,7 @@ export function projectTomlStringValues(
     const node = property?.value;
     if (node?.type !== "TOMLValue" || node.kind !== "string") {
       throw new Error(
-        `TOML 投影要求已有字符串字段 ${JSON.stringify(projection.path)}`,
+        `TOML projection requires an existing string field at ${JSON.stringify(projection.path)}`,
       );
     }
     if (node.value === projection.value) return [];

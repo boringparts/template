@@ -27,7 +27,7 @@ void describe("init toolchain snapshot consumption", () => {
       path.join(tmpdir(), "template-cli-snapshot-init-"),
     );
     try {
-      // 本业务需要一个共享库角色的初始包，从唯一内容集合中选取 Preset。
+      // Pick an init-capable preset from the content collection that produces a shared-library package.
       let snapshotInitPreset: (typeof templatePresets)[number] | undefined;
       for (const member of templatePresets) {
         if (!member.definition.operations.includes("init")) continue;
@@ -101,7 +101,7 @@ void describe("init toolchain snapshot consumption", () => {
     }
   });
 
-  void it("通过正式规划拒绝占用配置包身份且不创建目标", async () => {
+  void it("rejects reserved config package identities during init planning without creating the target directory", async () => {
     const workspace = await mkdtemp(
       path.join(tmpdir(), "template-cli-identity-conflict-"),
     );
@@ -137,7 +137,7 @@ void describe("init toolchain snapshot consumption", () => {
     }
   });
 
-  void it("正式加包规划保留身份冲突并在预览和提交时零写入", async () => {
+  void it("reports package identity conflicts during add-package planning without writing in dry-run or commit mode", async () => {
     const workspace = await mkdtemp(
       path.join(tmpdir(), "template-cli-add-identity-conflict-"),
     );
@@ -170,7 +170,9 @@ void describe("init toolchain snapshot consumption", () => {
         ({ name }) => name === "@acme/tooling-config",
       );
       if (existing === undefined) {
-        throw new Error("初始化蓝图未包含已有配置包");
+        throw new Error(
+          "Initialized blueprint did not include the existing tooling-config package",
+        );
       }
       const { name, path: existingPath, role } = existing;
 

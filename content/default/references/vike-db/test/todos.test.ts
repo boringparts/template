@@ -9,7 +9,7 @@ void describe("todo queries", () => {
   void it("creates and lists todos through Drizzle SQLite", async () => {
     const db = createDatabase();
     assertDatabaseReady(db);
-    const title = `发布模板 ${Date.now()}`;
+    const title = `Publish template ${Date.now()}`;
 
     assert.equal((await createTodo(db, { title })).title, title);
     assert.ok((await listTodos(db)).some((todo) => todo.title === title));

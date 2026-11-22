@@ -1,4 +1,4 @@
-/** 内容身份只由来源命名空间、所属原生包名和公开导出入口确定。 */
+/** Canonical identity determined solely by source namespace, owning package name, and public export path. */
 export type ContentIdentity = Readonly<{
   readonly namespace: string;
   readonly packageName: string;
@@ -7,13 +7,13 @@ export type ContentIdentity = Readonly<{
 
 export type ContentKind = "preset" | "reference";
 
-/** 选择可使用展示别名，或提供完整规范身份。 */
+/** Selects content by display alias (optionally scoped to a namespace) or full canonical identity. */
 export type ContentSelector =
   | ContentIdentity
   | string
   | Readonly<{ alias: string; namespace?: string }>;
 
-/** 装载后的成员保留原定义对象，并记录本次实际公开入口。 */
+/** Loaded collection member preserving the original definition object and its resolved public entry point. */
 export type LoadedContentMember<
   Definition = unknown,
   Kind extends ContentKind = ContentKind,
@@ -57,7 +57,7 @@ export type ContentIndex<
   ): Member & { readonly kind: Kind };
 }>;
 
-/** 使用JSON三元组作为Map键，避免分隔符碰撞和附加身份维度。 */
+/** Encodes an identity as a JSON triple for Map keys to avoid delimiter collisions and extra dimensions. */
 export function contentIdentityKey(identity: ContentIdentity): string {
   assertContentIdentity(identity);
   return JSON.stringify([
@@ -71,7 +71,7 @@ export function contentIdentityLabel(identity: ContentIdentity): string {
   return `${identity.namespace}:${identity.packageName}#${identity.exportPath}`;
 }
 
-/** 从唯一显式集合按种类派生成员，保留定义与种类的类型关联。 */
+/** Splits an explicit member collection into presets and reference packages while preserving definition types. */
 export function deriveContentMembers<
   const Content extends readonly LoadedContentMember[],
 >(content: Content): DerivedContentMembers<Content> {
@@ -110,11 +110,13 @@ export function assertContentIdentity(
   value: unknown,
 ): asserts value is ContentIdentity {
   if (!isContentIdentity(value)) {
-    throw new Error("内容身份必须包含命名空间、包名和公开导出入口");
+    throw new Error(
+      "Content identity must include a non-empty namespace, packageName, and public exportPath",
+    );
   }
 }
 
-/** 创建纯索引；不访问磁盘、不解析模块，也不隐式补充未登记成员。 */
+/** Creates a pure in-memory index without disk I/O, module resolution, or implicit member discovery. */
 export function createContentIndex<Member extends LoadedContentMember>(
   members: readonly Member[],
 ): ContentIndex<Member> {
@@ -125,11 +127,13 @@ export function createContentIndex<Member extends LoadedContentMember>(
   for (const member of members) {
     assertContentIdentity(member.identity);
     if (member.kind !== "preset" && member.kind !== "reference") {
-      throw new Error(`内容${contentIdentityLabel(member.identity)}的种类无效`);
+      throw new Error(
+        `Invalid content kind for ${contentIdentityLabel(member.identity)}`,
+      );
     }
     if (typeof member.alias !== "string" || member.alias.trim().length === 0) {
       throw new Error(
-        `内容${contentIdentityLabel(member.identity)}缺少有效别名`,
+        `Content ${contentIdentityLabel(member.identity)} is missing a valid alias`,
       );
     }
     const key = contentIdentityKey(member.identity);
@@ -137,9 +141,9 @@ export function createContentIndex<Member extends LoadedContentMember>(
     if (previous !== undefined) {
       const cause =
         previous.source.moduleURL === member.source.moduleURL
-          ? "重复规范身份"
-          : "同一规范身份存在多个未明确选择的来源修订";
-      throw new Error(`${cause}：${contentIdentityLabel(member.identity)}`);
+          ? "Duplicate canonical content identity"
+          : "Multiple unselected source revisions for canonical content identity";
+      throw new Error(`${cause}: ${contentIdentityLabel(member.identity)}`);
     }
     identities.set(key, member);
     const aliasMembers = aliases.get(member.alias) ?? [];
@@ -158,7 +162,7 @@ export function createContentIndex<Member extends LoadedContentMember>(
   ): Member & { readonly kind: Kind } => {
     if (member.kind !== expectedKind) {
       throw new Error(
-        `内容${contentIdentityLabel(member.identity)}种类不符：需要${expectedKind}，实际为${member.kind}`,
+        `Content kind mismatch for ${contentIdentityLabel(member.identity)}: expected ${expectedKind}, got ${member.kind}`,
       );
     }
     return member as Member & { readonly kind: Kind };
@@ -171,7 +175,9 @@ export function createContentIndex<Member extends LoadedContentMember>(
     if (isContentIdentity(selector)) {
       const member = identities.get(contentIdentityKey(selector));
       if (member === undefined) {
-        throw new Error(`规范内容不存在：${contentIdentityLabel(selector)}`);
+        throw new Error(
+          `Canonical content not found: ${contentIdentityLabel(selector)}`,
+        );
       }
       return requireKind(member, expectedKind);
     }
@@ -182,7 +188,7 @@ export function createContentIndex<Member extends LoadedContentMember>(
       typeof aliasSelector.alias !== "string" ||
       aliasSelector.alias.trim().length === 0
     ) {
-      throw new Error("内容别名不能为空");
+      throw new Error("Content alias must not be empty");
     }
     const namespaceCandidates = (aliases.get(aliasSelector.alias) ?? []).filter(
       (member) =>
@@ -197,18 +203,22 @@ export function createContentIndex<Member extends LoadedContentMember>(
         return requireKind(namespaceCandidates[0]!, expectedKind);
       }
       if (namespaceCandidates.length === 0) {
-        throw new Error(`内容别名不存在：${aliasSelector.alias}`);
+        throw new Error(`Content alias not found: ${aliasSelector.alias}`);
       }
       const choices = namespaceCandidates
         .map((member) => contentIdentityLabel(member.identity))
-        .join("、");
-      throw new Error(`内容别名存在歧义：${aliasSelector.alias}（${choices}）`);
+        .join(", ");
+      throw new Error(
+        `Ambiguous content alias ${aliasSelector.alias} (${choices})`,
+      );
     }
     if (candidates.length > 1) {
       const choices = candidates
         .map((member) => contentIdentityLabel(member.identity))
-        .join("、");
-      throw new Error(`内容别名存在歧义：${aliasSelector.alias}（${choices}）`);
+        .join(", ");
+      throw new Error(
+        `Ambiguous content alias ${aliasSelector.alias} (${choices})`,
+      );
     }
     return requireKind(candidates[0]!, expectedKind);
   };
@@ -219,7 +229,9 @@ export function createContentIndex<Member extends LoadedContentMember>(
     options?: Readonly<{ readonly namespace?: string }>,
   ): Member & { readonly kind: Kind } => {
     if (typeof definition !== "object" || definition === null) {
-      throw new Error("内容定义未由显式集合装载");
+      throw new Error(
+        "Content definition was not loaded from an explicit collection",
+      );
     }
     const matchingKind = (definitions.get(definition) ?? []).filter(
       (member) => member.kind === expectedKind,
@@ -232,7 +244,9 @@ export function createContentIndex<Member extends LoadedContentMember>(
           );
     const candidates = inNamespace.length > 0 ? inNamespace : matchingKind;
     if (candidates.length === 0) {
-      throw new Error("内容定义未由显式集合装载");
+      throw new Error(
+        "Content definition was not loaded from an explicit collection",
+      );
     }
     if (candidates.length > 1) {
       const namespaces = new Set(
@@ -240,12 +254,12 @@ export function createContentIndex<Member extends LoadedContentMember>(
       );
       const cause =
         namespaces.size > 1
-          ? "同一内容定义属于多个命名空间"
-          : "同一内容定义关联多个规范入口";
+          ? "Content definition belongs to multiple namespaces"
+          : "Content definition is registered under multiple canonical entries";
       throw new Error(
-        `${cause}，必须明确来源：${candidates
+        `${cause}; specify the source explicitly: ${candidates
           .map((member) => contentIdentityLabel(member.identity))
-          .join("、")}`,
+          .join(", ")}`,
       );
     }
     return candidates[0] as Member & { readonly kind: Kind };

@@ -9,7 +9,7 @@ on:
   workflow_call:
     inputs:
       pack_cli:
-        description: 打包并验收 CLI 分发制品
+        description: Pack and verify CLI distribution artifacts
         required: false
         type: boolean
         default: false
@@ -20,7 +20,7 @@ on:
         required: false
     outputs:
       pack_artifact_id:
-        description: Changesets 打包制品 ID
+        description: Changesets packed artifact ID
         value: ${{ jobs.check.outputs.pack_artifact_id }}
 
 permissions:
@@ -32,7 +32,7 @@ concurrency:
 
 jobs:
   check:
-    name: 检查源码与独立能力
+    name: Check source and standalone capabilities
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
@@ -57,11 +57,11 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: 读取 Node 版本
+      - name: Read Node version
         id: node-runtime
         run: echo "runtime=node@$(jq -er '.engines.node' package.json)" >> "$GITHUB_OUTPUT"
-      - name: 安装 pnpm 与 Node.js
-        uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3.1.2
+      - name: Set up pnpm and Node.js
+        uses: pnpm/setup@731dfb6463bbd11c11fd0ee11fe00ed0e36d48a1 # v3.2.0
         with:
           runtime: ${{ steps.node-runtime.outputs.runtime }}
           install: false
@@ -133,7 +133,7 @@ jobs:
           TEMPLATE_FIXTURE_TURBO_REMOTE_CACHE_SIGNATURE_KEY: ${{ (((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch') && job.workflow_ref == github.workflow_ref || github.event_name == 'release') && secrets.TURBO_REMOTE_CACHE_SIGNATURE_KEY || '' }}
           TEMPLATE_FIXTURE_TURBO_REMOTE_CACHE_READ_ONLY: ${{ (((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch') && job.workflow_ref == github.workflow_ref) && 'false' || 'true' }}
 
-      - name: 显示失败时的内核资源诊断
+      - name: Show kernel diagnostics on failure
         if: failure()
         run: sudo dmesg --level=err,warn --time-format=iso | tail -n 80
 
@@ -142,16 +142,16 @@ jobs:
         if: always() && steps.package-check.outcome == 'success'
         run: pnpm --filter @ykdz/default-content-verification run check:evidence-health
 
-      - name: 构建 CLI 分发目录
+      - name: Build CLI distribution directory
         if: inputs.pack_cli
         run: pnpm --filter @ykdz/template run build:distribution
 
-      - name: 打包待发布版本
+      - name: Pack pending release versions
         id: pack
         if: inputs.pack_cli
         uses: changesets/action/pack@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
 
-      - name: 下载打包制品以验收
+      - name: Download packed artifacts for verification
         if: inputs.pack_cli
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -159,7 +159,7 @@ jobs:
           path: ${{ runner.temp }}/packed-cli
           merge-multiple: true
 
-      - name: 验收安装后的 CLI
+      - name: Verify installed CLI
         if: inputs.pack_cli
         run: |
           if compgen -G "$RUNNER_TEMP/packed-cli/packages/ykdz-template-*.tgz" > /dev/null; then
@@ -167,7 +167,7 @@ jobs:
             TEMPLATE_CLI_JOURNEY_MODE=packed TEMPLATE_CLI_PACKED_BIN="$RUNNER_TEMP/template-consumer/node_modules/.bin/template" pnpm --filter @ykdz/template run test:e2e:packed
           fi
 
-      - name: 清理测试容器
+      - name: Clean up test containers
         if: always() && steps.fixture-prerequisites.outcome == 'success'
         run: |
           fixture_container_ids="$(docker ps -aq --filter label=com.ykdz.template.verification.project)"
@@ -176,7 +176,7 @@ jobs:
             docker rm -f "${fixture_containers[@]}"
           fi
 
-      - name: 恢复 Fixture 诊断属主
+      - name: Restore fixture diagnostic ownership
         if: always() && steps.fixture-prerequisites.outcome == 'success'
         run: |
           if [ -d .fixture-workspace ]; then

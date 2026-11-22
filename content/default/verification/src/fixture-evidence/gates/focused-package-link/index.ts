@@ -249,7 +249,9 @@ function commandStdout(result: unknown): string {
 
 /**
  * Proves one focused Package Link consumes the current provider manifest in
- * both source and built-distribution modes.
+ * both source and built-distribution modes. Appends a probe export to the
+ * provider source entry and removes that source file before the default-mode
+ * check so the final run must load built output.
  */
 export async function executeFocusedPackageLink(options: {
   readonly scenarioLabel: string;

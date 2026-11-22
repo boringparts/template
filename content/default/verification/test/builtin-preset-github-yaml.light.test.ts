@@ -272,7 +272,7 @@ void describe("Built-in Preset GitHub YAML checker", () => {
       await expectWorkflowRejected(baseline, mutated);
   });
 
-  void it("拒绝重验收缺少时限、Docker 准备或正确顺序", async () => {
+  void it("rejects heavy check workflows missing timeout, Docker setup, or required step order", async () => {
     const baseline = await deploymentWorkflow();
     const source = baseline.source;
     await expectWorkflowRejected(
@@ -302,7 +302,7 @@ void describe("Built-in Preset GitHub YAML checker", () => {
     );
   });
 
-  void it("拒绝诊断材料脱离失败阶段、声明所有者或固定上传目录", async () => {
+  void it("rejects diagnostics detached from failure condition, declared owners, or fixed upload directory", async () => {
     const baseline = await deploymentWorkflow();
     const source = baseline.source;
     await expectWorkflowRejected(

@@ -12,7 +12,6 @@ import {
   type ContentSelector,
 } from "@ykdz/template-core/content-identity";
 import type { GenerationRecordSelection } from "@ykdz/template-core/generation-record";
-import type { JsonValue } from "@ykdz/template-core/json";
 import { ProjectBlueprintValidationError } from "@ykdz/template-core/project-blueprint";
 import type { CurrentProjectProjectionEntry } from "@ykdz/template-core/project-projection";
 import type {
@@ -56,7 +55,7 @@ type PreparedContentNode = {
   }[];
 };
 
-/** 只遍历正式准备后的图，不在外围重新解释 direct 或 preset 输入。 */
+/** Walks only the formally prepared graph instead of re-interpreting direct or preset inputs outside the generator. */
 function preparedSelectionsContainOwner(
   selections: readonly {
     readonly roots: readonly PreparedContentNode[];
@@ -123,7 +122,7 @@ async function initOperationFacts(
         const selectedPackage = packagesById.get(packageDefinitionId);
         if (selectedPackage === undefined) {
           throw new Error(
-            `预设prepare缺少持久节点实例：${contentIdentityLabel(member.identity)}/${nodeIdentity}`,
+            `Preset prepare is missing persisted node instance: ${contentIdentityLabel(member.identity)}/${nodeIdentity}`,
           );
         }
         selectedPackages.set(nodeIdentity, selectedPackage);
@@ -143,7 +142,7 @@ async function initOperationFacts(
       (prepared.readFacts !== undefined && !Array.isArray(prepared.readFacts))
     ) {
       throw new Error(
-        `预设根贡献prepare结果无效：${member.identity.packageName}`,
+        `Invalid preset root contribution prepare result: ${member.identity.packageName}`,
       );
     }
     presetRootContributions.push(
@@ -168,8 +167,8 @@ async function additionFacts(
   repositoryRoot: string,
   content: readonly DefaultContentMember[],
   options: {
-    readonly restored: GeneratorRestoredProject<JsonValue>;
-    readonly selection: GeneratorAdditionSelection<JsonValue>;
+    readonly restored: GeneratorRestoredProject;
+    readonly selection: GeneratorAdditionSelection;
   },
 ): Promise<{
   readonly operationFacts: DefaultOperationFacts;
@@ -182,7 +181,7 @@ async function additionFacts(
   }>;
 }> {
   const targetManifests = new Map<
-    GeneratorRestoredProject<JsonValue>["blueprint"]["packages"][number]["packageDefinitionId"],
+    GeneratorRestoredProject["blueprint"]["packages"][number]["packageDefinitionId"],
     Readonly<Record<string, unknown>>
   >();
   const readTargetManifest = async (packagePath: string) => {
@@ -190,7 +189,7 @@ async function additionFacts(
     const stat = await lstat(manifestPath);
     if (!stat.isFile()) {
       throw new Error(
-        `加包需要参与验证的当前包package.json是普通文件：${packagePath}`,
+        `Adding a package requires an existing regular package.json file at ${packagePath}`,
       );
     }
     const bytes = new Uint8Array(await readFile(manifestPath));
@@ -200,12 +199,17 @@ async function additionFacts(
         new TextDecoder("utf-8", { fatal: true }).decode(bytes),
       );
     } catch (error) {
-      throw new Error(`加包需要有效JSON：${packagePath}/package.json`, {
-        cause: error,
-      });
+      throw new Error(
+        `Adding a package requires valid JSON in ${packagePath}/package.json`,
+        {
+          cause: error,
+        },
+      );
     }
     if (!isRecord(value)) {
-      throw new Error(`包manifest必须是对象：${packagePath}/package.json`);
+      throw new Error(
+        `Package manifest must be a JSON object: ${packagePath}/package.json`,
+      );
     }
     return {
       value,
@@ -226,7 +230,9 @@ async function additionFacts(
     ({ path: packagePath }) => packagePath === ".",
   );
   if (rootPackage === undefined) {
-    throw new Error("加包恢复记录缺少基础根实例");
+    throw new Error(
+      "Restored project record is missing the workspace root package instance",
+    );
   }
   targetManifests.set(rootPackage.packageDefinitionId, manifest);
   const currentFacts: CurrentProjectProjectionEntry[] = [rootManifestFact.fact];
@@ -251,13 +257,15 @@ async function additionFacts(
     currentFactPaths.add(fact.path);
   };
   const readPackageManifest = async (
-    packageId: GeneratorRestoredProject<JsonValue>["blueprint"]["packages"][number]["packageDefinitionId"],
+    packageId: GeneratorRestoredProject["blueprint"]["packages"][number]["packageDefinitionId"],
   ): Promise<Readonly<Record<string, unknown>>> => {
     const existing = targetManifests.get(packageId);
     if (existing !== undefined) return existing;
     const currentPackage = currentById.get(packageId);
     if (currentPackage === undefined) {
-      throw new Error(`包连接引用了未知当前实例：${packageId}`);
+      throw new Error(
+        `Package link references an unknown existing package instance: ${packageId}`,
+      );
     }
     const current = await readTargetManifest(currentPackage.path);
     targetManifests.set(packageId, current.value);
@@ -280,7 +288,7 @@ async function additionFacts(
         )
     ) {
       throw new Error(
-        `复用包 ${packagePath} 的公开入口路径无效：${targetValue}`,
+        `Invalid public export target path in reused package ${packagePath}: ${targetValue}`,
       );
     }
     const target = path.posix.join(
@@ -292,7 +300,7 @@ async function additionFacts(
     const targetStat = await lstat(targetAbsolutePath);
     if (!targetStat.isFile()) {
       throw new Error(
-        `复用包 ${packagePath} 的公开文件不可读取：${targetValue}`,
+        `Public export target in reused package ${packagePath} is not a readable regular file: ${targetValue}`,
       );
     }
     const targetBytes = new Uint8Array(await readFile(targetAbsolutePath));
@@ -326,7 +334,7 @@ async function additionFacts(
   };
 
   const linkedPackageIds = new Set<
-    GeneratorRestoredProject<JsonValue>["blueprint"]["packages"][number]["packageDefinitionId"]
+    GeneratorRestoredProject["blueprint"]["packages"][number]["packageDefinitionId"]
   >();
   const linkedProviderIds = new Set(linkedPackageIds);
   for (const intent of options.restored.blueprint.packageLinkIntents) {
@@ -347,9 +355,11 @@ async function additionFacts(
         continue;
       }
       const providerId =
-        binding.packageDefinitionId as GeneratorRestoredProject<JsonValue>["blueprint"]["packages"][number]["packageDefinitionId"];
+        binding.packageDefinitionId as GeneratorRestoredProject["blueprint"]["packages"][number]["packageDefinitionId"];
       if (!currentById.has(providerId)) {
-        throw new Error(`依赖绑定实例ID不存在：${binding.packageDefinitionId}`);
+        throw new Error(
+          `Dependency binding package definition ID does not exist: ${binding.packageDefinitionId}`,
+        );
       }
       linkedPackageIds.add(providerId);
       linkedProviderIds.add(providerId);
@@ -396,7 +406,9 @@ async function additionFacts(
       !Array.isArray(value) ||
       value.some((packagePath) => typeof packagePath !== "string")
     ) {
-      throw new Error("加包linkFrom必须是当前包路径字符串列表");
+      throw new Error(
+        "Addition creationInput.linkFrom must be an array of existing package path strings",
+      );
     }
     linkFromPaths.push(...(value as string[]));
   };
@@ -417,7 +429,7 @@ async function additionFacts(
     if (consumer === undefined) {
       throw new PackageLinkValidationError(
         { kind: "unknown-consumer", path: packagePath },
-        `加包linkFrom指向未知当前包：${packagePath}`,
+        `Package linkFrom references an unknown existing package: ${packagePath}`,
       );
     }
     if (
@@ -457,7 +469,7 @@ async function additionFacts(
       }
       if (providerManifest.name !== provider.name) {
         throw new Error(
-          `原生依赖提供者名称不匹配：${provider.path} 应为 ${provider.name}`,
+          `Native dependency provider manifest name mismatch at ${provider.path}: expected ${provider.name}`,
         );
       }
       const providerRecord = restoredById.get(provider.packageDefinitionId);
@@ -485,7 +497,9 @@ async function additionFacts(
           !isRecord(actual) &&
           !Array.isArray(actual)
         ) {
-          throw new Error(`复用包 ${provider.path} 缺少公开入口 ${exportName}`);
+          throw new Error(
+            `Reused package ${provider.path} is missing public export ${exportName}`,
+          );
         }
         if (typeof actual !== "string") continue;
         if (
@@ -497,7 +511,7 @@ async function additionFacts(
             .some((segment) => segment === "..")
         ) {
           throw new Error(
-            `复用包 ${provider.path} 的公开入口路径无效：${actual}`,
+            `Invalid public export target path in reused package ${provider.path}: ${actual}`,
           );
         }
         await readPackageExportTarget(provider.path, actual);
@@ -515,7 +529,7 @@ async function additionFacts(
   ) {
     throw new RootToolchainDeclarationError(
       { kind: "invalid-node-declaration" },
-      `加包需要根package.json的engines.node为单个Node大版本或精确版本，实际收到 ${JSON.stringify(nodeDeclaration ?? null)}`,
+      `Adding a package requires root package.json engines.node to be a single Node major or exact version, got ${JSON.stringify(nodeDeclaration ?? null)}`,
     );
   }
   const packageManagerPin = isRecord(manifest)
@@ -527,7 +541,7 @@ async function additionFacts(
   ) {
     throw new RootToolchainDeclarationError(
       { kind: "invalid-package-manager-pin" },
-      `加包需要根package.json的packageManager为精确pnpm版本，实际收到 ${JSON.stringify(packageManagerPin ?? null)}`,
+      `Adding a package requires root package.json packageManager to be an exact pnpm version pin, got ${JSON.stringify(packageManagerPin ?? null)}`,
     );
   }
   const selectedPresetSelectors: ContentSelector[] = [
@@ -544,7 +558,7 @@ async function additionFacts(
   const readPreparedLinkFacts = async (creationInputs: readonly unknown[]) => {
     const factCount = currentFacts.length;
     const selectedProviderIds = new Set<
-      GeneratorRestoredProject<JsonValue>["blueprint"]["packages"][number]["packageDefinitionId"]
+      GeneratorRestoredProject["blueprint"]["packages"][number]["packageDefinitionId"]
     >();
     for (const creationInput of creationInputs) {
       if (!isRecord(creationInput) || !isRecord(creationInput.linkTo)) {
@@ -560,7 +574,7 @@ async function additionFacts(
       }
       if (typeof linkTo.packageDefinitionId === "string") {
         const providerId =
-          linkTo.packageDefinitionId as GeneratorRestoredProject<JsonValue>["blueprint"]["packages"][number]["packageDefinitionId"];
+          linkTo.packageDefinitionId as GeneratorRestoredProject["blueprint"]["packages"][number]["packageDefinitionId"];
         if (currentById.has(providerId)) selectedProviderIds.add(providerId);
         continue;
       }
@@ -613,7 +627,7 @@ async function additionFacts(
   };
 }
 
-/** 默认SDK在正式generator链外准备真实默认owner和当前目标事实。 */
+/** Wraps the core generator with default owner preparation and target repository fact collection before planning or committing. */
 export function createDefaultGenerator<
   const Content extends readonly DefaultContentMember[],
 >(options: {

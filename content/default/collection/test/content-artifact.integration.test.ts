@@ -89,7 +89,10 @@ async function buildNativeAuthoredContent(
     (owner) =>
       owner.member.identity.packageName === "@ykdz/reference-workspace-root",
   );
-  assert.ok(rootOwner, "原生作者fixture需要默认root owner归档");
+  assert.ok(
+    rootOwner,
+    "Native authored fixture requires the default root owner archive",
+  );
   await writeNativeArchiveOverrides(
     fixture.root,
     [...prepared.sdkPackages, rootOwner.packed],
@@ -247,7 +250,7 @@ async function auditInstalledLinks(
         const target = await realpath(absolutePath);
         assert.ok(
           isWithin(root, target),
-          `安装链接越出消费者node_modules：${absolutePath} -> ${target}`,
+          `Installed symlink escapes consumer node_modules: ${absolutePath} -> ${target}`,
         );
         links.push({ path: absolutePath, target });
       } else if (entry.isDirectory()) {
@@ -319,7 +322,7 @@ async function auditInstalledClosure(
     }
     assert.ok(
       isWithin(nodeModulesRealRoot, packagePath),
-      `实际安装包越出消费者node_modules：${installedPackage.name} -> ${packagePath}`,
+      `Installed package escapes consumer node_modules: ${installedPackage.name} -> ${packagePath}`,
     );
     if (auditedPackagePaths.has(packagePath)) continue;
     auditedPackagePaths.add(packagePath);
@@ -328,7 +331,7 @@ async function auditInstalledClosure(
       packageTexts.every((text) =>
         forbiddenPaths.every((forbiddenPath) => !text.includes(forbiddenPath)),
       ),
-      `安装运行/数据闭包包含作者路径：${installedPackage.name}`,
+      `Installed runtime/data closure contains author path: ${installedPackage.name}`,
     );
   }
   const links = await auditInstalledLinks(nodeModulesRoot);
@@ -349,8 +352,8 @@ after(async () => {
   ]);
 });
 
-void describe("原生内容制品安装链", () => {
-  void it("安装TS库最小集合后由普通Node init并在新引擎中add和回放", async () => {
+void describe("native content artifact installation chain", () => {
+  void it("installs the minimal TS library collection, initializes in plain Node, and adds and replays in a fresh engine", async () => {
     const buildRoot = await temporaryRoot("preset-content-");
     const preset = templateContent.find(
       (member) => member.kind === "preset" && member.alias === "ts-lib",
@@ -588,7 +591,7 @@ void describe("原生内容制品安装链", () => {
     ]) {
       assert.ok(
         closure.packages.some(({ name }) => name === archive.name),
-        `TS库集合安装闭包缺少制品：${archive.name}@${archive.version}`,
+        `TS library collection installed closure is missing artifact: ${archive.name}@${archive.version}`,
       );
     }
     const missingSdkDriverPath = path.join(
@@ -718,7 +721,7 @@ void describe("原生内容制品安装链", () => {
     );
   });
 
-  void it("其余五个预设分别从独立最小原生集合安装并初始化", async () => {
+  void it("installs and initializes the remaining five presets from independent minimal native collections", async () => {
     assert.ok(firstPartyPrepared);
     const sdkArchives = firstPartyPrepared.sdkPackages;
     const presets = templateContent.filter(
@@ -747,7 +750,7 @@ void describe("原生内容制品安装链", () => {
           (member) =>
             member.kind !== "preset" || member.identity === preset.identity,
         ),
-        `${preset.alias} 的最小闭包包含了其他预设`,
+        `Minimal closure for ${preset.alias} includes other presets`,
       );
 
       const authorRoots = prepared.owners.map((owner) => owner.packageRoot);
@@ -878,7 +881,7 @@ void describe("原生内容制品安装链", () => {
       ]) {
         assert.ok(
           closure.packages.some(({ name }) => name === archive.name),
-          `${preset.alias} 安装闭包缺少制品：${archive.name}@${archive.version}`,
+          `Installed closure for ${preset.alias} is missing artifact: ${archive.name}@${archive.version}`,
         );
       }
       assert.deepEqual(
@@ -909,7 +912,10 @@ void describe("原生内容制品安装链", () => {
         ["vike-app", "@ykdz/reference-vue-app"],
       ]);
       const replayPackageName = replayPackageByPreset.get(preset.alias);
-      assert.ok(replayPackageName, `${preset.alias} 缺少受支持的单包回放选择`);
+      assert.ok(
+        replayPackageName,
+        `Missing supported single-package replay selection for ${preset.alias}`,
+      );
       const replayMember = templateContent.find(
         (member) =>
           member.kind === "reference" &&
@@ -1110,7 +1116,7 @@ void describe("原生内容制品安装链", () => {
       ]) {
         assert.ok(
           replayClosure.packages.some(({ name }) => name === archive.name),
-          `${preset.alias} 回放闭包缺少制品：${archive.name}@${archive.version}`,
+          `Replay closure for ${preset.alias} is missing artifact: ${archive.name}@${archive.version}`,
         );
       }
       let missingResourceEvidence:
@@ -1133,7 +1139,7 @@ void describe("原生内容制品安装链", () => {
           rustOwner.artifact.resources.some(
             ({ path: resourcePath }) => resourcePath === "Cargo.toml",
           ),
-          "Rust reference 的原生执行事实必须进入正式制品",
+          "Native execution facts of the Rust reference must be included in the packed artifact",
         );
         const installedCargoManifest = path.join(
           installedRust.path,
@@ -1286,7 +1292,7 @@ void describe("原生内容制品安装链", () => {
     }
   });
 
-  void it("全部参考入口按声明绑定原生根并安装生成", async () => {
+  void it("binds all reference entries to the native root as declared and installs and generates them", async () => {
     assert.ok(firstPartyPrepared);
     const references = templateContent.filter(
       (member) => member.kind === "reference",
@@ -1325,7 +1331,7 @@ void describe("原生内容制品安装链", () => {
         (identity) =>
           contentIdentityKey(identity) === contentIdentityKey(honoApi.identity),
       ),
-      "Vue-Hono web 的真实依赖声明应指向 Hono API",
+      "Vue-Hono web real dependency declaration should point to Hono API",
     );
     assert.ok(
       dependencyIdentities(vikeWeb).some(
@@ -1333,7 +1339,7 @@ void describe("原生内容制品安装链", () => {
           contentIdentityKey(identity) ===
           contentIdentityKey(vikeDatabase.identity),
       ),
-      "Vike web 的真实依赖声明应指向 Vike DB",
+      "Vike web real dependency declaration should point to Vike DB",
     );
     assert.ok(
       dependencyIdentities(vikeMigrations).some(
@@ -1341,7 +1347,7 @@ void describe("原生内容制品安装链", () => {
           contentIdentityKey(identity) ===
           contentIdentityKey(vikeDatabase.identity),
       ),
-      "Vike migrations 的真实依赖声明应指向 Vike DB",
+      "Vike migrations real dependency declaration should point to Vike DB",
     );
 
     const prepared = await prepareContentCollection({
@@ -1394,7 +1400,7 @@ void describe("原生内容制品安装链", () => {
     assert.equal(
       prepared.resolvedVersions.get("typescript-7"),
       nativeTypeScript.version,
-      "第一方制品解析应保留原生devDependency别名对应的实际版本",
+      "First-party artifact resolution should preserve the actual version of native devDependency aliases",
     );
 
     const authorRoots = prepared.owners.map((owner) => owner.packageRoot);
@@ -1581,7 +1587,7 @@ void describe("原生内容制品安装链", () => {
             contentIdentityKey(identity) ===
             contentIdentityKey(member.identity),
         ),
-        `未实际初始化 reference ${member.identity.packageName}`,
+        `Reference ${member.identity.packageName} was not actually initialized`,
       );
     }
     const vueHonoResult = result.results.find(
@@ -1602,7 +1608,7 @@ void describe("原生内容制品安装链", () => {
     ]) {
       assert.ok(
         closure.packages.some(({ name }) => name === archive.name),
-        `全部参考集合安装闭包缺少制品：${archive.name}@${archive.version}`,
+        `All-references collection installed closure is missing artifact: ${archive.name}@${archive.version}`,
       );
     }
     assert.deepEqual(
@@ -1647,7 +1653,7 @@ void describe("原生内容制品安装链", () => {
     );
   });
 
-  void it("同一原创TypeScript工厂经原生安装后init、fresh add并隔离作者目录", async () => {
+  void it("initializes, runs fresh add, and isolates author directories for an authored TypeScript factory after native installation", async () => {
     assert.ok(firstPartyPrepared);
     const sdkVersions = new Map(
       firstPartyPrepared.sdkPackages.map(({ name, version }) => [
@@ -1686,7 +1692,7 @@ void describe("原生内容制品安装链", () => {
       featureTemplatePrelude: [
         'import ts from "typescript";',
         "export const fixtureTypescriptVersion = ts.version;",
-        'if (ts.version !== "6.0.3") throw new Error(`所属包解析出 TypeScript ${ts.version}`);',
+        'if (ts.version !== "6.0.3") throw new Error(`Owning package resolved TypeScript ${ts.version}`);',
       ],
       featureTemplateDependencies: [
         {
@@ -1844,7 +1850,7 @@ void describe("原生内容制品安装链", () => {
     assert.equal(
       featureArchiveManifest.dependencies?.typescript,
       "6.0.3",
-      "原创 owner 的普通原生依赖应使用该 owner 自己解析出的 TypeScript 坐标",
+      "Ordinary native dependencies of an authored owner should use the TypeScript coordinate resolved by that owner",
     );
     const presetOwner = prepared.owners.find(
       (owner) => owner.member.identity.packageName === "@fixture/preset",
@@ -1856,7 +1862,7 @@ void describe("原生内容制品安装链", () => {
           dependency.name === "@ykdz/template-workspace-authoring" &&
           dependency.purposes.includes("template-execution"),
       ),
-      "原创预设制品应声明其运行definition所需的authoring SDK",
+      "Authored preset artifact should declare the authoring SDK required to run its definition",
     );
     for (const owner of prepared.owners.filter(
       ({ member }) => member.identity.namespace === namespace,
@@ -2223,7 +2229,7 @@ void describe("原生内容制品安装链", () => {
     ]) {
       assert.ok(
         installed.some(({ name }) => name === archive.name),
-        `原生安装清单缺少制品：${archive.name}@${archive.version}`,
+        `Native installation inventory is missing artifact: ${archive.name}@${archive.version}`,
       );
     }
     const existingTargetBeforeFailure = await snapshotTree(targetRoot);
@@ -2462,7 +2468,7 @@ void describe("原生内容制品安装链", () => {
     );
   });
 
-  void it("原生安装按来源和真实版本消歧同名原创内容", async () => {
+  void it("disambiguates same-name authored content by source and real version after native installation", async () => {
     assert.ok(firstPartyPrepared);
     const typescriptVersion =
       firstPartyPrepared.resolvedVersions.get("typescript-7");
@@ -2648,7 +2654,7 @@ void describe("原生内容制品安装链", () => {
         'const ambiguous = await generator.init({ targetRoot: ambiguousTarget, selection: { roots: [{ nodeIdentity: "workspace-root", contentIdentity: defaultRoot.identity }, { nodeIdentity: "ambiguous", contentIdentity: { alias: "feature" } }] }, conventions: { repositoryName: "ambiguous", defaultPackageScope: "ambiguous", todo: false } });',
         'assert.equal(ambiguous.status, "operation-failure");',
         'assert.equal(ambiguous.phase, "preparation");',
-        "assert.match(ambiguous.error.message, /内容别名存在歧义：feature/u);",
+        "assert.match(ambiguous.error.message, /Ambiguous content alias feature/u);",
         'await assert.rejects(readdir(ambiguousTarget), { code: "ENOENT" });',
         "await mkdir(targetRoot, { recursive: true });",
         'const initialized = await generator.init({ targetRoot, selection: { roots: [{ nodeIdentity: "workspace-root", contentIdentity: defaultRoot.identity }, ...identities.map((contentIdentity, index) => ({ nodeIdentity: `source-${index}`, contentIdentity, creationInput: { leafName: `source-${index}` } }))] }, conventions: { repositoryName: "multi-source", defaultPackageScope: "multi-source", todo: false } });',

@@ -54,8 +54,8 @@ function requireResource(
   if (matches.length !== 1) {
     throw new Error(
       matches.length === 0
-        ? `资源快照缺少联合验收文件：${path}`
-        : `资源快照重复包含联合验收文件：${path}`,
+        ? `Resource snapshot is missing joint E2E file: ${path}`
+        : `Resource snapshot contains duplicate joint E2E file: ${path}`,
     );
   }
   const resource = matches[0]!;
@@ -65,7 +65,7 @@ function requireResource(
   });
 }
 
-/** 从外层准备的不可变字节快照中选出联合验收所需资源。 */
+/** Extracts joint E2E resources from the immutable byte snapshots prepared by the outer layer. */
 export function prepareVueHonoJointE2eResources(
   resources: readonly VueHonoJointE2eResourceSnapshot[],
 ): PreparedVueHonoJointE2eResources {
@@ -86,7 +86,7 @@ function requireNode(
 ): CompositionPackage {
   const packageDefinitionId = selection.nodes[nodeName];
   if (packageDefinitionId === undefined) {
-    throw new Error(`Vue-Hono 预设缺少节点 ${nodeName}`);
+    throw new Error(`Vue-Hono preset is missing node ${nodeName}`);
   }
   const selectedEvaluation = selectedPackages.get(nodeName);
   const selectedPackage = selectedEvaluation?.package;
@@ -95,7 +95,7 @@ function requireNode(
     selectedPackage.packageDefinitionId !== packageDefinitionId
   ) {
     throw new Error(
-      `Vue-Hono 预设节点 ${nodeName} 未解析到本次选择的包实例 ${packageDefinitionId}`,
+      `Vue-Hono preset node ${nodeName} did not resolve to selected package instance ${packageDefinitionId}`,
     );
   }
   return selectedPackage;
@@ -161,7 +161,7 @@ function outputFiles(options: {
       options.resources.configuration.content,
     );
   } catch (cause) {
-    throw new Error("Vue-Hono Playwright 配置必须是有效 UTF-8 文本", {
+    throw new Error("Vue-Hono Playwright config must be valid UTF-8 text", {
       cause,
     });
   }
@@ -170,12 +170,12 @@ function outputFiles(options: {
   const webSourceName = options.web.contentIdentity.packageName;
   if (!configuration.includes(JSON.stringify(apiSourceName))) {
     throw new Error(
-      `Vue-Hono Playwright 配置缺少 API 原生包名：${apiSourceName}`,
+      `Vue-Hono Playwright config is missing API source package name: ${apiSourceName}`,
     );
   }
   if (!configuration.includes(JSON.stringify(webSourceName))) {
     throw new Error(
-      `Vue-Hono Playwright 配置缺少 Web 原生包名：${webSourceName}`,
+      `Vue-Hono Playwright config is missing web source package name: ${webSourceName}`,
     );
   }
   const outputConfiguration = new TextEncoder().encode(
@@ -211,16 +211,16 @@ function outputFiles(options: {
   ]);
 }
 
-/** 纯组合此预设本次selection内的web、API实例与owner附件。 */
+/** Purely composes the web and API instances selected for this preset along with its owned root attachments. */
 export function composeVueHonoJointE2e(options: {
   readonly ownerIdentity: ContentIdentity;
   readonly selection: GenerationRecordSelection;
-  /** 必须是本次已选择的两节点映射，不传入工作区全实例表。 */
+  /** Must contain only the two nodes selected for this preset, not the full workspace instance map. */
   readonly selectedPackages: ReadonlyMap<
     string,
     DefaultPresetPackageEvaluation
   >;
-  /** 默认组合器明确提供的根实例。 */
+  /** Workspace root instance explicitly provided by the default composer. */
   readonly rootPackage: CompositionPackage;
   readonly ownerFacts: VueHonoJointE2eOwnerFacts;
 }): VueHonoJointE2eComposition {
@@ -229,33 +229,43 @@ export function composeVueHonoJointE2e(options: {
     !sameIdentity(options.ownerIdentity, options.selection.presetIdentity)
   ) {
     throw new Error(
-      `Vue-Hono 组合附件的预设身份与持久选择不匹配：${contentIdentityLabel(options.ownerIdentity)}`,
+      `Vue-Hono root contribution preset identity does not match persisted selection: ${contentIdentityLabel(options.ownerIdentity)}`,
     );
   }
   if (
     options.rootPackage.definition.path !== "." ||
     options.rootPackage.definition.role !== "native-package"
   ) {
-    throw new Error("Vue-Hono 组合必须接收明确的native-package根实例");
+    throw new Error(
+      "Vue-Hono composition requires an explicit native-package root instance",
+    );
   }
 
   const web = requireNode(options.selectedPackages, options.selection, "web");
   const api = requireNode(options.selectedPackages, options.selection, "api");
   const nodeNames = Object.keys(options.selection.nodes).toSorted();
   if (nodeNames.join(",") !== "api,web") {
-    throw new Error("Vue-Hono 持久选择必须只包含 api 与 web 两个节点");
+    throw new Error(
+      "Vue-Hono persisted selection must contain only the api and web nodes",
+    );
   }
   if (options.selectedPackages.size !== nodeNames.length) {
-    throw new Error("Vue-Hono 组合只接收本次选择的 api 与 web 包实例");
+    throw new Error(
+      "Vue-Hono composition accepts only the selected api and web package instances",
+    );
   }
   if (web.packageDefinitionId === api.packageDefinitionId) {
-    throw new Error("Vue-Hono 预设的 web 与 API 必须是不同包实例");
+    throw new Error(
+      "Vue-Hono preset web and API must be distinct package instances",
+    );
   }
   if (
     web.packageDefinitionId === options.rootPackage.packageDefinitionId ||
     api.packageDefinitionId === options.rootPackage.packageDefinitionId
   ) {
-    throw new Error("Vue-Hono 的 web 与 API 节点不能复用基础根实例");
+    throw new Error(
+      "Vue-Hono web and API nodes cannot reuse the base root instance",
+    );
   }
   for (const [label, selectedPackage] of [
     ["web", web],
@@ -263,7 +273,7 @@ export function composeVueHonoJointE2e(options: {
   ] as const) {
     if (selectedPackage.definition.role !== "runtime-service") {
       throw new Error(
-        `Vue-Hono 预设要求 ${label} 实例 ${selectedPackage.definition.name} (${selectedPackage.definition.path}) 的角色为 runtime-service，实际为 ${selectedPackage.definition.role}`,
+        `Vue-Hono preset requires ${label} instance ${selectedPackage.definition.name} (${selectedPackage.definition.path}) to have role runtime-service, received ${selectedPackage.definition.role}`,
       );
     }
   }
@@ -271,7 +281,7 @@ export function composeVueHonoJointE2e(options: {
     web.dependencyBindings[honoApiDependencyKey] !== api.packageDefinitionId
   ) {
     throw new Error(
-      `Vue-Hono 预设的 web 实例 ${web.definition.name} (${web.definition.path}) 必须绑定到本次选择的 API 实例 ${api.definition.name} (${api.definition.path})`,
+      `Vue-Hono preset web instance ${web.definition.name} (${web.definition.path}) must be bound to the selected API instance ${api.definition.name} (${api.definition.path})`,
     );
   }
 

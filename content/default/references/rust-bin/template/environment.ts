@@ -11,7 +11,7 @@ const resourceSource = createTemplateSourceHandle(
   fileURLToPath(new URL("../resources/devcontainer/", import.meta.url)),
 );
 
-/** Rust owner 在宿主同步阶段读取自己的 Dockerfile 片段。 */
+/** Reads the Rust devcontainer Dockerfile fragment during host repository sync. */
 export function prepareRustDevelopmentContainerToolLayerFragments(): Readonly<
   Record<string, string>
 > {
@@ -24,13 +24,13 @@ export function prepareRustDevelopmentContainerToolLayerFragments(): Readonly<
     };
   } catch (cause) {
     throw new Error(
-      "Rust 开发容器资源 @ykdz/reference-rust-bin#./environment prepare 阶段无法读取 rust.Dockerfile",
+      "Failed to read rust.Dockerfile while preparing @ykdz/reference-rust-bin#./environment",
       { cause },
     );
   }
 }
 
-/** Rust 工具层的参数、挂载与探针由 Rust owner 声明。 */
+/** Declares the Rust devcontainer tool layer build arguments, Cargo mounts, and probes. */
 export function rustDevelopmentContainerToolLayer(
   rustVersion: string,
 ): DevelopmentContainerToolLayer {

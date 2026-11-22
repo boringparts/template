@@ -18,7 +18,7 @@ COPY package.json ./
 FROM base AS pruner
 COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm fetch
-# 冻结安装校验全部 importer，完整上下文同时保留新增包的声明。
+# Frozen install validates all importers; the full context also preserves declarations from added packages.
 COPY . .
 RUN pnpm install --offline --frozen-lockfile
 RUN pnpm exec turbo prune "$APPLICATION_PACKAGE_NAME" "$MIGRATION_PACKAGE_NAME" --docker
@@ -48,7 +48,7 @@ COPY --from=build --chown=app:nodejs /repo/${APPLICATION_PACKAGE_PATH}/dist ./di
 ENV DATABASE_FILE="/data/app.sqlite"
 USER app
 
-# 单容器部署先准备数据库，再启动应用。
+# Single-container deployment prepares the database before starting the application.
 FROM application-runtime AS standalone
 ARG DEPLOYMENT_BUILD_ID
 LABEL org.opencontainers.image.version="$DEPLOYMENT_BUILD_ID"
@@ -59,7 +59,7 @@ EXPOSE 3000
 ENTRYPOINT ["/usr/local/bin/container-entrypoint"]
 CMD ["prepare-and-start"]
 
-# 仅启动应用，数据库必须先由配套 standalone 镜像准备。
+# Starts only the application; the database must be prepared beforehand by the matching standalone image.
 FROM application-runtime AS runtime
 ARG DEPLOYMENT_BUILD_ID
 LABEL org.opencontainers.image.version="$DEPLOYMENT_BUILD_ID"

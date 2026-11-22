@@ -37,13 +37,13 @@ function getRunTarget(): JourneyRunTarget {
   const mode = process.env.TEMPLATE_CLI_JOURNEY_MODE;
   if (mode !== "source" && mode !== "distribution" && mode !== "packed") {
     throw new Error(
-      "TEMPLATE_CLI_JOURNEY_MODE 需设置为 source、distribution 或 packed",
+      "TEMPLATE_CLI_JOURNEY_MODE must be set to source, distribution, or packed",
     );
   }
 
   const packedBin = process.env.TEMPLATE_CLI_PACKED_BIN;
   if (mode === "packed" && packedBin === undefined) {
-    throw new Error("packed 模式必须设置 TEMPLATE_CLI_PACKED_BIN");
+    throw new Error("TEMPLATE_CLI_PACKED_BIN must be set in packed mode");
   }
   return { mode, ...(packedBin === undefined ? {} : { packedBin }) };
 }
@@ -87,7 +87,7 @@ function invocation(target: JourneyRunTarget): {
       };
     case "packed":
       if (target.packedBin === undefined) {
-        throw new Error("packed 模式必须设置 TEMPLATE_CLI_PACKED_BIN");
+        throw new Error("TEMPLATE_CLI_PACKED_BIN must be set in packed mode");
       }
       return { executable: target.packedBin, prefix: [] };
   }
@@ -139,12 +139,12 @@ async function runCommand(options: {
   });
   if (result.timedOut || result.isCanceled || result.exitCode === undefined) {
     const reason = result.timedOut
-      ? "超时"
+      ? "timed out"
       : result.isCanceled
-        ? "已取消"
-        : "未正常完成";
+        ? "was canceled"
+        : "did not complete normally";
     throw new Error(
-      `CLI 旅程命令“${options.command.name}”${reason}，耗时 ${result.durationMs}ms。\n标准输出：\n${result.stdout}\n标准错误：\n${result.stderr}`,
+      `CLI journey command "${options.command.name}" ${reason} after ${result.durationMs}ms.\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`,
       { cause: result },
     );
   }
@@ -158,7 +158,8 @@ async function runCommand(options: {
 
 function errorDetails(error: unknown, seen = new Set<unknown>()): unknown {
   if (error instanceof Error) {
-    if (seen.has(error)) return { name: error.name, message: "[循环 cause]" };
+    if (seen.has(error))
+      return { name: error.name, message: "[circular cause]" };
     seen.add(error);
     const cause = "cause" in error ? error.cause : undefined;
     return {
@@ -260,15 +261,16 @@ async function retainFailure(options: {
     error: errorDetails(options.error),
     reproduction: {
       source:
-        "请在 CLI 包的正式 test:e2e 入口中设置 TEMPLATE_CLI_JOURNEY_MODE=source。",
+        "Set TEMPLATE_CLI_JOURNEY_MODE=source and run the CLI package's test:e2e entry.",
       distribution:
-        "请在 CLI 包的正式 test:e2e 入口中设置 TEMPLATE_CLI_JOURNEY_MODE=distribution。",
+        "Set TEMPLATE_CLI_JOURNEY_MODE=distribution and run the CLI package's test:e2e entry.",
       packed:
-        "安装保留的打包归档，并将其 node_modules/.bin/template 路径传给 TEMPLATE_CLI_PACKED_BIN。",
+        "Install the retained package tarball and pass its node_modules/.bin/template path via TEMPLATE_CLI_PACKED_BIN.",
     },
     cleanup: {
       retryPath: copiedWorkspace ? workspacePath : options.workDir,
-      retry: "修复报告中的文件系统错误后，重新递归删除 retryPath。",
+      retry:
+        "After resolving the filesystem error in this report, recursively remove retryPath.",
     },
   };
   try {
@@ -320,12 +322,15 @@ async function runJourney(
             `${result.commandName}: exit=${result.exitCode}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`,
         )
         .join("\n\n");
-      throw new Error(`旅程 ${journey.name} 验证失败。\n${commandSummary}`, {
-        cause: error,
-      });
+      throw new Error(
+        `Journey ${journey.name} assertions failed.\n${commandSummary}`,
+        {
+          cause: error,
+        },
+      );
     }
     if (signal.aborted) {
-      throw new Error(`CLI 旅程“${journey.name}”已取消。`, {
+      throw new Error(`CLI journey "${journey.name}" was canceled.`, {
         cause: signal.reason,
       });
     }
@@ -367,7 +372,7 @@ async function runJourney(
   if (secondaryErrors.length > 0) {
     throw new AggregateError(
       [failure, ...secondaryErrors],
-      `CLI 旅程“${journey.name}”失败，诊断保留或清理过程还报告了其他错误。\nCLI_JOURNEY_DIAGNOSTICS=${retention.directory}`,
+      `CLI journey "${journey.name}" failed, and diagnostic retention or cleanup reported additional errors.\nCLI_JOURNEY_DIAGNOSTICS=${retention.directory}`,
       { cause: primaryError },
     );
   }
@@ -377,7 +382,7 @@ async function runJourney(
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
     process.exitCode = signal === "SIGINT" ? 130 : 143;
-    processAbortController.abort(new Error(`收到 ${signal} 信号`));
+    processAbortController.abort(new Error(`Received ${signal}`));
   });
 }
 const workerPidFile = process.env.TEMPLATE_CLI_JOURNEY_WORKER_PID_FILE;
@@ -391,7 +396,7 @@ const journeys = discoveredJourneys.filter((journey) =>
   journey.modes.includes(target.mode),
 );
 if (journeys.length === 0) {
-  throw new Error(`模式 ${target.mode} 没有可运行的 CLI 旅程`);
+  throw new Error(`No runnable CLI journeys found for mode ${target.mode}`);
 }
 
 for (const journey of journeys) {

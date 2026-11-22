@@ -12,8 +12,8 @@ import {
 } from "@ykdz/reference-workspace-root/environment";
 import { projectDependabotConfig } from "@ykdz/reference-workspace-root/project-github";
 
-void describe("根环境编辑器设置组合", () => {
-  void it("拒绝冲突资源中的设置并报告位置及双方来源", async () => {
+void describe("root environment editor settings composition", () => {
+  void it("rejects conflicting settings across resources and reports location and both sources", async () => {
     const directory = await mkdtemp(
       path.join(tmpdir(), "default-editor-conflict-"),
     );

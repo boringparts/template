@@ -3,8 +3,8 @@ import {
   defineCli,
   executeCli,
   helpCapability,
-  outputCapability,
   parseCliInvocation,
+  schemaCapability,
   text,
   versionCapability,
   type WriteCliOutput,
@@ -25,112 +25,175 @@ const records = [
   { name: "grace", title: "Grace Hopper" },
 ];
 
+const lookupInput = z.object({
+  name: z
+    .string()
+    .regex(/^[a-z]+$/, "Name must contain only lowercase ASCII letters."),
+});
+
+const foundRecordSchema = z.object({
+  name: z.string(),
+  title: z.string(),
+});
+
+const missingRecordSchema = z.object({
+  name: z.string(),
+});
+
+function findRecord(name: string) {
+  return records.find((candidate) => candidate.name === name);
+}
+
+function handleLookup<Found, NotFound>({
+  input,
+  outcome,
+}: {
+  readonly input: z.output<typeof lookupInput>;
+  readonly outcome: {
+    readonly data: {
+      readonly found: (data: z.input<typeof foundRecordSchema>) => Found;
+    };
+    readonly failure: {
+      readonly notFound: (
+        data: z.input<typeof missingRecordSchema>,
+      ) => NotFound;
+    };
+  };
+}): Found | NotFound {
+  const record = findRecord(input.name);
+  return record === undefined
+    ? outcome.failure.notFound({ name: input.name })
+    : outcome.data.found(record);
+}
+
 function createCliContract(identity: CliCommandIdentity) {
-  const define = defineCli<{ getManifest(): Record<string, unknown> }>();
+  const define = defineCli();
+  const lookupSuccess = {
+    kind: "data" as const,
+    variants: {
+      found: {
+        description: "Matching record found",
+        exitCode: 0,
+        schema: foundRecordSchema,
+      },
+    },
+  };
+  const lookupFailures = {
+    notFound: {
+      description: "Record not found",
+      exitCode: 1,
+      schema: missingRecordSchema,
+    },
+  };
+
   return define({
     root: "cli",
     help: helpCapability({
       shortAlias: "-h",
       headings: {
-        usage: "用法",
-        commands: "命令",
-        arguments: "参数",
-        options: "选项",
+        usage: "Usage",
+        commands: "Commands",
+        arguments: "Arguments",
+        options: "Options",
+        schema: "Contract Discovery",
+        examples: "Examples",
       },
       wording: {
-        commandPlaceholder: "命令",
-        choices: "候选：{choices}",
-        default: "默认：{value}",
+        commandPlaceholder: "command",
+        choices: "(choices: {choices})",
+        default: "(default: {value})",
       },
     }),
     version: versionCapability({
       value: text.line(`${identity.commandName} ${identity.version}`),
+      description: "Print the CLI version.",
       shortAlias: "-V",
     }),
-    output: outputCapability({ defaultFormat: "structured", text: true }),
+    schema: schemaCapability({
+      description: text.line("Inspect command contracts and wire schemas."),
+    }),
     usageFailureExitCode: 2,
     commands: {
       cli: {
         kind: "rootGroup",
         name: identity.commandName,
-        description: "查询示例记录。",
+        description: "Look up built-in example records.",
       },
       ...define.command("lookup")({
         kind: "command",
         parent: "cli",
         name: "lookup",
-        description: "按名称查询内存记录。",
+        description: "Look up an in-memory record by name.",
         fields: {
-          name: { kind: "positional", description: "小写字母组成的记录名称" },
-        },
-        input: z.object({
-          name: z.string().regex(/^[a-z]+$/, "名称只能包含小写字母。"),
-        }),
-        success: {
-          kind: "data",
-          variants: {
-            found: {
-              description: "找到记录",
-              exitCode: 0,
-              schema: z.object({ name: z.string(), title: z.string() }),
-              text: ({ name, title }) =>
-                text.line(`找到记录：${title}（${name}）`),
-            },
+          name: {
+            kind: "positional",
+            description: "Lowercase ASCII record name",
           },
         },
-        failures: {
-          notFound: {
-            description: "记录不存在",
-            exitCode: 1,
-            schema: z.object({ name: z.string() }),
-            text: ({ name }) => text.line(`未找到记录：${name}。`),
+        input: lookupInput,
+        examples: [
+          { input: { name: "ada" } },
+          { input: { name: "ada" }, outputMode: "text" },
+        ],
+        outputs: define.outputModes("lookup", lookupInput, (mode) => ({
+          default: "structured",
+          modes: {
+            structured: mode.atomic({
+              description: "Machine-readable structured result",
+              format: "structured",
+              success: lookupSuccess,
+              failures: lookupFailures,
+              handler: handleLookup,
+            }),
+            text: mode.atomic({
+              description: "Human-readable English text",
+              format: "text",
+              success: {
+                kind: "data",
+                variants: {
+                  found: {
+                    ...lookupSuccess.variants.found,
+                    text: ({ name, title }) =>
+                      text.line(`Found record: ${title} (${name})`),
+                  },
+                },
+              },
+              failures: {
+                notFound: {
+                  ...lookupFailures.notFound,
+                  text: ({ name }) => text.line(`Record not found: ${name}.`),
+                },
+              },
+              handler: handleLookup,
+            }),
           },
-        },
-        handler({ input, outcome }) {
-          const record = records.find(({ name }) => name === input.name);
-          return record === undefined
-            ? outcome.failure.notFound({ name: input.name })
-            : outcome.data.found(record);
-        },
-      }),
-      ...define.command("schema")({
-        kind: "command",
-        parent: "cli",
-        name: "schema",
-        description: "导出完整 CLI 契约及输入/输出 Schema。",
-        input: z.object({}),
-        fields: {},
-        success: {
-          kind: "data",
-          variants: {
-            exported: {
-              description: "完整 CLI 契约",
-              exitCode: 0,
-              schema: z.object({ manifest: z.record(z.string(), z.unknown()) }),
-              text: ({ manifest }) =>
-                text.lines([
-                  "CLI 契约",
-                  ...JSON.stringify(manifest, null, 2).split("\n"),
-                ]),
-            },
-          },
-        },
-        failures: {},
-        handler: ({ dependencies, outcome }) =>
-          outcome.data.exported({ manifest: dependencies.getManifest() }),
+        })),
       }),
     },
   });
 }
 
+/**
+ * Parses and executes a CLI invocation against the contract and returns the process exit code.
+ *
+ * Exit codes: `0` on success or stdout `EPIPE`, `1` on declared failure, `2` on usage failure,
+ * and `70` on unexpected runtime or write failure.
+ */
 export async function runCli(runtime: CliRuntime): Promise<number> {
   try {
     const contract = createCliContract(runtime.identity);
-    const result = await executeCli(contract, {
-      invocation: parseCliInvocation(contract, runtime.argv.slice(2)),
-      dependencies: { getManifest: () => ({ ...contract.manifest }) },
-      write: runtime.write,
-    });
+    const invocation = parseCliInvocation(contract, runtime.argv.slice(2));
+    const result =
+      invocation.kind === "parsed"
+        ? await executeCli(contract, {
+            invocation,
+            dependencies: undefined,
+            write: runtime.write,
+          })
+        : await executeCli(contract, {
+            invocation,
+            write: runtime.write,
+          });
     return result.exitCode;
   } catch (error) {
     if (
@@ -142,10 +205,11 @@ export async function runCli(runtime: CliRuntime): Promise<number> {
     try {
       await runtime.write({
         destination: "stderr",
-        chunk: "命令执行失败；请检查运行环境或报告此问题。\n",
+        chunk:
+          "Command execution failed; check your runtime environment or report this issue.\n",
       });
     } catch {
-      // 诊断通道故障不能改变原定退出类别。
+      // Preserve the original failure exit code even when the diagnostic stream cannot be written.
     }
     return 70;
   }

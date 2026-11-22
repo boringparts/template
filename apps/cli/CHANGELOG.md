@@ -1,11 +1,18 @@
 # 变更记录
 
-## 0.3.2
+## 0.4.0
+
+### Minor Changes
+
+- 公开 CLI（`@ykdz/template`）与生成的 TypeScript CLI 参考包升级至 `@ykdz/cli-contract@0.5.0`：按命令通过 `define.outputModes` 声明 `structured`（默认）与 `text`（`--output text`）模式；启用原生 `--schema`（v5 目录、摘要及 `input` / `success` / `failures` / `wire` 分片）并声明可重放示例；结构化结果与用法错误统一为 v3 信封；移除旧 `schema` 子命令与 `--output-format` 选项。
+- 全仓代码注释、日志、CLI 帮助与输出、报错诊断、预设元数据、工作流步骤名及测试描述统一为英文（保留用户可见产品界面、产品说明文档及测试中的中文样本）。
+- 升级工具链与依赖基线至 Node.js `26.13.1`、pnpm `12.21.0`、Rust `1.100.0`，同步更新依赖目录（含 `telefunc` `0.3.1`、`@vikejs/hono` `0.4.1` 路由注册顺序适配、`vitest` / `@vitest/browser-playwright` `5.1.1`、`execa` `10.2.1`、`srvx` `1.0.8` 等）、开发容器 `docker-outside-of-docker` `1.10.2` 及工作流 `pnpm/setup` `v3.2.0`。
 
 ### Patch Changes
 
 - 生成仓库的类型感知 lint 改用 tsrs。修改上游类型或根 Oxc 配置后，相关包会重新检查；在干净工作区运行 Vike 的 lint 时会先构建所需的类型声明。
 - 生成的 Vue-Hono 仓库将根目录的联合端到端测试纳入轻层静态检查。
+- 生成仓库与作者仓的开发容器在安装全局 Turbo 时固定使用 catalog 锁定的精确版本，避免容器构建触发 GitHub API 匿名限流（HTTP 403）。
 
 ## 0.3.1
 

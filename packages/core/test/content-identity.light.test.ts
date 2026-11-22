@@ -35,8 +35,8 @@ function member(options: {
   };
 }
 
-void describe("规范内容身份索引", () => {
-  void it("按唯一集合保留参考包和预设定义的类型关联", () => {
+void describe("canonical content identity index", () => {
+  void it("preserves reference package and preset definition types from a single collection", () => {
     const reference: LoadedContentMember<
       { readonly marker: "reference" },
       "reference"
@@ -68,10 +68,10 @@ void describe("规范内容身份索引", () => {
     const referenceMarker: "reference" =
       derived.referencePackages[0]!.definition.marker;
     const presetMarker: 42 = derived.presets[0]!.definition.marker;
-    // @ts-expect-error 参考包派生结果不能包含预设定义。
+    // @ts-expect-error Derived reference packages cannot hold preset definitions.
     const invalidReference: 42 =
       derived.referencePackages[0]!.definition.marker;
-    // @ts-expect-error 预设派生结果不能包含参考包定义。
+    // @ts-expect-error Derived presets cannot hold reference package definitions.
     const invalidPreset: "reference" = derived.presets[0]!.definition.marker;
 
     assert.deepEqual(derived.referencePackages, [reference]);
@@ -82,7 +82,7 @@ void describe("规范内容身份索引", () => {
     void invalidPreset;
   });
 
-  void it("使用三个身份分量编码，并按限定别名或规范身份精确选择", () => {
+  void it("encodes all three identity components and resolves scoped aliases or canonical identities", () => {
     const alpha = member({
       namespace: "alpha",
       packageName: "@example/shared",
@@ -110,10 +110,13 @@ void describe("规范内容身份索引", () => {
       beta,
     );
     assert.strictEqual(index.resolve(beta.identity, "reference"), beta);
-    assert.throws(() => index.resolve("shared", "reference"), /歧义/u);
+    assert.throws(
+      () => index.resolve("shared", "reference"),
+      /Ambiguous content alias/u,
+    );
   });
 
-  void it("拒绝未限定歧义、错误种类与重复规范身份", () => {
+  void it("rejects ambiguous aliases, kind mismatches, and duplicate canonical identities", () => {
     const reference = member({
       namespace: "first",
       packageName: "@example/content",
@@ -136,7 +139,7 @@ void describe("规范内容身份索引", () => {
     assert.strictEqual(index.resolve("content", "preset"), sameAlias);
     assert.throws(
       () => index.resolve(sameAlias.identity, "reference"),
-      /种类不符/u,
+      /Content kind mismatch/u,
     );
     assert.throws(
       () =>
@@ -147,11 +150,11 @@ void describe("规范内容身份索引", () => {
             source: { ...reference.source, moduleURL: "file:///revision.js" },
           },
         ]),
-      /来源修订/u,
+      /source revisions/u,
     );
   });
 
-  void it("已知来源命名空间优先关联同一实际定义", () => {
+  void it("prefers the matching source namespace when resolving by definition object", () => {
     const alpha = member({
       namespace: "alpha",
       packageName: "@example/shared",
@@ -174,7 +177,7 @@ void describe("规范内容身份索引", () => {
     );
     assert.throws(
       () => index.fromDefinition(alpha.definition, "reference"),
-      /属于多个命名空间/u,
+      /belongs to multiple namespaces/u,
     );
     assert.strictEqual(
       createContentIndex([alpha]).fromDefinition(
@@ -195,7 +198,7 @@ void describe("规范内容身份索引", () => {
           "reference",
           { namespace: "beta" },
         ),
-      /多个规范入口/u,
+      /multiple canonical entries/u,
     );
   });
 });

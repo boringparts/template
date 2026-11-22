@@ -34,19 +34,24 @@ function isSafePackagePath(value: string): boolean {
 }
 
 /**
- * 校验封闭式诊断声明。声明不接收路径，原生路径只能在确定所有者后派生。
+ * Validates a closed CI diagnostic artifact declaration. Declarations cannot supply arbitrary
+ * paths; native artifact paths are derived only after owner resolution.
  */
 export function assertCiDiagnosticArtifactDeclaration(
   value: unknown,
 ): CiDiagnosticArtifactDeclaration {
   if (!isRecord(value) || !hasExactKeys(value, ["kind", "owner"])) {
-    throw new Error("CI 诊断制品声明只能包含 kind 和 owner");
+    throw new Error(
+      "CI diagnostic artifact declaration must contain only kind and owner",
+    );
   }
   if (value.kind !== "playwright" && value.kind !== "vitest-browser") {
-    throw new Error("不支持的 CI 诊断制品 kind");
+    throw new Error("Unsupported CI diagnostic artifact kind");
   }
   if (!isRecord(value.owner) || !hasExactKeys(value.owner, ["kind", "path"])) {
-    throw new Error("CI 诊断制品必须声明包边界所有者");
+    throw new Error(
+      "CI diagnostic artifact owner must be an object with kind and path",
+    );
   }
   if (
     (value.owner.kind !== "workspace-orchestration" ||
@@ -55,7 +60,9 @@ export function assertCiDiagnosticArtifactDeclaration(
       typeof value.owner.path !== "string" ||
       !isSafePackagePath(value.owner.path))
   ) {
-    throw new Error("CI 诊断制品所有者的包边界路径不安全");
+    throw new Error(
+      "Unsafe package boundary path for CI diagnostic artifact owner",
+    );
   }
   return {
     kind: value.kind,
@@ -67,7 +74,8 @@ export function assertCiDiagnosticArtifactDeclaration(
 }
 
 /**
- * 独立于预设与环境准备来合成封闭式原生诊断。同一声明按所有者稳定排序后合并。
+ * Composes closed native CI diagnostic artifacts independently of presets and environment
+ * preparation, deduplicating and sorting stably by owner then kind.
  */
 export function composeCiDiagnosticArtifacts(options: {
   readonly packagePaths: readonly string[];
@@ -75,7 +83,9 @@ export function composeCiDiagnosticArtifacts(options: {
 }): readonly CiDiagnosticArtifactDeclaration[] {
   for (const packagePath of options.packagePaths) {
     if (!isSafePackagePath(packagePath)) {
-      throw new Error(`CI 诊断制品包边界路径不安全：${packagePath}`);
+      throw new Error(
+        `Unsafe package boundary path for CI diagnostic artifact: ${packagePath}`,
+      );
     }
   }
   const owners = new Set(options.packagePaths);
@@ -87,7 +97,7 @@ export function composeCiDiagnosticArtifacts(options: {
       !owners.has(declaration.owner.path)
     ) {
       throw new Error(
-        `CI 诊断制品所有者不是已声明的包边界：${declaration.owner.path}`,
+        `CI diagnostic artifact owner is not a declared package boundary: ${declaration.owner.path}`,
       );
     }
     const key = `${declaration.kind}:${declaration.owner.path}`;

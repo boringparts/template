@@ -19,12 +19,12 @@ export type DefaultWorkspaceConventions = {
 };
 
 export type DefaultNativeDocument = {
-  /** 相对目标所属包目录的路径。 */
+  /** Path relative to the target package directory. */
   readonly path: string;
   readonly value: Readonly<Record<string, unknown>>;
   readonly mode: number;
   readonly scope: "package" | "composition";
-  /** 保留源资源路径以便诊断与完整身份归属。 */
+  /** Source resource path retained for diagnostics and full identity attribution. */
   readonly sourcePath: string;
 };
 
@@ -59,14 +59,14 @@ export type ShellCheckEnvironmentNeed = {
   readonly owner: ComponentOwner;
 };
 
-/** Rust 任务必须在本地与 CI 计划中使用已维护的工具链。 */
+/** Requires the maintained Rust toolchain in both local and CI plans. */
 export type RustToolchainEnvironmentNeed = {
   readonly kind: "rust-toolchain";
   readonly owner: ComponentOwner;
   readonly toolchain: "stable";
 };
 
-/** Docker 仅在独立部署验收中使用，不属于常规生成检查环境。 */
+/** Used only for standalone deployment verification, outside regular check environments. */
 export type DockerEngineEnvironmentNeed = {
   readonly kind: "docker-engine";
 };
@@ -84,7 +84,7 @@ export type EnvironmentNeedsMetadata = {
   readonly deployment: readonly DeploymentEnvironmentNeed[];
 };
 
-/** 包贡献可在 CI 中保留的封闭式、按所有者限定的原生诊断制品。 */
+/** Closed, owner-scoped native diagnostic artifact retained in CI. */
 export type CiDiagnosticArtifactDeclaration = {
   readonly kind: "playwright" | "vitest-browser";
   readonly owner: ComponentOwner;
@@ -117,7 +117,7 @@ export type DependencyEcosystem =
 
 export type DependabotDirectory = `/${string}`;
 
-/** 内容可以请求的有限根级依赖维护范围。 */
+/** Bounded root-level dependency maintenance scope that content may request. */
 export type DependencyMaintenancePolicy = {
   readonly ecosystems: readonly DependencyEcosystem[];
   readonly directories?: Partial<
@@ -133,9 +133,9 @@ type SharedRootCiStep =
   | (Readonly<Record<string, unknown>> & {
       readonly id: string;
     })
-  | YAMLMap<unknown>;
+  | YAMLMap;
 
-/** 内容作者声明共享根文件中的领域条目；不取得根文件写入权。 */
+/** Domain entries declared for shared root files without granting direct root file write access. */
 export type SharedRootContribution = {
   readonly kind: "shared-root-files";
   readonly source: string;
@@ -166,7 +166,7 @@ export type SharedRootContribution = {
 };
 
 export type DefaultRootDeclarationData = {
-  /** 只有本次出现该模板执行依赖的内容被选中时才合入根。 */
+  /** Merged into the root only when selected content declares this template execution dependency. */
   readonly requiredTemplateDependency?: string;
   readonly manifest?: Readonly<{
     readonly scripts?: Readonly<Record<string, string>>;
@@ -174,29 +174,29 @@ export type DefaultRootDeclarationData = {
     readonly devDependencies?: Readonly<Record<string, string>>;
   }>;
   readonly turboTasks?: Readonly<Record<string, unknown>>;
-  /** 根 TypeScript 项目的完整编译选项与有序 include 片段。 */
+  /** Complete compiler options and ordered include globs for the root TypeScript project. */
   readonly typescript?: Readonly<{
     readonly compilerOptions?: Readonly<Record<string, unknown>>;
     readonly include?: readonly string[];
   }>;
-  /** 作为有序片段连接，包含反向规则时不得排序。 */
+  /** Concatenated in declaration order; must not be sorted because negation patterns are order-sensitive. */
   readonly gitignoreFragments?: readonly string[];
-  /** 根检查与部署运行所需的封闭环境声明。 */
+  /** Closed environment declarations required for root check and deployment runs. */
   readonly environmentNeeds?: Readonly<{
     readonly check?: readonly CheckEnvironmentNeed[];
     readonly deployment?: readonly DeploymentEnvironmentNeed[];
   }>;
-  /** 由共享根文件合成器按冲突与来源规则消费。 */
+  /** Consumed by the shared root file composer under conflict and provenance rules. */
   readonly ciJob?: SharedRootContribution["ciJob"];
-  /** 保留插入锚点、声明顺序和步骤身份。 */
+  /** Preserves insertion anchors, declaration order, and step identities. */
   readonly ciSteps?: SharedRootContribution["ciSteps"];
-  /** 由外层工作区规则投影到Dependabot根配置。 */
+  /** Projected into the root Dependabot configuration by workspace policy. */
   readonly dependencyMaintenance?: SharedRootContribution["dependencyMaintenance"];
-  /** 根级 CI 工作流的诊断制品声明。 */
+  /** Diagnostic artifact declarations for the root CI workflow. */
   readonly ciDiagnosticArtifacts?: readonly CiDiagnosticArtifactDeclaration[];
-  /** 工具 owner 在准备阶段声明的本次工作区共同要求。 */
+  /** Shared workspace requirements declared by tool owners during preparation. */
   readonly applicationRequirements?: ApplicationRequirements;
-  /** 根位置的独占原生资源；由默认组合校验来源与路径冲突。 */
+  /** Exclusive native root files; validated for provenance and path conflicts during default composition. */
   readonly files?: readonly DefaultCompositionFile[];
 };
 
@@ -205,7 +205,7 @@ export type DefaultReferencePreparedFacts<OwnerFacts = undefined> = {
   readonly ownerFacts: OwnerFacts;
 };
 
-/** 组合明确延后形成的文档及该实例自身的当前清单事实。 */
+/** Documents explicitly deferred to composition alongside this instance's current manifest facts. */
 export type DefaultReferencePackageInput = {
   readonly deferredNativeDocumentPaths: readonly string[];
   readonly targetManifest: Readonly<Record<string, unknown>> | undefined;
@@ -222,7 +222,7 @@ export type ReferenceTemplateDependency = {
   readonly purpose: ReferenceTemplateDependencyPurpose;
 };
 
-/** 原生清单依赖按目标消费与模板执行用途归一化。 */
+/** Native manifest dependency normalized by target consumption and template execution purposes. */
 export type ReferenceDependencyUse = {
   readonly name: string;
   readonly purposes: readonly ReferenceTemplateDependencyPurpose[];
@@ -230,15 +230,15 @@ export type ReferenceDependencyUse = {
 
 export type DefaultReferenceContributionFacts<OwnerFacts = unknown> = {
   readonly sourcePackageName: string;
-  /** 完整目标package.json原生文档；组合前不拆成覆盖片段。 */
+  /** Complete target package.json native document; kept whole rather than split into patches before composition. */
   readonly manifest: Readonly<Record<string, unknown>>;
   readonly exposure: {
     readonly exports: Readonly<Record<string, unknown>>;
     readonly imports: Readonly<Record<string, unknown>>;
   };
-  /** 仅保留需要跨包结果的原生文档供唯一组合阶段形成。 */
+  /** Native documents that depend on cross-package results and are finalized only during composition. */
   readonly deferredNativeDocuments: readonly DefaultNativeDocument[];
-  /** 只包含本实例的快照，不包含图中其他包的事实。 */
+  /** Snapshot scoped strictly to this instance, excluding facts from other packages in the graph. */
   readonly packageInput: DefaultReferencePackageInput | undefined;
   readonly nativeDocuments: readonly DefaultNativeDocument[];
   readonly compositionFiles: readonly DefaultCompositionFile[];
@@ -259,15 +259,15 @@ export type DefaultReferenceContributionFacts<OwnerFacts = unknown> = {
 };
 
 export type NativeReferenceResourceMapping = {
-  /** 所属包内的资源路径。 */
+  /** Resource path within the owning package. */
   readonly path: string;
-  /** 由所属作者通过公开包入口解析得到的外部资源句柄。 */
+  /** External resource handle resolved by the author through a public package entry point. */
   readonly source?: TemplateSourceHandle;
-  /** 生成目标包内的路径；组合资源不属于当前包时省略。 */
+  /** Path within the target package; omit for composition resources outside the current package. */
   readonly targetPath?: string;
-  /** 只作为 owner 准备输入，不复制到目标包。 */
+  /** Read only during owner preparation; not copied into the target package. */
   readonly prepareOnly?: boolean;
-  /** 默认普通文件；有执行位的资源由owner显式声明。 */
+  /** Defaults to a regular file (0o644); owners must declare executable bits explicitly. */
   readonly mode?: number;
 };
 

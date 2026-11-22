@@ -6,8 +6,8 @@ import {
   projectRustToolchainDeclaration,
 } from "@ykdz/reference-rust-bin/template";
 
-void describe("Rust 工具链共同事实", () => {
-  void it("解析 channel 与组件并保留原始声明", () => {
+void describe("Rust toolchain shared facts", () => {
+  void it("parses channel and components while preserving the raw declaration", () => {
     const source =
       '# maintainer note\n[toolchain]\nchannel = "1.99.0" # pinned\ncomponents = ["rustfmt", "clippy"]\nprofile = "minimal"\n';
 
@@ -18,22 +18,22 @@ void describe("Rust 工具链共同事实", () => {
     });
     assert.throws(
       () => parseRustToolchainDeclaration('[toolchain]\nchannel = "   "\n'),
-      /channel 必须是非空字符串/u,
+      /\[toolchain\]\.channel must be a non-empty string/u,
     );
     assert.throws(
       () => parseRustToolchainDeclaration("[toolchain\nchannel = 'stable'\n"),
-      /不是有效 TOML/u,
+      /not valid TOML/u,
     );
     assert.throws(
       () =>
         parseRustToolchainDeclaration(
           '[toolchain]\nchannel = "stable"\ncomponents = "rustfmt"\n',
         ),
-      /components 必须是字符串数组/u,
+      /\[toolchain\]\.components must be an array of strings/u,
     );
   });
 
-  void it("在加包时保留兼容的根声明字节", () => {
+  void it("preserves compatible root declaration bytes when adding a package", () => {
     const configurationText =
       '[toolchain]\nchannel = "1.99.0"\ncomponents = ["rustfmt", "clippy"]\n';
     const requirement = {

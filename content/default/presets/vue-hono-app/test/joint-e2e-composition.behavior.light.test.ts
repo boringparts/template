@@ -130,8 +130,8 @@ function validSelection() {
   };
 }
 
-void describe("Vue-Hono 预设联合验收组合", () => {
-  void it("按持久选择的节点绑定生成根文件和共享声明", async () => {
+void describe("Vue-Hono preset joint E2E composition", () => {
+  void it("generates root files and shared declarations from persisted node bindings", async () => {
     const { root, web, api, selection } = validSelection();
     const ownerFacts = { resources: await resources() };
     const result = composeVueHonoJointE2e({
@@ -153,7 +153,7 @@ void describe("Vue-Hono 预设联合验收组合", () => {
     );
     assert.strictEqual(result.rootPackageDefinitionId, rootId);
     const configuration = new TextDecoder().decode(
-      result.rootDeclaration.files![0]!.content,
+      result.rootDeclaration.files[0]!.content,
     );
     assert.match(configuration, /const apiPackageName = "@demo\/api";/u);
     assert.match(configuration, /const webPackageName = "@demo\/web";/u);
@@ -192,7 +192,7 @@ void describe("Vue-Hono 预设联合验收组合", () => {
     ]);
   });
 
-  void it("拒绝身份、选择节点、服务角色或API绑定不匹配", async () => {
+  void it("rejects mismatched preset identity, selected nodes, service role, or API binding", async () => {
     const { root, web, api, selection } = validSelection();
     const validPackages = selectedPackages(["web", web], ["api", api]);
     const ownerFacts = { resources: await resources() };
@@ -207,7 +207,7 @@ void describe("Vue-Hono 预设联合验收组合", () => {
           selectedPackages: validPackages,
           ownerFacts,
         }),
-      /预设身份/u,
+      /preset identity/u,
     );
     assert.throws(
       () =>
@@ -219,7 +219,7 @@ void describe("Vue-Hono 预设联合验收组合", () => {
           selectedPackages: validPackages,
           ownerFacts,
         }),
-      /节点 api/u,
+      /node api/u,
     );
     assert.throws(
       () =>
@@ -255,7 +255,7 @@ void describe("Vue-Hono 预设联合验收组合", () => {
           ),
           ownerFacts,
         }),
-      /绑定.*API/u,
+      /bound to.*API/u,
     );
     assert.throws(
       () =>
@@ -279,11 +279,11 @@ void describe("Vue-Hono 预设联合验收组合", () => {
           ),
           ownerFacts,
         }),
-      /Web 原生包名/u,
+      /web source package name/u,
     );
   });
 
-  void it("外层准备联合配置与两个测试资源", async () => {
+  void it("prepares the joint config and two test resources from the outer layer", async () => {
     const prepared = await resources();
     assert.match(
       new TextDecoder().decode(

@@ -9,7 +9,7 @@ import {
   type ContainerCommandRunner,
 } from "../src/development-container-session.ts";
 
-void it("在单个自有容器会话中执行项目命令并记录生命周期", async () => {
+void it("executes project commands in an owned container session and records lifecycle activity", async () => {
   const projectDir = await mkdtemp(
     path.join(tmpdir(), "verification-session-"),
   );

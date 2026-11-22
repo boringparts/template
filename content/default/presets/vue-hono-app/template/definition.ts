@@ -52,8 +52,9 @@ const nativePreset = defineNativeContentArtifact(
   definePreset({
     metadata: {
       alias: "vue-hono-app",
-      title: "Vue-Hono 全栈应用",
-      description: "组合 Vue 页面、Hono API 与参考包提供的共享能力。",
+      title: "Vue-Hono Full-Stack App",
+      description:
+        "Combines a Vue web app, a Hono API, and shared capabilities from reference packages.",
     },
     operations: ["init"],
     nodes: {
@@ -86,7 +87,7 @@ const rootContribution: DefaultPresetRootContributionOwner<VueHonoJointE2eOwnerF
     compose: composeVueHonoJointE2e,
   });
 
-/** 由默认外层按完整预设身份准备，并交纯组合器消费的根贡献。 */
+/** Root contribution prepared by the default outer layer for the full preset identity and consumed by the pure composer. */
 export const preset = Object.freeze({
   ...nativePreset,
   rootContribution,

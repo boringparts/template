@@ -278,7 +278,7 @@ const journey: CliJourney = {
         name: "add package on a target root without a pnpm declaration",
         cwd: project,
         async prepare() {
-          // 先固化上一轮拒绝后未被写入的根字节，再构造 pnpm 缺失声明。
+          // Capture the untouched root manifest bytes from the previous rejection before crafting a missing packageManager declaration.
           await writeFile(
             path.join(context.workDir, "invalid-root-unchanged.json"),
             await readFile(path.join(project, "package.json"), "utf8"),
@@ -307,7 +307,7 @@ const journey: CliJourney = {
           "missing-pm",
           "--path",
           "packages/missing-pm",
-          "--output-format",
+          "--output",
           "text",
         ],
       },
@@ -364,7 +364,7 @@ const journey: CliJourney = {
           assert.deepEqual(
             await snapshot(legacyProject),
             JSON.parse(await readFile(legacySnapshot, "utf8")),
-            "旧 v2 预览必须保持目标不变",
+            "Legacy v2 dry-run must leave the target untouched",
           );
         },
         args: legacyAddition,
@@ -378,7 +378,7 @@ const journey: CliJourney = {
       const project = path.join(context.workDir, targetName);
       commands.push(
         {
-          name: `为 ${initializationAlias} 项目初始化以添加 ${additionAlias} 预设`,
+          name: `initialize ${initializationAlias} project for adding ${additionAlias} preset`,
           args: [
             "init",
             targetName,
@@ -389,7 +389,7 @@ const journey: CliJourney = {
           ],
         },
         {
-          name: `在 ${initializationAlias} 项目添加 ${additionAlias} 预设`,
+          name: `add ${additionAlias} preset to ${initializationAlias} project`,
           cwd: project,
           async prepare() {
             await writeFile(
@@ -436,7 +436,7 @@ const journey: CliJourney = {
     );
     commands.push(
       {
-        name: "为新增包身份冲突初始化项目",
+        name: "initialize project for package identity conflict",
         args: [
           "init",
           "identity-conflict-project",
@@ -447,7 +447,7 @@ const journey: CliJourney = {
         ],
       },
       {
-        name: "身份冲突预览保持零写入",
+        name: "identity conflict dry-run performs zero writes",
         cwd: identityProject,
         async prepare() {
           await writeFile(
@@ -468,7 +468,7 @@ const journey: CliJourney = {
         ],
       },
       {
-        name: "身份冲突提交保持零写入",
+        name: "identity conflict apply performs zero writes",
         cwd: identityProject,
         async prepare() {
           assert.deepEqual(
@@ -533,12 +533,12 @@ const journey: CliJourney = {
     assert.equal(
       history.rootNode,
       releaseToolchainSnapshot.nodeVersion,
-      "初始化根 engines.node 应为 CLI 发版快照的精确 Node 值",
+      "Initialized root engines.node should match the exact Node version from the CLI release snapshot",
     );
     assert.equal(
       history.rootPackageManager,
       releaseToolchainSnapshot.packageManagerPin,
-      "初始化根 packageManager 应为 CLI 发版快照的精确 pnpm pin",
+      "Initialized root packageManager should match the exact pnpm pin from the CLI release snapshot",
     );
     assert.notEqual(history.rootNode, upgradedNode);
     assert.notEqual(history.rootPackageManager, upgradedPackageManager);
@@ -570,13 +570,16 @@ const journey: CliJourney = {
       readonly error: { readonly message: string; readonly suggestion: string };
     };
     assert.equal(results[7]?.exitCode, 1);
-    // JSON 输出必须点名无效字段与其实际值，并给出修正动作。
+    // JSON output must identify the invalid field, its actual value, and the corrective action.
     assert.match(rejected.error.message, /engines\.node/u);
     assert.ok(
       rejected.error.message.includes('">=22"'),
-      `JSON 诊断应包含实际声明值，实际消息：${rejected.error.message}`,
+      `JSON diagnostic should include the actual declared value, got: ${rejected.error.message}`,
     );
-    assert.match(rejected.error.suggestion, /package\.json 的 engines\.node/u);
+    assert.match(
+      rejected.error.suggestion,
+      /Fix engines\.node in root package\.json/u,
+    );
     await assert.rejects(stat(path.join(project, "packages/rejected")), {
       code: "ENOENT",
     });
@@ -591,28 +594,28 @@ const journey: CliJourney = {
       ),
     );
 
-    // 文本输出负例：缺失 packageManager 声明同样给出字段级可行动诊断。
+    // Negative text output case: missing packageManager must also provide an actionable field-level diagnostic.
     const missingPm = results[8];
     assert.equal(missingPm?.exitCode, 1);
     assert.equal(missingPm?.stdout, "");
     assert.match(
       missingPm?.stderr ?? "",
-      /package\.json 的 packageManager/u,
-      "文本输出应点名 packageManager 字段",
+      /package\.json packageManager/u,
+      "Text output should name the packageManager field",
     );
     assert.match(
       missingPm?.stderr ?? "",
-      /实际收到 null/u,
-      "文本输出应给出实际值",
+      /got null/u,
+      "Text output should report the actual value",
     );
     assert.match(
       missingPm?.stderr ?? "",
-      /请先修改根 package\.json 的 packageManager 声明/u,
-      "文本输出应给出修正动作",
+      /Fix packageManager in root package\.json/u,
+      "Text output should provide a corrective action",
     );
     assert.ok(
-      !/添加 Package 时发生操作失败/u.test(missingPm?.stderr ?? ""),
-      "字段级诊断不应回退为通用提示",
+      !/Package addition operation failed/u.test(missingPm?.stderr ?? ""),
+      "Field-level diagnostics must not fall back to the generic failure message",
     );
     await assert.rejects(stat(path.join(project, "packages/missing-pm")), {
       code: "ENOENT",
@@ -668,7 +671,7 @@ const journey: CliJourney = {
       scripts: Record<string, string>;
       dependencies?: Record<string, string>;
     };
-    // 构造真实依赖链：utility 保留 ^build 任务配置但不提供 build 命令。
+    // Build a real dependency chain where utility keeps the ^build task config without defining a build script.
     delete utilityManifest.scripts.build;
     utilityManifest.dependencies = {
       ...utilityManifest.dependencies,
@@ -696,7 +699,7 @@ const journey: CliJourney = {
       assert.notStrictEqual(
         definition,
         undefined,
-        `Blueprint 应记录 ${packagePath} 的身份`,
+        `Blueprint should record the identity for ${packagePath}`,
       );
       return definition!.role;
     };
@@ -710,7 +713,7 @@ const journey: CliJourney = {
         case "native-package":
           return ["native"];
         default:
-          throw new Error(`未识别的 PackageDefinition.role：${role}`);
+          throw new Error(`Unrecognized PackageDefinition.role: ${role}`);
       }
     };
     const consumerManifest = JSON.parse(
@@ -749,7 +752,11 @@ const journey: CliJourney = {
       const result = nativePackages.find(
         (candidate) => candidate.name === name,
       );
-      assert.notStrictEqual(result, undefined, `Turbo 原生目录缺少 ${name}`);
+      assert.notStrictEqual(
+        result,
+        undefined,
+        `Turbo native directory is missing ${name}`,
+      );
       return result!;
     };
     const utility = nativePackage(utilityManifest.name);
@@ -775,7 +782,7 @@ const journey: CliJourney = {
         assert.notStrictEqual(
           task,
           undefined,
-          `${packageTasks.name} 应发现 ${name}`,
+          `${packageTasks.name} should discover ${name}`,
         );
         assert.deepStrictEqual(
           task!.tags,
@@ -840,7 +847,7 @@ const journey: CliJourney = {
       assert.strictEqual(upgradedTask!.directory, "packages/upgraded");
       assert.ok(
         consumerTask!.dependencies.includes(utilityTask!.taskId),
-        `${utilityTask!.taskId} 应先于 ${consumerTask!.taskId}`,
+        `${utilityTask!.taskId} should run before ${consumerTask!.taskId}`,
       );
     }
     const consumerBuild = taskPlan.find(
@@ -859,7 +866,7 @@ const journey: CliJourney = {
     assert.ok(
       consumerBuild.dependencies.includes(utilityBuildPlan.taskId) &&
         utilityBuildPlan.dependencies.includes(upgradedBuild.taskId),
-      `${upgradedBuild.taskId} 应经无命令的 ${utilityBuildPlan.taskId} 先于 ${consumerBuild.taskId}`,
+      `${upgradedBuild.taskId} should run before ${consumerBuild.taskId} via commandless ${utilityBuildPlan.taskId}`,
     );
 
     assert.equal(results[legacyCommandOffset]?.exitCode, 0);

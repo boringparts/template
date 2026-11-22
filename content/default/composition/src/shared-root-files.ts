@@ -3,7 +3,7 @@ import { isDeepStrictEqual } from "node:util";
 import type { SharedRootContribution } from "@ykdz/default-content-authoring/contracts";
 import { parseDocument, type YAMLMap, type YAMLSeq } from "yaml";
 
-function isYamlMapStep(value: unknown): value is YAMLMap<unknown> {
+function isYamlMapStep(value: unknown): value is YAMLMap {
   if (typeof value !== "object" || value === null) return false;
   const candidate = value as {
     readonly items?: unknown;
@@ -22,10 +22,12 @@ function pointer(value: string): string {
 }
 
 function conflict(location: string, left: string, right: string): never {
-  throw new Error(`共享根文件声明冲突：${location}；来源 ${left} 与 ${right}`);
+  throw new Error(
+    `Conflicting shared root file declaration at ${location} between ${left} and ${right}`,
+  );
 }
 
-/** 每个字典拥有自己的等价规则；只比较完整条目，不提供覆盖优先级。 */
+/** Each dictionary uses deep structural equality on complete entries without override precedence. */
 function composeEntries<T>(
   location: string,
   declarations: readonly {
@@ -131,7 +133,7 @@ export function composeSharedRootFiles(options: {
   };
 }
 
-/** CI 步骤按锚点和来源顺序插入；步骤身份独占，不按内容去重或排序。 */
+/** Inserts CI steps by anchor and declaration order; step IDs are exclusive and are neither deduplicated nor reordered. */
 export function composeCheckWorkflow(
   template: string,
   source: string,
@@ -139,9 +141,7 @@ export function composeCheckWorkflow(
 ): string {
   if (insertions.length === 0) return template;
   const workflow = parseDocument(template);
-  const steps = workflow.getIn(["jobs", "check", "steps"]) as YAMLSeq<
-    YAMLMap<unknown>
-  >;
+  const steps = workflow.getIn(["jobs", "check", "steps"]) as YAMLSeq<YAMLMap>;
   const owners = new Map<string, string>();
   for (const step of steps.items) {
     const id = step.get("id");
@@ -154,12 +154,14 @@ export function composeCheckWorkflow(
         : steps.items.findIndex((step) => step.get("id") === insertion.before);
     if (index === -1)
       throw new Error(
-        `${insertion.source} 的 CI 步骤锚点不存在：${insertion.before}`,
+        `CI step anchor not found for ${insertion.source}: ${insertion.before}`,
       );
     for (const step of insertion.steps) {
       const id = isYamlMapStep(step) ? step.get("id") : step.id;
       if (typeof id !== "string") {
-        throw new Error(`${insertion.source} 的 CI 步骤必须声明字符串 id`);
+        throw new Error(
+          `CI step from ${insertion.source} must declare a string id`,
+        );
       }
       const owner = owners.get(id);
       if (owner !== undefined)
@@ -175,8 +177,8 @@ export function composeCheckWorkflow(
       0,
       ...insertion.steps.map((step) =>
         isYamlMapStep(step)
-          ? (step.clone() as YAMLMap<unknown>)
-          : (workflow.createNode(step) as unknown as YAMLMap<unknown>),
+          ? (step.clone() as YAMLMap)
+          : (workflow.createNode(step) as unknown as YAMLMap),
       ),
     );
   }

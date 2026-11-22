@@ -5,7 +5,7 @@ export const defaultPackageRoles = [
   "native-package",
 ] as const;
 
-/** 默认 Node/Rust 工作区策略公开给参考包作者的角色合同。 */
+/** Package role contract exposed to reference package authors by the default Node/Rust workspace policy. */
 export type DefaultPackageRole = (typeof defaultPackageRoles)[number];
 
 export function isDefaultPackageRole(

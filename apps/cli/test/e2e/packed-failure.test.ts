@@ -15,10 +15,12 @@ import { fileURLToPath } from "node:url";
 
 import { execa } from "execa";
 
-// 从原 packed-publication 验收迁回 CLI 所属包，复用正式旅程执行器。
-void test("真实制品命令成功后，失败旅程保留输出、原始原因和生成现场", async () => {
+void test("retains output, root cause, and generated workspace when a packed journey fails after command success", async () => {
   const installedBin = process.env.TEMPLATE_CLI_PACKED_BIN;
-  assert.ok(installedBin, "packed 失败探针需要已安装制品的 CLI 入口");
+  assert.ok(
+    installedBin,
+    "packed failure probe requires TEMPLATE_CLI_PACKED_BIN pointing to the installed CLI binary",
+  );
   const e2eRoot = path.dirname(fileURLToPath(import.meta.url));
   const packageRoot = path.resolve(e2eRoot, "../..");
   const workspace = await mkdtemp(
@@ -60,20 +62,20 @@ void test("真实制品命令成功后，失败旅程保留输出、原始原因
         'import assert from "node:assert/strict";',
         'import { templatePresets } from "@ykdz/template-content";',
         'const preset = templatePresets.find((candidate) => candidate.definition.operations.includes("init") && Object.keys(candidate.definition.nodes).length === 1);',
-        'if (preset === undefined) throw new Error("没有可初始化的单节点预设");',
+        'if (preset === undefined) throw new Error("No initializable single-node preset found");',
         "export default {",
         '  name: "packed-failure-probe",',
         '  modes: ["packed"],',
         "  async setup() {},",
         "  commands() { return [{",
-        '    name: "生成项目后注入退出错误",',
+        '    name: "inject non-zero exit after generating project",',
         "    executable: process.execPath,",
         '    args: [process.env.TEMPLATE_CLI_PACKED_FAILURE_SHIM, process.env.TEMPLATE_CLI_PACKED_BIN, "init", "project", "--preset", preset.alias, "--scope", "acme", "--no-todo"],',
         "  }]; },",
         "  async assertions({ results }) {",
         "    assert.strictEqual(results[0]?.exitCode, 79);",
         '    assert.match(results[0]?.stdout ?? "", /"variant":"initialized"/u);',
-        '    throw new Error("注入的 packed 旅程断言失败", { cause: new Error("原始 packed 旅程错误") });',
+        '    throw new Error("Injected packed journey assertion failure", { cause: new Error("Original packed journey error") });',
         "  },",
         "};",
         "",
@@ -129,7 +131,10 @@ void test("真实制品命令成功后，失败旅程保留输出、原始原因
     };
     assert.equal(report.journey, "packed-failure-probe");
     assert.equal(report.results[0]?.exitCode, 79);
-    assert.equal(report.error.cause?.cause?.message, "原始 packed 旅程错误");
+    assert.equal(
+      report.error.cause?.cause?.message,
+      "Original packed journey error",
+    );
     assert.match(report.error.message, /"variant":"initialized"/u);
     assert.match(report.results[0]?.stdout ?? "", /"variant":"initialized"/u);
     assert.ok(

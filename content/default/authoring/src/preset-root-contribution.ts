@@ -24,9 +24,8 @@ export type DefaultPresetRootContributionPrepared<OwnerFacts = unknown> =
     readonly readFacts?: readonly CurrentProjectProjectionEntry[];
   }>;
 
-export type DefaultPresetPackageEvaluation = CompositionPackageEvaluation<
-  DefaultReferenceContributionFacts<unknown>
->;
+export type DefaultPresetPackageEvaluation =
+  CompositionPackageEvaluation<DefaultReferenceContributionFacts>;
 
 export type DefaultPresetRootContributionOwner<OwnerFacts = unknown> =
   Readonly<{
@@ -34,7 +33,7 @@ export type DefaultPresetRootContributionOwner<OwnerFacts = unknown> =
       readonly ownerIdentity: ContentIdentity;
       readonly repositoryRoot?: string;
       readonly selection?: GenerationRecordSelection;
-      /** 仅包含该完整预设身份的持久节点，按 nodeIdentity 索引。 */
+      /** Persisted nodes belonging to this preset identity only, keyed by nodeIdentity. */
       readonly selectedPackages?: ReadonlyMap<string, CompositionPackage>;
     }):
       | DefaultPresetRootContributionPrepared<OwnerFacts>
@@ -43,7 +42,7 @@ export type DefaultPresetRootContributionOwner<OwnerFacts = unknown> =
       options: Readonly<{
         readonly ownerIdentity: ContentIdentity;
         readonly selection: GenerationRecordSelection;
-        /** 仅包含该持久选择的节点，按 nodeIdentity 索引。 */
+        /** Nodes belonging to this persisted selection only, keyed by nodeIdentity. */
         readonly selectedPackages: ReadonlyMap<
           string,
           DefaultPresetPackageEvaluation

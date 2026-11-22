@@ -43,7 +43,11 @@ async function packWorkspacePackage(
   const archives = (await readdir(destination)).filter((name) =>
     name.endsWith(".tgz"),
   );
-  assert.equal(archives.length, 1, `归档目录应只包含一个包：${destination}`);
+  assert.equal(
+    archives.length,
+    1,
+    `Archive directory should contain exactly one tarball: ${destination}`,
+  );
   return path.join(destination, archives[0] ?? "");
 }
 
@@ -92,7 +96,7 @@ async function installContentArtifactBuilder(
   const installedModulesRoot = path.resolve(builderInstallRoot, "node_modules");
   assert.ok(
     installedEntry.startsWith(`${installedModulesRoot}${path.sep}`),
-    `安装构建器入口应位于消费者 node_modules，实际为 ${installedEntry}`,
+    `Installed builder entry should reside inside consumer node_modules, got ${installedEntry}`,
   );
   return (await import(
     pathToFileURL(installedEntry).href
@@ -412,7 +416,7 @@ async function runRuntimeDriver(
   return JSON.parse(result.stdout);
 }
 
-void it("同一份严格TypeScript消费代码通过源码和正式安装制品", async () => {
+void it("same strict TypeScript consumer passes against both source and installed artifacts", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "content-contract-"));
   const preparedRoots: string[] = [];
   const ownersRoot = path.join(root, "authors");
@@ -523,11 +527,12 @@ void it("同一份严格TypeScript消费代码通过源码和正式安装制品"
       preparedResources: [
         {
           path: "resources/README.md",
-          content: "由中立参考包拥有的资源字节。\n",
+          content: "Resource bytes owned by the neutral reference package.\n",
         },
         {
           path: "resources/latent.txt",
-          content: "由参考包声明、当前求值未直接读取的完整资源。\n",
+          content:
+            "Complete resource declared by the reference package and not directly read by the current evaluation.\n",
         },
       ],
       references: [
@@ -691,7 +696,7 @@ void it("同一份严格TypeScript消费代码通过源码和正式安装制品"
       const archive = prepared.sdkPackages.find(
         (candidate) => candidate.name === packageName,
       );
-      assert.ok(archive, `缺少已打包的SDK：${packageName}`);
+      assert.ok(archive, `Missing packed SDK archive: ${packageName}`);
       return archive.tarball;
     });
     await execa(
@@ -733,11 +738,12 @@ void it("同一份严格TypeScript消费代码通过源码和正式安装制品"
         preparedResources: [
           {
             path: "resources/README.md",
-            content: "由中立参考包拥有的资源字节。\n",
+            content: "Resource bytes owned by the neutral reference package.\n",
           },
           {
             path: "resources/latent.txt",
-            content: "由参考包声明、当前求值未直接读取的完整资源。\n",
+            content:
+              "Complete resource declared by the reference package and not directly read by the current evaluation.\n",
           },
         ],
         references: [
@@ -827,7 +833,7 @@ void it("同一份严格TypeScript消费代码通过源码和正式安装制品"
           path.join(installedTargetRoot, "packages/contract-added/README.md"),
           "utf8",
         ),
-        "由中立参考包拥有的资源字节。\n\nneutral\nprovider-v3\ncontract-added\npackages/contract-added",
+        "Resource bytes owned by the neutral reference package.\n\nneutral\nprovider-v3\ncontract-added\npackages/contract-added",
       );
 
       await runInstalled("init", installedConflictTargetRoot);
@@ -836,7 +842,7 @@ void it("同一份严格TypeScript消费代码通过源码和正式安装制品"
         "packages/contract-added",
       );
       await mkdir(conflictingPath, { recursive: true });
-      await writeFile(path.join(conflictingPath, "keep.txt"), "用户文件\n");
+      await writeFile(path.join(conflictingPath, "keep.txt"), "user file\n");
       const conflictRecordPath = path.join(
         installedConflictTargetRoot,
         ".template/generation.json",
@@ -857,7 +863,7 @@ void it("同一份严格TypeScript消费代码通过源码和正式安装制品"
       );
       assert.equal(
         await readFile(path.join(conflictingPath, "keep.txt"), "utf8"),
-        "用户文件\n",
+        "user file\n",
       );
       await assert.rejects(readFile(path.join(conflictingPath, "README.md")), {
         code: "ENOENT",
@@ -887,7 +893,8 @@ void it("同一份严格TypeScript消费代码通过源码和正式安装制品"
       assert.deepEqual(oldFormatRun, {
         status: "operation-failure",
         phase: "metadata",
-        error: "不支持的生成记录 schema 5；当前只支持 schema6",
+        error:
+          "Unsupported generation record schema 5; only schema6 is supported",
       });
       assert.deepEqual(await readFile(oldFormatRecordPath), oldRecordBefore);
       assert.deepEqual(

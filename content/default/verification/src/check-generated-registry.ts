@@ -380,7 +380,7 @@ function reportFixtureFailure(
   try {
     reporter?.info?.(message);
   } catch {
-    // 诊断输出失败时仍保留 Fixture 原始失败。
+    // Preserve the original fixture failure even if diagnostic reporting fails.
   }
 }
 
@@ -997,7 +997,7 @@ async function runScenario(
           ...evidenceOptions,
           execute: async () => {
             throw new Error(
-              "部署验收必须由成功的 Root Quality check:full 路径覆盖",
+              "Deployment verification must be covered by a successful Root Quality check:full run",
             );
           },
         });
@@ -1025,13 +1025,15 @@ export async function runGeneratedScenarioSet(
   const selectedIds = options.scenarioIds;
   if (selectedIds !== undefined) {
     if (selectedIds.length === 0 || selectedIds.some((id) => id.length === 0)) {
-      throw new Error(`${fixtureEnvironment.scenarios} 不得为空或包含空 ID`);
+      throw new Error(
+        `${fixtureEnvironment.scenarios} must not be empty or contain blank IDs`,
+      );
     }
     const availableIds = new Set(availableScenarios.map(({ id }) => id));
     const unknownIds = selectedIds.filter((id) => !availableIds.has(id));
     if (unknownIds.length > 0) {
       throw new Error(
-        `${fixtureEnvironment.scenarios} 包含不属于 ${set} 的场景 ID: ${unknownIds.join(", ")}`,
+        `${fixtureEnvironment.scenarios} contains scenario IDs not in ${set}: ${unknownIds.join(", ")}`,
       );
     }
   }
@@ -1264,7 +1266,7 @@ export async function runGeneratedRegistryCli(options: {
     set !== "capabilities"
   ) {
     throw new Error(
-      "生成场景集必须为 init、package-addition-matrix、focused、deployment 或 capabilities",
+      "Generated scenario set must be init, package-addition-matrix, focused, deployment, or capabilities",
     );
   }
   const scheduling = {

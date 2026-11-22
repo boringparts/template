@@ -97,7 +97,7 @@ export type ProjectProjectionReconciliation =
       readonly driver: "structured";
       readonly sources?: readonly ProjectProjectionSource[];
       readonly identitySets?: readonly StructuredIdentitySetPolicy[];
-      /** planner 拥有的根声明位置，在三向合并之前归一。 */
+      /** Planner-owned root-declared mirror locations normalized back to Before prior to 3-way merge. */
       readonly mirrorSlots?: readonly ProjectProjectionMirrorSlot[];
     }
   | {
@@ -173,7 +173,7 @@ class ProjectProjectionStalePlanError extends Error {
   readonly conflicts: readonly ProjectProjectionConflict[];
 
   constructor(conflicts: readonly ProjectProjectionConflict[]) {
-    super("规划后相关目标事实已变化");
+    super("Target facts changed after planning");
     this.conflicts = conflicts;
   }
 }
@@ -305,8 +305,8 @@ type TextMirrorMarker =
   | { readonly kind: "content" };
 
 /**
- * 识别已接受设计中有限的成对锚点词表。
- * 剥掉注释标点只是为了读出标记本身，这里不解释文件格式、关键字或版本。
+ * Recognizes the fixed paired mirror-anchor marker vocabulary.
+ * Leading comment punctuation is stripped only to read the marker token without interpreting file syntax, keywords, or versions.
  */
 function textMirrorMarker(line: string): TextMirrorMarker {
   const stripped = line
@@ -324,7 +324,7 @@ type TextMirrorRegion = {
   readonly contentEnd: number;
 };
 
-/** 定位唯一被拥有的那一行；任何不可用形态都返回 `undefined`。 */
+/** Locates the single owned carrier line between paired markers; returns undefined for any malformed or ambiguous region. */
 function locateTextMirrorRegion(
   lines: readonly string[],
   name: string,
@@ -347,7 +347,7 @@ function locateTextMirrorRegion(
   return undefined;
 }
 
-/** Before 是否出现过该名的开始标记：区分槽位真缺席与标记不可解释。 */
+/** Checks whether Before contains a start marker for this slot to distinguish true absence from malformed markers. */
 function hasTextMirrorStartMarker(
   lines: readonly string[],
   name: string,
@@ -363,7 +363,7 @@ function escapeRegExpToken(value: string): string {
   return value.replaceAll(/[.$()*?[\]{}+/|^\\]/gu, String.raw`\$&`);
 }
 
-/** 有界的承载检查：文件是否仍在赋值或引用这个名称？ */
+/** Bounded carrier check: does the text still assign to or reference this slot name? */
 function textUsesMirrorSlotName(text: string, name: string): boolean {
   const token = escapeRegExpToken(name);
   return (
@@ -447,7 +447,7 @@ function reconcileTextEntry(options: {
           `Declared mirror slot ${JSON.stringify(slot.id)} anchor in Before could not be located while its markers remain`,
         );
       }
-      // 模板拥有完整镜像块，标记行也属于该块，因此移除整块后再交既有 diff3。
+      // The template owns the entire mirror block including its markers; remove the whole block before diff3.
       currentLines = [
         ...currentLines.slice(0, currentRegion.contentStart - 1),
         ...currentLines.slice(currentRegion.contentEnd + 1),
@@ -904,9 +904,9 @@ export type ProjectedMirrorSlotScalar =
   | { readonly ok: false; readonly reason: string };
 
 /**
- * 有限的槽位读取：把一个 plan 声明的镜像位置在真实投影里解析成恰好一条标量字符串。
- * Core 只认识通用位置与值形态（合法 JSON、位置存在、值为字符串、锚点区域恰一行），
- * 不认识具体生成路径、Node/Rust 语义或 ARG 写法；承载行的解释留给 Checks 层。
+ * Resolves a plan-declared mirror slot location within a projected entry to a single scalar string.
+ * Core validates only generic location and value shape (valid JSON, existing string pointer, or single-line anchor region);
+ * interpreting the carrier content is left to downstream verification layers.
  */
 export function readProjectedMirrorSlotScalar(
   entry: ProjectProjectionEntry,
@@ -915,7 +915,10 @@ export function readProjectedMirrorSlotScalar(
   if (location.kind === "json-pointer") {
     const parsed = parseStructuredEntry(entry);
     if (!parsed.ok) {
-      return { ok: false, reason: `槽位文件不是合法 JSON：${parsed.message}` };
+      return {
+        ok: false,
+        reason: `Mirror slot file is not valid JSON: ${parsed.message}`,
+      };
     }
     let segments: readonly string[];
     try {
@@ -923,40 +926,43 @@ export function readProjectedMirrorSlotScalar(
     } catch (error) {
       return {
         ok: false,
-        reason: `JSON Pointer 非法：${error instanceof Error ? error.message : String(error)}`,
+        reason: `Invalid JSON Pointer: ${error instanceof Error ? error.message : String(error)}`,
       };
     }
     if (segments.length === 0) {
-      return { ok: false, reason: "镜像槽位不能定位到文档根本身" };
+      return {
+        ok: false,
+        reason: "Mirror slot cannot target the document root",
+      };
     }
     const value = mirrorSlotValue(parsed.value, segments);
     if (value === missingStructuredValue) {
       return {
         ok: false,
-        reason: `声明位置在真实投影中不存在：${location.pointer}`,
+        reason: `Declared mirror slot location does not exist in projection: ${location.pointer}`,
       };
     }
     if (typeof value !== "string") {
       return {
         ok: false,
-        reason: `镜像槽位的值必须是字符串标量：${location.pointer}`,
+        reason: `Mirror slot value must be a string scalar: ${location.pointer}`,
       };
     }
     return { ok: true, scalar: value };
   }
   const decoded = decodeText(entry.content);
   if (decoded === undefined) {
-    return { ok: false, reason: "文本锚点所在文件不是合法 UTF-8 文本" };
+    return { ok: false, reason: "Text anchor file is not valid UTF-8 text" };
   }
   const lines = textLines(decoded);
   const region = locateTextMirrorRegion(lines, location.name);
   if (region === undefined) {
     return {
       ok: false,
-      reason: `锚点区域缺失、重复、不成对或含额外正文：${location.name}`,
+      reason: `Text anchor region is missing, duplicated, unpaired, or has unexpected lines: ${location.name}`,
     };
   }
-  // locateTextMirrorRegion 已保证区域内恰好一条承载行。
+  // locateTextMirrorRegion guarantees exactly one carrier line inside the region.
   return { ok: true, scalar: lines[region.contentStart]! };
 }
 
@@ -1037,8 +1043,8 @@ type NormalizedCurrentResult =
   | { readonly ok: false; readonly conflict: StructuredConflict };
 
 /**
- * 把 Current 中每个由 planner 声明的位置改写回 Before。
- * 归一只改写已存在的位置，绝不新建，所以消费者删掉的槽位在既有合并法则下保持缺席。
+ * Normalizes each planner-declared slot in Current back to its Before value.
+ * Only existing slots are rewritten—missing slots are never recreated—so consumer deletions stay absent under 3-way merge.
  */
 function normalizeCurrentMirrorSlots(options: {
   readonly before: StructuredValue;
@@ -1298,9 +1304,9 @@ function assertProjectionContract(
 }
 
 /**
- * 槽位声明沿既有通用合并接缝只允许单调新增：Before 的每个槽位必须按原序出现在 After 前缀，
- * After 可追加消费者新增能力所对应的位置。删除、重排或改写既有槽位仍判为策略不兼容。
- * Core 不理解具体文件名或工具链，只在槽位列表结构上判定。
+ * Mirror slot declarations may only extend monotonically across reconciliation: every Before slot must
+ * appear in the same order as a prefix of After, while After may append new slots.
+ * Deleting, reordering, or mutating existing slots is treated as an incompatible policy change.
  */
 function mirrorSlotsExtendMonotonically(
   before: readonly ProjectProjectionMirrorSlot[] | undefined,
@@ -1590,13 +1596,15 @@ function assertUniquePreconditions(
   for (const precondition of preconditions) {
     if (precondition.path === ".") {
       if (precondition.kind !== "directory-empty-or-missing") {
-        throw new Error("文件路径前提不能使用点路径。");
+        throw new Error("File path precondition must not use '.'");
       }
     } else {
       assertNormalizedSafeRelativePath(precondition.path, "entry");
     }
     if (paths.has(precondition.path)) {
-      throw new Error(`投影路径前提必须唯一：${precondition.path}`);
+      throw new Error(
+        `Project Projection path preconditions must be unique: ${precondition.path}`,
+      );
     }
     paths.add(precondition.path);
   }
@@ -1695,7 +1703,7 @@ function explicitCurrentByPath(
   const result = new Map<string, CurrentProjectProjectionEntry>();
   for (const fact of current) {
     if (result.has(fact.path)) {
-      throw new Error(`Current 事实路径必须唯一：${fact.path}`);
+      throw new Error(`Current fact paths must be unique: ${fact.path}`);
     }
     result.set(fact.path, fact);
   }
@@ -1720,7 +1728,9 @@ function assertCurrentFactPaths(options: {
   for (const fact of options.facts) {
     if (fact.path === ".") {
       if (!permitsRoot) {
-        throw new Error("点路径事实只能用于初始化目标前提。");
+        throw new Error(
+          "Root '.' fact is only allowed for initialization target preconditions",
+        );
       }
       continue;
     }
@@ -1728,7 +1738,7 @@ function assertCurrentFactPaths(options: {
       assertNormalizedSafeRelativePath(fact.path, "entry");
     } catch (error) {
       throw new Error(
-        `Current 事实路径必须是安全的标准相对路径：${fact.path}`,
+        `Current fact path must be a normalized safe relative path: ${fact.path}`,
         { cause: error },
       );
     }
@@ -1770,7 +1780,9 @@ export function reconcileProjectProjections(options: {
   for (const projectionPath of reconcilePaths) {
     const currentFact = currentByPath.get(projectionPath);
     if (currentFact === undefined) {
-      throw new Error(`Current 事实缺少必要路径：${projectionPath}`);
+      throw new Error(
+        `Current facts are missing required path: ${projectionPath}`,
+      );
     }
     const before = beforeByPath.get(projectionPath);
     const after = afterByPath.get(projectionPath)!;
@@ -1975,23 +1987,26 @@ function preconditionConflict(
   }
   const current =
     fact.kind === "directory" && fact.empty === true
-      ? "空目录"
+      ? "empty directory"
       : fact.kind === "missing"
-        ? "缺失"
+        ? "missing"
         : fact.kind === "other"
-          ? "非普通文件"
+          ? "non-regular file"
           : fact.kind === "symbolic-link"
-            ? "符号链接"
+            ? "symbolic link"
             : fact.kind === "directory"
-              ? "目录"
-              : "文件";
+              ? "directory"
+              : "file";
   return {
     path: precondition.path,
     driver: "precondition",
-    reason: `${precondition.reason}；当前为${current}`,
-    before: precondition.kind === "must-not-exist" ? "缺失" : "空目录或缺失",
+    reason: `${precondition.reason}; currently ${current}`,
+    before:
+      precondition.kind === "must-not-exist"
+        ? "missing"
+        : "empty directory or missing",
     current,
-    after: "为本次提交预留",
+    after: "reserved for this commit",
     ...(precondition.sources === undefined
       ? {}
       : { sources: precondition.sources }),
@@ -2010,17 +2025,17 @@ function ancestorFactConflict(
   }
   const current =
     fact.kind === "other"
-      ? "非普通文件"
+      ? "non-regular file"
       : fact.kind === "symbolic-link"
-        ? "符号链接"
-        : "文件";
+        ? "symbolic link"
+        : "file";
   return {
     path: fact.path,
     driver: "precondition",
-    reason: "输出路径的祖先必须是目录或缺失",
-    before: "目录或缺失",
+    reason: "Ancestor of output path must be a directory or missing",
+    before: "directory or missing",
     current,
-    after: "目录或缺失",
+    after: "directory or missing",
   };
 }
 
@@ -2063,6 +2078,10 @@ function ancestorFactsRemainUsable(
   );
 }
 
+/**
+ * Reconciles `before`, `current`, and `after` projections against path preconditions and returns an immutable change plan or blocking conflicts.
+ * Does not write to disk; pass the returned plan to `commitProjectProjectionPlan` to apply changes.
+ */
 export function planProjectProjections(options: {
   readonly before: ProjectProjection;
   readonly current: ProjectProjectionCurrent;
@@ -2071,7 +2090,7 @@ export function planProjectProjections(options: {
   readonly readFacts?: readonly CurrentProjectProjectionEntry[];
 }): ProjectProjectionPlanningResult {
   if (!path.isAbsolute(options.current.targetRoot)) {
-    throw new Error("Current 事实的目标目录必须是绝对路径");
+    throw new Error("Current targetRoot must be an absolute path");
   }
   const preconditions = options.preconditions ?? [];
   assertCurrentFactPaths({
@@ -2109,12 +2128,12 @@ export function planProjectProjections(options: {
           path: readFact.path,
           driver: drivers.get(readFact.path) ?? "precondition",
           reason:
-            "准备计算使用的Current事实与规划时读取的事实不一致，请重新准备",
+            "Current facts read during planning differ from those used during preparation; please prepare again",
           before: describeEntry(readFact),
           current: describeEntry(currentFact),
           after: afterByPath.has(readFact.path)
             ? describeEntry(afterByPath.get(readFact.path))
-            : "保留准备时读取的事实",
+            : "preserve facts read during preparation",
         },
         readFact.sources,
         currentFact.sources,
@@ -2125,7 +2144,9 @@ export function planProjectProjections(options: {
   for (const projectionPath of paths) {
     const fact = currentByPath.get(projectionPath);
     if (fact === undefined) {
-      throw new Error(`Current 事实缺少必要路径：${projectionPath}`);
+      throw new Error(
+        `Current facts are missing required path: ${projectionPath}`,
+      );
     }
   }
   const observations = [...currentByPath.values()].map(cloneCurrentFact);
@@ -2317,11 +2338,13 @@ async function stalePlanConflicts(options: {
         {
           path: before.path,
           driver: options.plan.drivers.get(before.path) ?? "precondition",
-          reason: "规划后相关目标事实已变化，请重新规划",
+          reason: "Target facts changed after planning; please plan again",
           before: describeEntry(before),
           current: describeEntry(actual),
           after:
-            after === undefined ? "保留已规划路径约束" : describeEntry(after),
+            after === undefined
+              ? "preserve planned path constraints"
+              : describeEntry(after),
         },
         options.plan.sourcesByPath.get(before.path),
         actual.sources,
@@ -2332,6 +2355,10 @@ async function stalePlanConflicts(options: {
   return conflicts;
 }
 
+/**
+ * Atomically commits a plan created by `planProjectProjections` in the current process to its original `targetRoot`.
+ * Re-checks observed facts and path preconditions before writing, rolling back staged changes if commit fails.
+ */
 export async function commitProjectProjectionPlan(options: {
   readonly targetRoot: string;
   readonly plan: ProjectProjectionChangePlan;
@@ -2339,7 +2366,9 @@ export async function commitProjectProjectionPlan(options: {
 }): Promise<ProjectProjectionCommitResult> {
   const stored = storedProjectProjectionPlans.get(options.plan);
   if (stored === undefined) {
-    throw new Error("计划必须在当前进程中由 planProjectProjections 创建");
+    throw new Error(
+      "Plan must be created by planProjectProjections in the current process",
+    );
   }
   const targetRoot = path.resolve(options.targetRoot);
   if (targetRoot !== stored.targetRoot) {
@@ -2349,7 +2378,7 @@ export async function commitProjectProjectionPlan(options: {
         {
           path: ".",
           driver: "precondition",
-          reason: "计划只能提交到原目标目录",
+          reason: "Plan can only be committed to its original target directory",
           before: stored.targetRoot,
           current: targetRoot,
           after: stored.targetRoot,
@@ -2575,10 +2604,10 @@ async function acquirePathReservations(options: {
         const conflict = preconditionConflict(precondition, current) ?? {
           path: precondition.path,
           driver: "precondition" as const,
-          reason: `${precondition.reason}；路径在提交时已变化`,
-          before: "缺失",
+          reason: `${precondition.reason}; path changed during commit`,
+          before: "missing",
           current: current.kind,
-          after: "为本次提交预留",
+          after: "reserved for this commit",
         };
         throw new ProjectProjectionPathPreconditionError([conflict]);
       }
@@ -2638,7 +2667,9 @@ async function applyProjectionMutationsAtomically(options: {
       try {
         const targetStat = await lstat(targetPath);
         if (!targetStat.isFile()) {
-          throw new Error(`提交目标不是普通文件：${mutation.path}`);
+          throw new Error(
+            `Commit target is not a regular file: ${mutation.path}`,
+          );
         }
         const backupPath = path.join(backupRoot, mutation.path);
         await mkdir(path.dirname(backupPath), { recursive: true });

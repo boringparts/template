@@ -12,7 +12,7 @@ import type {
 } from "./project-blueprint.ts";
 
 export type ResourceFileSnapshot = {
-  /** 所属参考包中的规范相对路径。 */
+  /** Canonical path relative to the owning reference package. */
   readonly path: string;
   readonly content: Uint8Array;
   readonly mode: number;
@@ -23,7 +23,7 @@ export type PreparedReference<Facts = JsonValue> = {
   readonly facts: Facts;
 };
 
-/** 从显式资源快照读取 UTF-8 文本；不会回读作者目录。 */
+/** Reads UTF-8 text from an explicit resource snapshot without accessing the author directory on disk. */
 export function readTextResource(
   prepared: PreparedReference,
   resourcePath: string,
@@ -32,40 +32,43 @@ export function readTextResource(
     (item) => item.path === resourcePath,
   );
   if (resource === undefined) {
-    throw new Error(`资源快照中不存在文件：${resourcePath}`);
+    throw new Error(`Resource snapshot does not contain file: ${resourcePath}`);
   }
   try {
     return new TextDecoder("utf-8", { fatal: true }).decode(resource.content);
   } catch (cause) {
-    throw new Error(`资源快照不是有效 UTF-8 文本：${resourcePath}`, { cause });
+    throw new Error(
+      `Resource snapshot is not valid UTF-8 text: ${resourcePath}`,
+      { cause },
+    );
   }
 }
 
 export type ContentIdentityReferenceDependency<
   CreationInput extends JsonValue = JsonValue,
 > = {
-  /** 所属内容稳定拥有的要求键。 */
+  /** Stable dependency requirement key owned by this content definition. */
   readonly key: string;
   readonly contentIdentity: ContentIdentity;
   readonly creationInput?: CreationInput;
 };
 
-/** 由所属包公开入口解析、只可绑定同一来源命名空间的原生依赖。 */
+/** Native dependency resolved through the owning package's public entry point, bound only within the same source namespace. */
 export type OwnerLocalReferenceDependency<
   CreationInput extends JsonValue = JsonValue,
 > = {
-  /** 所属内容稳定拥有的要求键。 */
+  /** Stable dependency requirement key owned by this content definition. */
   readonly key: string;
   readonly ownerLocal: {
-    /** 规范原生包与公开子路径，例如 @scope/tooling/template。 */
+    /** Canonical native package specifier and public subpath, e.g. @scope/tooling/template. */
     readonly specifier: string;
-    /** 必须来自声明所属模块的公开包解析器。 */
+    /** Package resolver belonging to the declaring module (e.g. import.meta.resolve). */
     readonly resolve: (specifier: string) => string;
   };
   readonly creationInput?: CreationInput;
 };
 
-/** 新作者可声明完整来源身份，原生包可声明自己的公开入口。 */
+/** Dependency declaration using either a full canonical content identity or an owner-local public entry specifier. */
 export type ReferenceDependency<CreationInput extends JsonValue = JsonValue> =
   | ContentIdentityReferenceDependency<CreationInput>
   | OwnerLocalReferenceDependency<CreationInput>;
@@ -95,7 +98,7 @@ export type ReferencePackageEvaluationOptions<
   readonly packageInput: PackageInput | undefined;
 };
 
-/** 作者拥有自身资源、布局、依赖声明和纯计算。 */
+/** Reference package contract: owns its resource preparation, dependencies, layout definition, and pure evaluation. */
 export type ReferencePackageDefinition<
   Conventions = JsonValue,
   CreationInput extends JsonValue = JsonValue,
@@ -107,12 +110,12 @@ export type ReferencePackageDefinition<
   readonly alias: string;
   readonly instance: "shared" | "independent";
   prepare(options?: {
-    /** 当前包目标目录内由嵌套包拥有的相对路径；收集资源前可排除这些作用域。 */
+    /** Relative paths owned by nested packages inside this package's target directory, excluded before collecting resources. */
     readonly excludedPackagePaths: readonly string[];
   }):
     | PreparedReference<PreparedFacts>
     | Promise<PreparedReference<PreparedFacts>>;
-  /** 本内容声明的公开依赖身份及稳定要求键。 */
+  /** Public dependencies and stable requirement keys declared by this reference package. */
   readonly dependencies?: readonly ReferenceDependency<CreationInput>[];
   parseCreationInput(value: unknown): CreationInput;
   createDefinition(options: {
@@ -135,7 +138,7 @@ export type ReferencePackage<
   Definition extends ReferencePackageDefinition = ReferencePackageDefinition,
 > = LoadedContentMember<Definition, "reference">;
 
-/** 显式依赖边指向本次选择节点，或 add 时指向已恢复实例。 */
+/** Explicit dependency binding target: a sibling node identity in this selection, or an existing packageDefinitionId during add. */
 export type SelectionDependencyBindingTarget =
   | string
   | Readonly<{ readonly packageDefinitionId: PackageDefinitionId }>;

@@ -93,7 +93,7 @@ export type RustReferenceFacts = {
   readonly toolchainConfiguration: ReturnType<
     typeof parseRustToolchainDeclaration
   >;
-  /** Rust owner 自身准备的 Dockerfile 文本快照。 */
+  /** Dockerfile fragment texts prepared by the Rust reference owner. */
   readonly developmentContainerToolLayerFragments: Readonly<
     Record<string, string>
   >;
@@ -108,7 +108,7 @@ function snapshot(
 ): CargoFileSnapshot {
   const resource = resources.find(({ path }) => path === resourcePath);
   if (resource === undefined) {
-    throw new Error(`Rust 原生资源缺失：${resourcePath}`);
+    throw new Error(`Missing native Rust resource: ${resourcePath}`);
   }
   const source = new TextDecoder("utf-8", { fatal: true }).decode(
     resource.content,
@@ -227,7 +227,9 @@ const nativeReference = defineReferencePackage<
   foundation: ({ definition, ownerFacts, stableCommon }) => {
     const requirement = stableRustToolchain(stableCommon);
     if (requirement === undefined) {
-      throw new Error("Rust 参考包缺少稳定工具链共同输入");
+      throw new Error(
+        "Rust reference package requires a stable rustToolchain common input",
+      );
     }
     return {
       toolchains: {
@@ -300,7 +302,9 @@ const nativeReference = defineReferencePackage<
         resourcePath === "template/rust-toolchain.toml",
     );
     if (toolchain === undefined) {
-      throw new Error("Rust 工具链原生资源缺失：template/rust-toolchain.toml");
+      throw new Error(
+        "Missing native Rust toolchain resource: template/rust-toolchain.toml",
+      );
     }
     const developmentContainerDockerfile = resources.find(
       ({ path: resourcePath }) =>
@@ -308,7 +312,7 @@ const nativeReference = defineReferencePackage<
     );
     if (developmentContainerDockerfile === undefined) {
       throw new Error(
-        "Rust 开发容器原生资源缺失：resources/devcontainer/rust.Dockerfile",
+        "Missing native Rust devcontainer resource: resources/devcontainer/rust.Dockerfile",
       );
     }
     return {

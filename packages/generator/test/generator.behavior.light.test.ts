@@ -172,7 +172,7 @@ function documentationEngine(
           value === null ||
           typeof (value as Record<string, unknown>).path !== "string"
         ) {
-          throw new Error("包创建输入必须包含路径");
+          throw new Error("Package creation input must include path");
         }
         return value as CreationInput;
       },
@@ -195,7 +195,7 @@ function documentationEngine(
         const source = prepared.resources.find(
           (file) => file.path === "README.md",
         );
-        if (source === undefined) throw new Error("缺少 README 资源");
+        if (source === undefined) throw new Error("Missing README resource");
         const files = creationInput?.emptyFiles
           ? []
           : creationInput?.hierarchicalOutputs === "conflict"
@@ -285,7 +285,7 @@ function documentationEngine(
         value === null ||
         typeof (value as Record<string, unknown>).edition !== "string"
       ) {
-        throw new Error("缺少 edition 约定");
+        throw new Error("Missing edition convention");
       }
       return { edition: (value as { edition: string }).edition };
     },
@@ -305,7 +305,9 @@ function documentationEngine(
     },
     combine({ blueprint, packages }) {
       const root = blueprint.packages.find((item) => item.path === ".");
-      if (root === undefined) throw new Error("组合需要根目录参考包");
+      if (root === undefined) {
+        throw new Error("Composition requires a root reference package");
+      }
       const child = blueprint.packages.find(
         (item) => item.path === "packages/a",
       );
@@ -318,7 +320,9 @@ function documentationEngine(
           "packages/a/README.md",
         )
       ) {
-        throw new Error("根包收集了已登记子包的资源");
+        throw new Error(
+          "Root package collected resources from a registered child package",
+        );
       }
       return {
         files: [
@@ -362,8 +366,8 @@ async function withTemporaryTarget(
   }
 }
 
-void describe("公开生成计算", () => {
-  void it("恢复新格式后规划加包，并提交同一 SDK 计划", async () => {
+void describe("public generation computation", () => {
+  void it("plans an addition after restoring the new format and commits the same SDK plan", async () => {
     const { generator } = documentationEngine();
     await withTemporaryTarget(async (targetRoot) => {
       const initialized = await generator.init({
@@ -482,7 +486,7 @@ void describe("公开生成计算", () => {
         documentationEngine().generator.restoreProject({
           repositoryRoot: targetRoot,
         }),
-        /包创建输入必须包含路径/u,
+        /Package creation input must include path/u,
       );
 
       await writeFile(
@@ -499,12 +503,12 @@ void describe("公开生成计算", () => {
         documentationEngine().generator.restoreProject({
           repositoryRoot: targetRoot,
         }),
-        /缺少 edition 约定/u,
+        /Missing edition convention/u,
       );
     });
   });
 
-  void it("恢复预设选择并连续加包时保留实例标识与选择", async () => {
+  void it("preserves instance identities and selections when restoring a preset and performing consecutive additions", async () => {
     const { generator } = documentationEngine();
     await withTemporaryTarget(async (targetRoot) => {
       const initialized = await generator.init({
@@ -578,7 +582,7 @@ void describe("公开生成计算", () => {
     });
   });
 
-  void it("按稳定节点身份恢复根顺序不同的同一预设选择", async () => {
+  void it("restores the same preset selection by stable node identity regardless of root order", async () => {
     const presetNodes: PresetSelectionDefinition<CreationInput>["nodes"] = {
       zroot: {
         reference: { alias: "docs", instance: "independent" },
@@ -617,7 +621,7 @@ void describe("公开生成计算", () => {
     });
   });
 
-  void it("显式初始化共享实例来源不受根遍历顺序影响", async () => {
+  void it("explicitly initialized shared instance origin is independent of root traversal order", async () => {
     for (const roots of [
       [
         { nodeIdentity: "index", contentIdentity: indexIdentity },
@@ -632,7 +636,7 @@ void describe("公开生成计算", () => {
     ]) {
       await withTemporaryTarget(async (targetRoot) => {
         const initialized = await createDocumentationEngine({
-          author: "公开 SDK",
+          author: "public-sdk",
         }).init({
           targetRoot,
           selection: { roots },
@@ -655,9 +659,9 @@ void describe("公开生成计算", () => {
     }
   });
 
-  void it("显式加选仍保留历史共享依赖的实例标识与来源", async () => {
+  void it("explicit addition preserves the instance identity and origin of an existing shared dependency", async () => {
     await withTemporaryTarget(async (targetRoot) => {
-      const generator = createDocumentationEngine({ author: "公开 SDK" });
+      const generator = createDocumentationEngine({ author: "public-sdk" });
       const initialized = await generator.init({
         targetRoot,
         selection: {
@@ -695,9 +699,9 @@ void describe("公开生成计算", () => {
     });
   });
 
-  void it("add中新建的显式共享选择保留addition来源", async () => {
+  void it("newly created explicit shared selection during add preserves addition origin", async () => {
     await withTemporaryTarget(async (targetRoot) => {
-      const generator = createDocumentationEngine({ author: "公开 SDK" });
+      const generator = createDocumentationEngine({ author: "public-sdk" });
       const initialized = await generator.init({
         targetRoot,
         selection: {
@@ -709,7 +713,7 @@ void describe("公开生成计算", () => {
       assert.equal(initialized.status, "success", JSON.stringify(initialized));
 
       const addEngine = createDocumentationEngine({
-        author: "公开 SDK",
+        author: "public-sdk",
       });
       const planning = await addEngine.planAdd({
         repositoryRoot: targetRoot,
@@ -737,7 +741,7 @@ void describe("公开生成计算", () => {
       const committed = await addEngine.commitPlan(planning.plan);
       assert.equal(committed.status, "success", JSON.stringify(committed));
       const restored = await createDocumentationEngine({
-        author: "公开 SDK",
+        author: "public-sdk",
       }).restoreProject({ repositoryRoot: targetRoot });
       assert.equal(
         restored.generationRecord.packages.find(
@@ -749,7 +753,7 @@ void describe("公开生成计算", () => {
     });
   });
 
-  void it("拒绝旧格式和无效关系并保持目标零写入", async () => {
+  void it("rejects legacy metadata formats and invalid relations without writing to target", async () => {
     for (const mutation of ["schema5", "bad-binding", "blueprint3"] as const) {
       await withTemporaryTarget(async (targetRoot) => {
         const initialized = await documentationEngine().generator.init({
@@ -815,7 +819,7 @@ void describe("公开生成计算", () => {
         assert.equal(planning.phase, "metadata");
         assert.match(
           planning.error.message,
-          /不支持的生成记录 schema|不支持的本地模板元数据版本|生成记录|蓝图/u,
+          /Unsupported generation record schema|Unsupported local template metadata version|Generation record|blueprint/u,
         );
         assert.deepEqual(await readFile(recordPath), recordBefore);
         assert.deepEqual(await readFile(blueprintPath), blueprintBefore);
@@ -830,7 +834,7 @@ void describe("公开生成计算", () => {
     }
   });
 
-  void it("保留元数据首次读取快照并拒绝规划期间的只读事实变化", async () => {
+  void it("retains the initial metadata snapshot and rejects read-only fact changes during planning", async () => {
     await withTemporaryTarget(async (targetRoot) => {
       let enabled = false;
       let changed = false;
@@ -874,7 +878,9 @@ void describe("公开生成计算", () => {
         planning.conflicts.some(
           ({ path: conflictPath, reason }) =>
             conflictPath === ".template/generation.json" &&
-            reason.includes("准备计算使用的Current事实"),
+            reason.includes(
+              "Current facts read during planning differ from those used during preparation",
+            ),
         ),
       );
       assert.equal(changed, true);
@@ -884,7 +890,7 @@ void describe("公开生成计算", () => {
     });
   });
 
-  void it("提交只受相关事实影响，并保留未变更生成文件的模式定制", async () => {
+  void it("commit is only affected by relevant facts and preserves custom file modes on unchanged generated files", async () => {
     await withTemporaryTarget(async (targetRoot) => {
       const generator = documentationEngine().generator;
       const initialized = await generator.init({
@@ -911,12 +917,12 @@ void describe("公开生成计算", () => {
       });
       assert.equal(planning.status, "planned", JSON.stringify(planning));
       if (planning.status !== "planned") return;
-      await writeFile(path.join(targetRoot, "user-notes.txt"), "保留\n");
+      await writeFile(path.join(targetRoot, "user-notes.txt"), "keep\n");
       const committed = await generator.commitPlan(planning.plan);
       assert.equal(committed.status, "success", JSON.stringify(committed));
       assert.equal(
         await readFile(path.join(targetRoot, "user-notes.txt"), "utf8"),
-        "保留\n",
+        "keep\n",
       );
       assert.equal(
         (await lstat(path.join(targetRoot, "README.md"))).mode & 0o777,
@@ -926,7 +932,7 @@ void describe("公开生成计算", () => {
     });
   });
 
-  void it("受阻包路径冲突定位祖先并携带新包来源", async () => {
+  void it("blocked package path conflict identifies the ancestor blocker and includes the new package source", async () => {
     for (const blocker of ["file", "symbolic-link"] as const) {
       const parent = await mkdtemp(
         path.join(tmpdir(), `generator-add-${blocker}-`),
@@ -954,7 +960,7 @@ void describe("公开生成计算", () => {
           JSON.stringify(initialized),
         );
         if (blocker === "file") {
-          await writeFile(path.join(targetRoot, "packages"), "用户数据\n");
+          await writeFile(path.join(targetRoot, "packages"), "user data\n");
         } else {
           await mkdir(outsideRoot);
           await symlink(outsideRoot, path.join(targetRoot, "packages"), "dir");
@@ -984,7 +990,7 @@ void describe("公开生成计算", () => {
         if (blocker === "file") {
           assert.equal(
             await readFile(path.join(targetRoot, "packages"), "utf8"),
-            "用户数据\n",
+            "user data\n",
           );
           assert.equal(
             (await lstat(path.join(targetRoot, "packages"))).isFile(),
@@ -1007,7 +1013,7 @@ void describe("公开生成计算", () => {
     }
   });
 
-  void it("准备资源时包含直接根与预设子包的完整目标作用域", async () => {
+  void it("includes full target scope of both direct roots and preset child packages when preparing resources", async () => {
     const { generator } = documentationEngine();
     const prepared = await generator.prepareProject({
       selection: {
@@ -1033,7 +1039,7 @@ void describe("公开生成计算", () => {
     assert.equal(generator.computeProject(prepared).packages.length, 2);
   });
 
-  void it("拒绝文件占用已登记子包目录及其祖先", async () => {
+  void it("rejects files occupying a registered child package directory or its ancestor", async () => {
     const { generator } = documentationEngine();
     await withTemporaryTarget(async (targetRoot) => {
       for (const outputPath of ["packages/a", "packages"]) {
@@ -1062,16 +1068,16 @@ void describe("公开生成计算", () => {
           JSON.stringify(result),
         );
         if (result.status !== "operation-failure") {
-          throw new Error("文件不能占用已登记包目录");
+          throw new Error("File cannot occupy a registered package directory");
         }
         assert.equal(result.phase, "calculation");
-        assert.match(result.error.message, /已登记包目录/u);
+        assert.match(result.error.message, /registered package directory/u);
         await assert.rejects(access(targetRoot), { code: "ENOENT" });
       }
     });
   });
 
-  void it("纯规划检测非相邻文件与目录冲突且允许近似路径", async () => {
+  void it("pure planning detects non-adjacent file and directory conflicts while allowing near-prefix paths", async () => {
     const { generator } = documentationEngine();
     await withTemporaryTarget(async (targetRoot) => {
       const conflicted = await generator.planInit({
@@ -1095,10 +1101,15 @@ void describe("公开生成计算", () => {
         JSON.stringify(conflicted),
       );
       if (conflicted.status !== "operation-failure") {
-        throw new Error("文件树前缀冲突必须在计算阶段拒绝");
+        throw new Error(
+          "File tree prefix conflict must be rejected during calculation",
+        );
       }
       assert.equal(conflicted.phase, "calculation");
-      assert.match(conflicted.error.message, /文件与目录路径冲突/u);
+      assert.match(
+        conflicted.error.message,
+        /file and directory path conflict/u,
+      );
       await assert.rejects(access(targetRoot), { code: "ENOENT" });
 
       const valid = await generator.planInit({
@@ -1121,7 +1132,7 @@ void describe("公开生成计算", () => {
     });
   });
 
-  void it("同一参考声明可作为根包和子包，重复计算不访问目标或改变结果", async () => {
+  void it("allows the same reference definition as both root and child package and produces deterministic results without accessing target", async () => {
     const { generator } = documentationEngine();
     const prepared = await generator.prepareProject({
       selection: {
@@ -1207,7 +1218,7 @@ void describe("公开生成计算", () => {
     assert.equal(first.blueprint.schemaVersion, 4);
   });
 
-  void it("拒绝根包越界写入已登记子包目录", async () => {
+  void it("rejects root package writing into a registered child package directory", async () => {
     const { generator } = documentationEngine();
     const prepared = await generator.prepareProject({
       selection: {
@@ -1230,11 +1241,11 @@ void describe("公开生成计算", () => {
 
     assert.throws(
       () => generator.computeProject(prepared),
-      /该路径归属于 packages\/a/u,
+      /which belongs to packages\/a/u,
     );
   });
 
-  void it("拒绝包文件占用生成器元数据目录", async () => {
+  void it("rejects package files occupying the generator metadata directory", async () => {
     const { generator } = documentationEngine();
     const prepared = await generator.prepareProject({
       selection: {
@@ -1252,7 +1263,7 @@ void describe("公开生成计算", () => {
 
     assert.throws(
       () => generator.computeProject(prepared),
-      /包贡献路径与生成器元数据路径冲突/u,
+      /Package contribution path conflicts with generator metadata path/u,
     );
   });
 });

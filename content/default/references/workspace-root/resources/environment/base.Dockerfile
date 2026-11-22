@@ -2,7 +2,7 @@ ARG NODE_VERSION
 FROM node:${NODE_VERSION}-bookworm-slim
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-# 覆盖镜像支持的两个用户，非交互命令也能直接执行全局工具。
+# Cover both users supported by the image so non-interactive commands can run global tools directly.
 ENV PATH="/root/.local/share/pnpm/bin:/home/node/.local/share/pnpm/bin:$PATH"
 # @template-mirror pnpm-bootstrap
 COPY --from=ghcr.io/pnpm/pnpm:__PNPM_VERSION__ /opt/pnpm /opt/pnpm
@@ -30,4 +30,5 @@ RUN apt-get update \
     && pnpm config set store-dir /pnpm/store/root --global \
     && su -s /bin/sh node -c 'pnpm config set store-dir /pnpm/store/node --global'
 
-RUN curl -fsSL https://turborepo.dev/install | sh -s -- --install-dir /usr/local/bin --no-modify-path
+# Pin the standalone Turborepo version so container builds download release assets directly without hitting unauthenticated GitHub API rate limits.
+RUN curl -fsSL https://turborepo.dev/install | sh -s -- --version __TURBO_VERSION__ --install-dir /usr/local/bin --no-modify-path

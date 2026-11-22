@@ -26,7 +26,7 @@ function applications(result: SuccessfulScenarioResult) {
   );
 }
 
-/** 定制已有应用，后续新增应用应保留这份定制并拥有独立示例。 */
+/** Customizes an existing app so subsequent added apps can prove this customization is preserved while staying independent. */
 export async function customizeVueApplication(
   result: SuccessfulScenarioResult,
   projectDir: string,
@@ -72,7 +72,7 @@ export async function verifyVueApplicationCombination(options: {
       ) === options.customization.file;
     const observer = await format(
       "app-customization.spec.ts",
-      'import { expect, test } from "@playwright/test";\n\ntest("已有应用保留定制，新增应用保持独立", async ({ page }) => {\n  await page.goto("/");\n  await expect(page.getByRole("button", { name: "计数：0" }))' +
+      'import { expect, test } from "@playwright/test";\n\ntest("preserves customization on the existing app while keeping added apps independent", async ({ page }) => {\n  await page.goto("/");\n  await expect(page.getByRole("button", { name: "计数：0" }))' +
         (customized
           ? '.toHaveAttribute("data-app-customization", "preserved")'
           : '.not.toHaveAttribute("data-app-customization", "preserved")') +

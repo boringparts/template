@@ -44,7 +44,7 @@ async function withUnreadableAuthorDirectories<Result>(
 }
 
 void it(
-  "从正式Rust制品安装SDK后，在作者目录不可读的新Node进程加包并运行真实Cargo任务",
+  "installs the SDK from packed Rust artifacts, adds a package in a fresh Node process with unreadable author directories, and runs real Cargo tasks",
   { timeout: 900_000 },
   async () => {
     const temporaryRoot = await mkdtemp(
@@ -193,7 +193,7 @@ void it(
           "for (const authorRoot of authorRoots) await assert.rejects(readdir(authorRoot), { code: 'EACCES' });",
           'const libraryPreset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === "@ykdz/preset-ts-lib");',
           'const rustPreset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === "@ykdz/preset-rust-bin");',
-          "if (!libraryPreset || !rustPreset) throw new Error('已安装内容集合缺少所需预设');",
+          "if (!libraryPreset || !rustPreset) throw new Error('Installed content collection is missing required presets');",
           "const generator = createDefaultGenerator({ content: templateContent });",
           'const planning = phase === "init"',
           "  ? await generator.planInit({ targetRoot, selection: { presets: [{ contentIdentity: libraryPreset.identity }] }, conventions: { repositoryName: 'packed-rust-demo', defaultPackageScope: 'demo' } })",

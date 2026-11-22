@@ -2,14 +2,14 @@ import path from "node:path";
 
 const templateSourceHandleBrand: unique symbol = Symbol("template-source");
 
-/** 由资源所属者创建、不能从字符串伪造的模板来源引用。 */
+/** Opaque handle created by a resource owner to prevent arbitrary string path fabrication. */
 export type TemplateSourceHandle = {
   readonly [templateSourceHandleBrand]: true;
 };
 
 const templateSourceRoots = new WeakMap<object, string>();
 
-/** 将有限资源根绑定到不透明句柄。 */
+/** Binds a bounded resource root directory to an opaque TemplateSourceHandle. */
 export function createTemplateSourceHandle(root: string): TemplateSourceHandle {
   const handle = Object.freeze({
     [templateSourceHandleBrand]: true as const,
@@ -18,7 +18,7 @@ export function createTemplateSourceHandle(root: string): TemplateSourceHandle {
   return handle;
 }
 
-/** 在来源根目录内解析相对资源路径。 */
+/** Resolves a relative resource path within the handle's root directory; throws if the path is absolute or escapes the root. */
 export function resolveTemplateSource(
   source: TemplateSourceHandle,
   relativePath: string,
@@ -28,10 +28,10 @@ export function resolveTemplateSource(
       ? templateSourceRoots.get(source)
       : undefined;
   if (root === undefined) {
-    throw new Error("模板来源句柄无效");
+    throw new Error("Invalid template source handle");
   }
   if (path.isAbsolute(relativePath)) {
-    throw new Error(`模板资源路径必须相对：${relativePath}`);
+    throw new Error(`Template resource path must be relative: ${relativePath}`);
   }
 
   const resolvedRoot = path.resolve(root);
@@ -41,7 +41,9 @@ export function resolveTemplateSource(
     resolvedPath.startsWith(`${resolvedRoot}${path.sep}`);
 
   if (!insideRoot) {
-    throw new Error(`模板资源路径超出所属目录：${relativePath}`);
+    throw new Error(
+      `Template resource path escapes its owning root: ${relativePath}`,
+    );
   }
 
   return resolvedPath;

@@ -11,8 +11,9 @@ export const preset = defineNativeContentArtifact(
   definePreset({
     metadata: {
       alias: "vue-app",
-      title: "Vue 应用",
-      description: "使用 Vite、Tailwind、Pinia 和测试工具的 Vue 应用工作区。",
+      title: "Vue App",
+      description:
+        "Vue application workspace with Vite, Tailwind CSS, Pinia, and testing tools.",
     },
     operations: ["init", "add"],
     owner: presetOwnerFromManifest(presetPackage, "./template"),

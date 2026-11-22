@@ -3,6 +3,12 @@ import { sql } from "drizzle-orm";
 import type { Database } from "#db/db";
 import { todos } from "#db/schema";
 
+/**
+ * Verifies that the todos table is queryable before serving or seeding data.
+ *
+ * Throws a `DATABASE_NOT_READY` error with profile-specific preparation instructions when the
+ * database has not been initialized.
+ */
 export function assertDatabaseReady(db: Database) {
   try {
     db.select({ ready: sql`1` })
@@ -13,10 +19,10 @@ export function assertDatabaseReady(db: Database) {
     const profile = process.env.DATABASE_PROFILE;
     const preparation =
       profile === "dev" || profile === "test" || profile === "e2e"
-        ? `请在仓库根运行 \`pnpm run database:prepare:${profile}\``
-        : "请先使用配套 migration artifact 完成部署数据库迁移";
+        ? `Run \`pnpm run database:prepare:${profile}\` from the repository root`
+        : "Apply the accompanying migration artifact to the deployment database";
     throw new Error(
-      `DATABASE_NOT_READY: 数据库尚未就绪。${preparation} 后重试。`,
+      `DATABASE_NOT_READY: Database is not ready. ${preparation}, then retry.`,
       { cause },
     );
   }

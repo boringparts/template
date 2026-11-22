@@ -46,16 +46,16 @@ export type Composition<
 > = {
   readonly identity: ContentIdentity;
   parseConventions(value: unknown): Conventions;
-  /** 在任何包求值前确定共同输入、每包输入和稳定连接。 */
+  /** Resolves shared inputs, per-package inputs, and stable link intents before any package evaluates. */
   resolve(options: {
     readonly conventions: Conventions;
     readonly blueprint: ProjectBlueprint;
     readonly selections: readonly GenerationRecordSelection[];
     readonly packages: readonly CompositionPackage<CreationInput>[];
-    /** 本次准备的外围快照，不写入持续记录。 */
+    /** Ephemeral snapshot gathered during preparation; never persisted to the generation record. */
     readonly operationFacts: OperationFacts;
   }): CompositionResolution<StableCommon, PackageInput>;
-  /** 只合成已经求得的贡献及明确组合声明。 */
+  /** Combines already-evaluated package contributions and explicit composition declarations. */
   combine(options: {
     readonly conventions: Conventions;
     readonly stableCommon: StableCommon;

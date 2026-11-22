@@ -52,7 +52,7 @@ function presetMember(packageName: string) {
       candidate.kind === "preset" &&
       candidate.identity.packageName === packageName,
   );
-  assert.ok(member, `内容集合缺少预设：${packageName}`);
+  assert.ok(member, `Content collection is missing preset: ${packageName}`);
   return member;
 }
 
@@ -62,14 +62,17 @@ function referenceIdentity(packageName: string): ContentIdentity {
       candidate.kind === "reference" &&
       candidate.identity.packageName === packageName,
   );
-  assert.ok(member, `内容集合缺少参考包：${packageName}`);
+  assert.ok(
+    member,
+    `Content collection is missing reference package: ${packageName}`,
+  );
   return member.identity;
 }
 
 const vueHonoPreset = presetMember("@ykdz/preset-vue-hono-app");
 
-void describe("公开内容集合中的 Vue-Hono 预设", () => {
-  void it("初始化页面、API、共享依赖及联合验收配置", async (testContext) => {
+void describe("Vue-Hono preset in public content collection", () => {
+  void it("initializes web, API, shared dependencies, and joint verification config", async (testContext) => {
     const temporaryRoot = await mkdtemp(
       path.join(tmpdir(), "template-content-vue-hono-preset-"),
     );
@@ -133,9 +136,10 @@ void describe("公开内容集合中的 Vue-Hono 预设", () => {
     const webSourcePath = path.join(targetRoot, "apps/web/src/App.vue");
     const apiSourcePath = path.join(targetRoot, "apps/api/src/server.ts");
     const customizedWeb =
-      (await readFile(webSourcePath, "utf8")) + "\n<!-- 用户页面定制 -->\n";
+      (await readFile(webSourcePath, "utf8")) +
+      "\n<!-- user web customization -->\n";
     const customizedApi =
-      (await readFile(apiSourcePath, "utf8")) + "\n// 用户 API 定制\n";
+      (await readFile(apiSourcePath, "utf8")) + "\n// user API customization\n";
     await writeFile(webSourcePath, customizedWeb);
     await writeFile(apiSourcePath, customizedApi);
     await chmod(webSourcePath, 0o640);

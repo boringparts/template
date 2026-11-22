@@ -13,8 +13,8 @@ const workspaceOwner = {
   path: "." as const,
 };
 
-void describe("环境需求生命周期", () => {
-  void it("使用持久化语义声明作为规范身份", () => {
+void describe("environment needs lifecycle", () => {
+  void it("uses persisted semantic declarations as canonical identity", () => {
     const browser = playwrightBrowserAssetsEnvironmentNeed({
       browser: "chromium",
       owner: workspaceOwner,
@@ -34,7 +34,7 @@ void describe("环境需求生命周期", () => {
     );
   });
 
-  void it("严格解析并规范化带版本的本地模板元数据", () => {
+  void it("strictly parses and normalizes versioned local template metadata", () => {
     assert.deepStrictEqual(
       parseEnvironmentNeedsMetadata({
         schemaVersion: 1,
@@ -68,11 +68,13 @@ void describe("环境需求生命周期", () => {
         }),
       (error) =>
         error instanceof Error &&
-        error.message.includes("check[0] 含有未知字段：inferredFromTaskGraph"),
+        error.message.includes(
+          "check[0] contains unknown field: inferredFromTaskGraph",
+        ),
     );
   });
 
-  void it("拒绝语义参数冲突，避免持久化第二个身份", () => {
+  void it("rejects conflicting semantic parameters to avoid persisting a second identity", () => {
     assert.throws(
       () =>
         normalizeEnvironmentNeeds({
@@ -91,11 +93,11 @@ void describe("环境需求生命周期", () => {
         }),
       (error) =>
         error instanceof Error &&
-        error.message.includes("check[1].browser 必须是 chromium"),
+        error.message.includes("check[1].browser must be chromium"),
     );
   });
 
-  void it("不把部署环境需求当成常规检查环境需求，反之亦然", () => {
+  void it("does not accept deployment environment needs as check needs or vice versa", () => {
     assert.throws(
       () =>
         parseEnvironmentNeedsMetadata({
@@ -105,7 +107,7 @@ void describe("环境需求生命周期", () => {
         }),
       (error) =>
         error instanceof Error &&
-        error.message.includes("check[0] 含有不支持的 kind：docker-engine"),
+        error.message.includes("check[0] has unsupported kind: docker-engine"),
     );
 
     assert.throws(
@@ -122,7 +124,7 @@ void describe("环境需求生命周期", () => {
         }),
       (error) =>
         error instanceof Error &&
-        error.message.includes("deployment[0] 含有未知字段：owner"),
+        error.message.includes("deployment[0] contains unknown field: owner"),
     );
   });
 });

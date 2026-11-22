@@ -12,8 +12,9 @@ import presetPackage from "../package.json" with { type: "json" };
 const rustBinaryPreset: PresetDefinition<PresetReference> = definePreset({
   metadata: {
     alias: "rust-bin",
-    title: "Rust 二进制程序",
-    description: "包含 rustfmt、clippy 和 cargo 测试的 Rust 原生二进制工作区。",
+    title: "Rust Binary",
+    description:
+      "Native Rust binary workspace with rustfmt, clippy, and cargo tests.",
   },
   operations: ["init", "add"],
   owner: presetOwnerFromManifest(presetPackage, "./template"),

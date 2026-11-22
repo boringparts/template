@@ -1,1 +1,1 @@
-由中立参考包拥有的资源字节。
+Resource bytes owned by the neutral reference package.

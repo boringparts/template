@@ -14,7 +14,9 @@ const selectedPreset = derived.presets.find(
   (member) => member.alias === "contract-preset",
 );
 function required<T>(value: T | undefined): T {
-  if (value === undefined) throw new Error("内容合同fixture不完整");
+  if (value === undefined) {
+    throw new Error("Content contract fixture is incomplete");
+  }
   return value;
 }
 const requiredReference = required(reference);
@@ -37,7 +39,7 @@ const presetCreationInput: string | undefined =
 for (const member of derived.referencePackages) {
   if (member.definition.revision === "reference-extension-v1") {
     if (member.identity.namespace !== "alpha") {
-      throw new Error("v1参考包来源命名空间错误");
+      throw new Error("Unexpected origin namespace for v1 reference package");
     }
     const marker: "reference-extension-v1" =
       member.definition.authorExtension.marker;
@@ -50,13 +52,13 @@ for (const member of derived.referencePackages) {
     void revision;
   } else {
     if (member.identity.namespace !== "beta") {
-      throw new Error("v2参考包来源命名空间错误");
+      throw new Error("Unexpected origin namespace for v2 reference package");
     }
     const marker: "reference-extension-v2" =
       member.definition.authorExtension.marker;
     const revision: "reference-prepared-v2" =
       member.definition.prepare().facts.revision;
-    // @ts-expect-error 同名包的不同来源修订保留不同的扩展类型。
+    // @ts-expect-error Different origin revisions of the same package preserve distinct extension types.
     const wrongRevision: "reference-extension-v1" =
       member.definition.authorExtension.marker;
     void marker;
@@ -67,15 +69,15 @@ for (const member of derived.referencePackages) {
 
 function proveNegativeTypes(): void {
   const wrongReferenceExtension: string =
-    // @ts-expect-error 参考包扩展只属于参考包定义。
+    // @ts-expect-error Reference package extensions belong only to reference package definitions.
     preset.definition.authorExtension.marker;
   const wrongPresetExtension: string =
-    // @ts-expect-error 预设扩展只属于预设定义。
+    // @ts-expect-error Preset extensions belong only to preset definitions.
     requiredReference.definition.authorExtension.channel;
-  // @ts-expect-error 派生的参考包成员保留作者准备事实类型。
+  // @ts-expect-error Derived reference package members preserve author-prepared fact types.
   const wrongPreparedFacts: number =
     requiredReference.definition.prepare().facts.revision;
-  // @ts-expect-error 预设元数据保留字符串类型。
+  // @ts-expect-error Preset metadata preserves string types.
   const wrongPresetTitle: number = preset.definition.metadata.title;
   void wrongReferenceExtension;
   void wrongPresetExtension;
@@ -85,7 +87,7 @@ function proveNegativeTypes(): void {
   void generator.prepareProject({
     selection: {},
     conventions: {},
-    // @ts-expect-error 组合只接收已声明的本次外围事实。
+    // @ts-expect-error Composition accepts only declared operation facts.
     operationFacts: { providerVersion: 7, operation: "initialization" },
   });
   void generator.prepareProject({
@@ -94,7 +96,7 @@ function proveNegativeTypes(): void {
         {
           nodeIdentity: "bad",
           contentIdentity: requiredReference.identity,
-          // @ts-expect-error 创建输入由被选参考包的解析函数推导。
+          // @ts-expect-error Creation input is inferred from the selected reference package parser.
           creationInput: { projectName: 7 },
         },
       ],
@@ -109,12 +111,12 @@ function proveNegativeTypes(): void {
     repositoryRoot: "/tmp/content-contract",
     contentIdentity: requiredReference.identity,
     creationInput: {
-      // @ts-expect-error 原生 add 入口沿用所选参考包的创建输入。
+      // @ts-expect-error Native add entry inherits creation input from the selected reference package.
       projectName: 7,
     },
     operationFacts: {
       providerVersion: "provider-v2",
-      // @ts-expect-error add 只接受已声明的操作类别。
+      // @ts-expect-error add accepts only declared operation kinds.
       operation: "update",
     },
   });
@@ -162,7 +164,7 @@ const composition: Composition<
       !("policy" in value) ||
       value.policy !== "neutral"
     ) {
-      throw new Error("约定无效");
+      throw new Error("Invalid conventions");
     }
     return { policy: "neutral" };
   },
@@ -201,7 +203,7 @@ const result = generator.computeProject(calculated);
 const ownerPackageCount: number = result.ownerFacts.packageCount;
 const generatedContribution = result.packages[0];
 if (generatedContribution === undefined) {
-  throw new Error("计算结果缺少包贡献");
+  throw new Error("Computed result is missing a package contribution");
 }
 const contributionKind: "contract-contribution" =
   generatedContribution.contribution.facts.kind;
@@ -239,12 +241,12 @@ export async function runContentContractInitialization(targetRoot: string) {
     },
   });
   if (planned.status !== "planned") {
-    throw new Error(`规划失败：${JSON.stringify(planned)}`);
+    throw new Error(`Planning failed: ${JSON.stringify(planned)}`);
   }
   const plannedOwnerCount: number = planned.ownerFacts.packageCount;
   const committed = await generator.commitPlan(planned.plan);
   if (committed.status !== "success") {
-    throw new Error(`提交失败：${JSON.stringify(committed)}`);
+    throw new Error(`Commit failed: ${JSON.stringify(committed)}`);
   }
   return {
     packagePaths: committed.blueprint.packages.map(({ path }) => path),

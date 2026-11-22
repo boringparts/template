@@ -118,7 +118,7 @@ async function repositoryFixture(): Promise<string> {
   );
   await writeFile(
     path.join(root, "pnpm-workspace.yaml"),
-    'catalog:\n  "@playwright/test": 1.64.0\n',
+    'catalog:\n  "@playwright/test": 1.64.0\n  turbo: 2.11.13\n',
   );
   await installOwnerFixture(
     root,
@@ -135,7 +135,7 @@ async function repositoryFixture(): Promise<string> {
     "content/default/references/ts-cli",
     ownerManifest("@ykdz/reference-ts-cli", {
       engines: { node: "^24.0.0" },
-      custom: "参考 CLI 局部配置",
+      custom: "reference CLI local config",
     }),
   );
   await installOwnerFixture(
@@ -156,12 +156,12 @@ async function repositoryFixture(): Promise<string> {
       root,
       "content/default/references/rust-bin/template/rust-toolchain.toml",
     ),
-    '[toolchain]\nchannel = "1.99.0" # 保留模板注释\ncomponents = ["rustfmt", "clippy"]\n',
+    '[toolchain]\nchannel = "1.99.0" # keep template comment\ncomponents = ["rustfmt", "clippy"]\n',
   );
   return root;
 }
 
-void it("统一同步重建自用配置，并从根版本声明投影工具链和编辑器能力", async () => {
+void it("rebuilds repository config projections from root toolchain declarations and editor capabilities", async () => {
   const root = await repositoryFixture();
   try {
     await syncRepositoryConfiguration(root);
@@ -176,6 +176,10 @@ void it("统一同步重建自用配置，并从根版本声明投影工具链�
     assert.strictEqual(
       container.build.args.PLAYWRIGHT_CLI_PACKAGE,
       "@playwright/test@1.64.0",
+    );
+    assert.match(
+      await readFile(path.join(root, ".devcontainer/Dockerfile"), "utf8"),
+      /--version 2\.11\.13 --install-dir \/usr\/local\/bin/u,
     );
     const settings = JSON.parse(
       await readFile(path.join(root, ".vscode/settings.json"), "utf8"),
@@ -196,7 +200,7 @@ void it("统一同步重建自用配置，并从根版本声明投影工具链�
       ),
       ownerManifest("@ykdz/reference-ts-cli", {
         engines: { node: "^26.1.2" },
-        custom: "参考 CLI 局部配置",
+        custom: "reference CLI local config",
       }),
     );
     assert.deepStrictEqual(await syncRepositoryConfiguration(root), []);
@@ -205,7 +209,7 @@ void it("统一同步重建自用配置，并从根版本声明投影工具链�
   }
 });
 
-void it("只读检查发现所有受管输出的漂移，同步恢复后再次检查通过", async () => {
+void it("read-only check detects drift across all managed outputs and passes after sync restores them", async () => {
   const root = await repositoryFixture();
   try {
     await syncRepositoryConfiguration(root);
@@ -222,9 +226,9 @@ void it("只读检查发现所有受管输出的漂移，同步恢复后再次�
       "content/default/references/rust-bin/template/rust-toolchain.toml";
     const labels = [
       ...managedFiles,
-      "应用 CLI 包清单",
-      "参考 CLI 包清单",
-      "Rust 工具链模板",
+      "public CLI package manifest",
+      "reference CLI package manifest",
+      "Rust toolchain template",
     ];
     const files = [...managedFiles, cliFile, referenceCliFile, rustFile];
     const readOutputs = () =>
@@ -243,12 +247,15 @@ void it("只读检查发现所有受管输出的漂移，同步恢复后再次�
       );
     await rm(path.join(root, managedFiles[0]!));
     for (const file of managedFiles.slice(1))
-      await writeFile(path.join(root, file), '{"custom":"直接修改输出"}\n');
+      await writeFile(
+        path.join(root, file),
+        '{"custom":"direct output edit"}\n',
+      );
     await writeFile(
       path.join(root, cliFile),
       ownerManifest("@ykdz/template", {
         engines: { node: "^24.0.0", npm: ">=10" },
-        custom: "保留包配置",
+        custom: "keep package config",
       }),
     );
     await writeFile(
@@ -259,7 +266,7 @@ void it("只读检查发现所有受管输出的漂移，同步恢复后再次�
     );
     await writeFile(
       path.join(root, rustFile),
-      '[toolchain]\nchannel = "1.99.0" # 保留模板注释\ncomponents = ["rustfmt", "clippy"]\n',
+      '[toolchain]\nchannel = "1.99.0" # keep template comment\ncomponents = ["rustfmt", "clippy"]\n',
     );
     const beforeCheck = await readOutputs();
     const diagnostics = await checkRepositoryConfiguration(root);
@@ -285,7 +292,7 @@ void it("只读检查发现所有受管输出的漂移，同步恢复后再次�
       await readFile(path.join(root, cliFile), "utf8"),
       ownerManifest("@ykdz/template", {
         engines: { node: "^26.1.2", npm: ">=10" },
-        custom: "保留包配置",
+        custom: "keep package config",
       }),
     );
   } finally {
@@ -293,15 +300,16 @@ void it("只读检查发现所有受管输出的漂移，同步恢复后再次�
   }
 });
 
-void it("写入失败报告已更新文件，直接 Node 入口可离线补齐且保留局部目标的无关内容", async () => {
+void it("reports already-updated files on write failure and allows the direct Node entrypoint to finish offline while preserving unrelated local edits", async () => {
   const root = await repositoryFixture();
   try {
     await assert.rejects(
       syncRepositoryConfiguration(root, async (label, write) => {
-        if (label === "Rust 工具链模板") throw new Error("磁盘故障");
+        if (label === "Rust toolchain template")
+          throw new Error("disk failure");
         await write();
       }),
-      /已更新文件：应用 CLI 包清单、参考 CLI 包清单；/u,
+      /updated files: public CLI package manifest, reference CLI package manifest;/u,
     );
     const result = await execa(
       process.execPath,
@@ -333,7 +341,7 @@ void it("写入失败报告已更新文件，直接 Node 入口可离线补齐�
         ),
         "utf8",
       ),
-      '[toolchain]\nchannel = "1.100.2" # 保留模板注释\ncomponents = ["rustfmt", "clippy"]\n',
+      '[toolchain]\nchannel = "1.100.2" # keep template comment\ncomponents = ["rustfmt", "clippy"]\n',
     );
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -341,7 +349,7 @@ void it("写入失败报告已更新文件，直接 Node 入口可离线补齐�
 });
 
 for (const failure of ["node", "pnpm", "rust", "invalid-toml"]) {
-  void it(`预检失败 ${failure} 时已经需要更新的其他目标也零写入`, async () => {
+  void it(`writes nothing to other drifted targets when preflight fails for ${failure}`, async () => {
     const root = await repositoryFixture();
     try {
       const rootManifest = JSON.parse(
@@ -406,7 +414,7 @@ for (const failure of ["node", "pnpm", "rust", "invalid-toml"]) {
   });
 }
 
-void it("局部拥有者清单形状错误时其他漂移目标保持原样", async () => {
+void it("leaves other drifted targets untouched when a local owner manifest has an invalid shape", async () => {
   const root = await repositoryFixture();
   try {
     await writeFile(
@@ -420,7 +428,7 @@ void it("局部拥有者清单形状错误时其他漂移目标保持原样", as
     const before = await readSyncTargetSnapshot(root);
     await assert.rejects(
       syncRepositoryConfiguration(root),
-      /应用 CLI 包清单: 无法识别 engines/u,
+      /public CLI package manifest: could not identify engines object/u,
     );
     assert.deepStrictEqual(await readSyncTargetSnapshot(root), before);
   } finally {

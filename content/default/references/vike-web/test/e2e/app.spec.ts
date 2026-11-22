@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("renders the Vike home page", async ({ page }) => {
-  const todoTitle = `编写生成项目端到端测试 ${Date.now()}`;
+  const todoTitle = `Write generated project E2E test ${Date.now()}`;
 
   // Vike can retain background browser requests after its interactive page is
   // ready; the visible UI assertions below are the actual readiness contract.

@@ -53,14 +53,20 @@ function maintainedPlaywrightConfiguration(name: string) {
   const reference = templateReferencePackages.find(
     (item) => item.identity.packageName === name,
   );
-  assert.ok(reference, `内容集合缺少参考包：${name}`);
+  assert.ok(
+    reference,
+    `Content collection is missing reference package: ${name}`,
+  );
   const prepared = reference.definition.prepare({
     excludedPackagePaths: [],
   });
   const resource = prepared.resources.find(
     ({ path: resourcePath }) => resourcePath === "playwright.config.ts",
   );
-  assert.ok(resource, `${name} prepare 未返回 Playwright 配置资源`);
+  assert.ok(
+    resource,
+    `${name} prepare did not return the Playwright config resource`,
+  );
   return {
     sourcePath: `${name}/playwright.config.ts`,
     sourceText: new TextDecoder("utf-8", { fatal: true }).decode(

@@ -61,13 +61,13 @@ function expectedProjectionSources(
     const member = members.get(contentIdentityKey(record.contentIdentity));
     if (definition === undefined || member === undefined) {
       throw new Error(
-        `生成记录中的内容来源无法对应到本次内容集合：${contentIdentityLabel(record.contentIdentity)}`,
+        `Content source in generation record does not match this content collection: ${contentIdentityLabel(record.contentIdentity)}`,
       );
     }
     const identity = `content:${contentIdentityKey(record.contentIdentity)}:${record.packageDefinitionId}`;
     sources.set(identity, {
       identity,
-      label: `${contentIdentityLabel(record.contentIdentity)}（${definition.path}）`,
+      label: `${contentIdentityLabel(record.contentIdentity)} (${definition.path})`,
       moduleURL: member.source.moduleURL,
     });
   }
@@ -75,7 +75,7 @@ function expectedProjectionSources(
   const identity = `composition:${contentIdentityKey(compositionIdentity)}`;
   sources.set(identity, {
     identity,
-    label: `组合${contentIdentityLabel(compositionIdentity)}`,
+    label: `composition ${contentIdentityLabel(compositionIdentity)}`,
     moduleURL: "",
   });
   return sources;
@@ -108,7 +108,7 @@ function assertProjectionOwnership(
   }
 }
 
-/** 检查期望文件树公开携带的来源身份及包所有权。 */
+/** Validates source provenance identities and package ownership across the projected file tree. */
 export function planSourceReferences(options: {
   readonly receipt: GeneratedScenarioReceipt;
   readonly runtime: GeneratedScenarioRuntime;
@@ -252,7 +252,7 @@ function recordByPackageId(result: SuccessfulScenarioResult) {
   );
 }
 
-/** 只读生成目标中的真实 manifest、workspace YAML、record 与 blueprint。 */
+/** Validates dependency catalog alignment using only the written manifests, workspace YAML, generation record, and blueprint. */
 export async function validatePlanDependencyCatalog(
   result: SuccessfulScenarioResult,
   projectDir: string,
@@ -393,7 +393,7 @@ export async function assertGeneratedManifestDefaultsPrivate(options: {
   ) as Record<string, unknown>;
   if (rootManifest.private !== true) {
     throw new Error(
-      `${options.scenarioId}：生成工作区根 package.json 必须保持 private:true`,
+      `${options.scenarioId}: generated workspace root package.json must remain private:true`,
     );
   }
   for (const definition of options.result.blueprint.packages) {
@@ -403,7 +403,7 @@ export async function assertGeneratedManifestDefaultsPrivate(options: {
     ) as Record<string, unknown>;
     if (manifest.private !== true) {
       throw new Error(
-        `${options.scenarioId}：生成包 ${manifestPath} 必须默认保持 private:true`,
+        `${options.scenarioId}: generated package ${manifestPath} must default to private:true`,
       );
     }
   }

@@ -13,15 +13,15 @@ export type PackageContributionFile = Omit<
   ProjectProjectionEntry,
   "path" | "kind"
 > & {
-  /** 相对所属包目录的规范路径。 */
+  /** Canonical path relative to the owning package directory. */
   readonly path: string;
 };
 
-/** 一次生成实例求得的完整文件及其领域事实。 */
+/** Complete files, reconciliation policies, and domain facts produced for one generated package instance. */
 export type PackageContribution<Facts = unknown> = {
   readonly packageDefinitionId: PackageDefinitionId;
   readonly files: readonly PackageContributionFile[];
-  /** 路径相对所属包目录。 */
+  /** Reconciliation entries with paths relative to the owning package directory. */
   readonly reconciliation?: readonly ProjectProjectionReconciliation[];
   readonly facts: Facts;
 };
@@ -93,7 +93,9 @@ function requirePackage(
 ): PersistedPackageDefinition {
   const definition = packages.get(id);
   if (definition === undefined) {
-    throw new Error(`包贡献引用了未知实例：${id}`);
+    throw new Error(
+      `Package contribution references unknown package instance: ${id}`,
+    );
   }
   return definition;
 }
@@ -107,7 +109,7 @@ function assertOwnedPath(options: {
   const targetPath = targetPathFor(options.definition, options.relativePath);
   if (!canonicalRelativeFilePath(options.relativePath)) {
     throw new Error(
-      `包贡献输出路径必须是规范相对路径；${options.definition.name}尝试写入 ${options.relativePath}`,
+      `Package contribution path must be a canonical relative path; ${options.definition.name} attempted to write ${options.relativePath}`,
     );
   }
   const conflictsWithReservedPath = [...options.reservedPaths].some(
@@ -118,7 +120,7 @@ function assertOwnedPath(options: {
   );
   if (conflictsWithReservedPath) {
     throw new Error(
-      `包贡献路径与生成器元数据路径冲突；${options.definition.name}尝试写入 ${targetPath}`,
+      `Package contribution path conflicts with generator metadata path; ${options.definition.name} attempted to write ${targetPath}`,
     );
   }
   const occupiedPackageScope = options.blueprint.packages.find(
@@ -129,22 +131,22 @@ function assertOwnedPath(options: {
   );
   if (occupiedPackageScope !== undefined) {
     throw new Error(
-      `项目文件与已登记包目录冲突：${targetPath} 会覆盖 ${occupiedPackageScope.path}`,
+      `Project file conflicts with registered package directory: ${targetPath} would overlap ${occupiedPackageScope.path}`,
     );
   }
   const owner = fileOwner(options.blueprint.packages, targetPath);
   if (owner === undefined) {
-    throw new Error(`项目输出没有对应的软件包拥有者：${targetPath}`);
+    throw new Error(`Project output path has no owning package: ${targetPath}`);
   }
   if (owner.packageDefinitionId !== options.definition.packageDefinitionId) {
     throw new Error(
-      `包贡献越过所属目录边界：${options.definition.path}尝试写入 ${targetPath}，该路径归属于 ${owner.path}`,
+      `Package contribution escapes its owning directory boundary: ${options.definition.path} attempted to write ${targetPath}, which belongs to ${owner.path}`,
     );
   }
   return targetPath;
 }
 
-/** 将包内相对文件汇总成一个经过全拓扑归属检查的项目投影。 */
+/** Aggregates package-relative contributions into a ProjectProjection after verifying path ownership across the blueprint topology. */
 export function projectPackageContributions(options: {
   readonly blueprint: ProjectBlueprint;
   readonly contributions: readonly PackageContribution[];
@@ -178,17 +180,21 @@ export function projectPackageContributions(options: {
       reservedPaths,
     });
     if (outputPaths.has(path)) {
-      throw new Error(`项目文件树包含重复输出路径：${path}`);
+      throw new Error(
+        `Project projection contains duplicate output path: ${path}`,
+      );
     }
     if (!(file.content instanceof Uint8Array)) {
-      throw new Error(`项目文件内容必须是字节：${path}`);
+      throw new Error(
+        `Project projection file content must be a Uint8Array: ${path}`,
+      );
     }
     if (
       !Number.isInteger(file.mode) ||
       file.mode < 0 ||
       (file.mode & ~0o111) !== 0
     ) {
-      throw new Error(`项目文件权限模式无效：${path}`);
+      throw new Error(`Project projection file mode is invalid: ${path}`);
     }
     outputPaths.add(path);
     entries.push({
@@ -216,7 +222,9 @@ export function projectPackageContributions(options: {
         reservedPaths,
       });
       if (policyPaths.has(path)) {
-        throw new Error(`项目文件树包含重复协调路径：${path}`);
+        throw new Error(
+          `Project projection contains duplicate reconciliation path: ${path}`,
+        );
       }
       policyPaths.add(path);
       reconciliation.push({ ...policy, path });
@@ -235,7 +243,9 @@ export function projectPackageContributions(options: {
       reservedPaths,
     });
     if (policyPaths.has(path)) {
-      throw new Error(`项目文件树包含重复协调路径：${path}`);
+      throw new Error(
+        `Project projection contains duplicate reconciliation path: ${path}`,
+      );
     }
     policyPaths.add(path);
     reconciliation.push({ ...item.reconciliation, path });
@@ -243,12 +253,16 @@ export function projectPackageContributions(options: {
 
   for (const entry of entries) {
     if (!policyPaths.has(entry.path)) {
-      throw new Error(`项目文件缺少协调规则：${entry.path}`);
+      throw new Error(
+        `Project projection file is missing a reconciliation policy: ${entry.path}`,
+      );
     }
   }
   for (const policyPath of policyPaths) {
     if (!outputPaths.has(policyPath)) {
-      throw new Error(`项目协调规则引用了未知路径：${policyPath}`);
+      throw new Error(
+        `Project projection reconciliation policy references unknown path: ${policyPath}`,
+      );
     }
   }
   const sortedPaths = entries.map((entry) => entry.path).toSorted(comparePaths);
@@ -258,7 +272,9 @@ export function projectPackageContributions(options: {
     for (const segment of segments.slice(0, -1)) {
       parent = parent.length === 0 ? segment : `${parent}/${segment}`;
       if (outputPaths.has(parent)) {
-        throw new Error(`项目文件与目录路径冲突：${parent} 和 ${current}`);
+        throw new Error(
+          `Project projection file and directory path conflict: ${parent} and ${current}`,
+        );
       }
     }
   }

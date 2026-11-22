@@ -13,7 +13,7 @@ import type { JsonValue } from "@ykdz/template-core/json";
 import type { PackageBinding } from "@ykdz/template-core/reference-package";
 import { createTemplateSourceHandle } from "@ykdz/template-core/template-source";
 
-await test("根目录位置本身不注入参考包业务规则", () => {
+await test("root directory path alone does not inject reference package business rules", () => {
   const owner = defineReferencePackage({
     manifest: {
       name: "@fixture/workspace",
@@ -73,7 +73,7 @@ await test("根目录位置本身不注入参考包业务规则", () => {
   assert.deepEqual(manifest.engines, { node: "^26.13.0" });
 });
 
-await test("原生作者factory在求值中形成普通原生文档", async () => {
+await test("native author factory produces plain native documents during evaluation", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "native-reference-"));
   try {
     await mkdir(path.join(root, "src"), { recursive: true });
@@ -222,14 +222,14 @@ await test("原生作者factory在求值中形成普通原生文档", async () =
     assert.equal(
       contribution.facts.manifest,
       manifest,
-      "manifest暴露事实应与最终原生文档使用同一值",
+      "exposed manifest fact should reference the same object as the final native document",
     );
   } finally {
     await rm(root, { recursive: true, force: true });
   }
 });
 
-await test("通过公开来源别名投影外部资源且求值只用准备快照", async () => {
+await test("projects external resources via public source aliases and evaluates purely from prepared snapshots", async () => {
   const root = await mkdtemp(
     path.join(os.tmpdir(), "native-reference-source-"),
   );
@@ -388,10 +388,7 @@ await test("通过公开来源别名投影外部资源且求值只用准备快�
     const tsconfig = contribution.facts.nativeDocuments.find(
       ({ path: documentPath }) => documentPath === "tsconfig.json",
     );
-    assert.equal(
-      tsconfig?.value.extends as string | undefined,
-      "@sample/tooling-config/node.json",
-    );
+    assert.equal(tsconfig?.value.extends, "@sample/tooling-config/node.json");
     const tsconfigFile = contribution.files.find(
       ({ path: filePath }) => filePath === "tsconfig.json",
     );
@@ -425,7 +422,7 @@ await test("通过公开来源别名投影外部资源且求值只用准备快�
   }
 });
 
-await test("每包输入明确延后跨包文档并携带自身当前manifest", async () => {
+await test("per-package input explicitly defers cross-package documents and carries the current target manifest", async () => {
   const owner = defineReferencePackage({
     manifest: {
       name: "@fixture/library",
@@ -532,7 +529,10 @@ await test("defineReferencePackage without parseCreationInput only promises Json
   );
   void _fabricated;
 
-  assert.throws(() => owner.parseCreationInput(Number.NaN), /有效 JSON 数据/u);
+  assert.throws(
+    () => owner.parseCreationInput(Number.NaN),
+    /Native reference package creation input.*JSON/u,
+  );
 });
 
 await test("defineReferencePackage with parseCreationInput validates JSON first and narrows output", () => {
@@ -568,7 +568,10 @@ await test("defineReferencePackage with parseCreationInput validates JSON first 
       },
     });
 
-  assert.throws(() => owner.parseCreationInput(Number.NaN), /有效 JSON 数据/u);
+  assert.throws(
+    () => owner.parseCreationInput(Number.NaN),
+    /Native reference package creation input.*JSON/u,
+  );
   assert.equal(validatorCalled, false);
 
   assert.throws(

@@ -1,7 +1,10 @@
 import { templateContent, templatePresets } from "@ykdz/template-content";
 import { createContentIndex } from "@ykdz/template-core/content-identity";
 
-/** 从公开内容集合查找拥有指定参考包的可扩展预设。 */
+/**
+ * Finds the alias of an add-capable preset in the public content collection
+ * that owns the given reference package.
+ */
 export function requireReferencePresetName(
   referencePackageName: string,
 ): string {
@@ -17,7 +20,7 @@ export function requireReferencePresetName(
   });
   if (preset === undefined) {
     throw new Error(
-      `没有可新增且拥有指定公开来源的预设：${referencePackageName}`,
+      `No add-capable preset owns the reference package: ${referencePackageName}`,
     );
   }
   return preset.alias;

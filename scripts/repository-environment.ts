@@ -31,13 +31,16 @@ function prepareRepositoryEnvironmentDockerfile(): string {
     );
   } catch (cause) {
     throw new Error(
-      "仓库开发环境资源 scripts/repository-environment prepare 阶段无法读取 repository.Dockerfile",
+      "Failed to read repository.Dockerfile while preparing scripts/repository-environment resources",
       { cause },
     );
   }
 }
 
-/** 源码仓库仅声明自己的用途；通用工具与编辑器策略由所属包维护。 */
+/**
+ * Projects the source repository's devcontainer and editor files; shared tool
+ * layers and editor policies remain owned by their respective packages.
+ */
 export async function repositoryDevelopmentEnvironment(
   declarations: TemplateToolchainDeclarations,
 ): Promise<{
@@ -78,6 +81,7 @@ export async function repositoryDevelopmentEnvironment(
   const container = projectWorkspaceDevelopmentContainer({
     nodeVersion: declarations.rootNodeEngine.trim(),
     packageManagerPin: declarations.packageManagerDeclaration.trim(),
+    turboVersion: declarations.turboVersion.trim(),
     layers,
     resources: {
       ...environmentResources,
@@ -139,7 +143,7 @@ export async function repositoryDevelopmentEnvironment(
     );
     if (result.errors.length > 0)
       throw new Error(
-        `${file} 投影格式化失败：${result.errors.map((error) => error.message).join("；")}`,
+        `Failed to format projected file ${file}: ${result.errors.map((error) => error.message).join("; ")}`,
       );
     files[file] = result.code;
   }

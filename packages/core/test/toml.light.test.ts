@@ -3,8 +3,8 @@ import { describe, it } from "node:test";
 
 import { projectTomlStringValues } from "../src/toml.ts";
 
-void describe("原生 TOML 字符串投影", () => {
-  void it("更新 Cargo 身份和工具链时保留注释、数组及无关包", () => {
+void describe("native TOML string projection", () => {
+  void it("preserves comments, arrays, and unrelated tables when updating Cargo identity and toolchain", () => {
     const source = `# Cargo owns this file.
 [toolchain]
 channel = 'stable' # follow the root
@@ -50,14 +50,14 @@ dependencies = [
     );
   });
 
-  void it("拒绝缺失或非字符串字段，不猜测配置位置", () => {
+  void it("rejects missing or non-string fields without guessing locations", () => {
     for (const source of ["[toolchain]\n", "[toolchain]\nchannel = 1\n"]) {
       assert.throws(
         () =>
           projectTomlStringValues(source, [
             { path: ["toolchain", "channel"], value: "stable" },
           ]),
-        /已有字符串字段/u,
+        /existing string field/u,
       );
     }
   });

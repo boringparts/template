@@ -84,7 +84,7 @@ function generator() {
   return createDefaultGenerator({ content });
 }
 
-await it("直接参考生成原生根并连续添加ts-lib与显式provider连接", async () => {
+await it("generates a native workspace root directly from references and sequentially adds ts-lib with an explicit provider link", async () => {
   await withTarget(async (targetRoot) => {
     const current = generator();
     const initialized = await current.init({
@@ -110,8 +110,8 @@ await it("直接参考生成原生根并连续添加ts-lib与显式provider连�
     assert.equal(rootManifest.private, true);
     assert.equal(rootManifest.name, "native-demo");
     assert.equal(rootManifest.version, undefined);
-    assert.equal(rootManifest.engines.node, "26.13.0");
-    assert.equal(rootManifest.packageManager, "pnpm@12.9.1");
+    assert.equal(rootManifest.engines.node, "26.13.1");
+    assert.equal(rootManifest.packageManager, "pnpm@12.21.0");
     assert.match(
       await readFile(path.join(targetRoot, "AGENTS.md"), "utf8"),
       /本地代理上下文/u,
@@ -196,12 +196,12 @@ await it("直接参考生成原生根并连续添加ts-lib与显式provider连�
     assert.equal(
       linkedLibrary.dependenciesMeta?.["@demo/provider"],
       undefined,
-      "source/types/default公开入口使用workspace符号链接",
+      "source/types/default public entry points use workspace symlinks",
     );
   });
 });
 
-await it("直接同时选择ts-lib与发布owner时复用同来源根声明", async () => {
+await it("reuses same-source root declarations when selecting ts-lib and publication owner together", async () => {
   await withTarget(async (targetRoot) => {
     const initialized = await generator().init({
       targetRoot,
@@ -236,7 +236,7 @@ await it("直接同时选择ts-lib与发布owner时复用同来源根声明", as
   });
 });
 
-await it("同来源但不等价的根文件声明仍报告双方来源冲突", async () => {
+await it("reports a conflict naming both sources when same-source root file declarations are not equivalent", async () => {
   const publicationDefinition = publication.definition as Record<
     string,
     unknown
@@ -305,7 +305,7 @@ await it("同来源但不等价的根文件声明仍报告双方来源冲突", a
   });
 });
 
-await it("ts-lib预设也明确创建基础root", async () => {
+await it("explicitly creates the base root for the ts-lib preset as well", async () => {
   await withTarget(async (targetRoot) => {
     const current = generator();
     const initialized = await current.init({
@@ -334,7 +334,7 @@ await it("ts-lib预设也明确创建基础root", async () => {
   });
 });
 
-await it("选中ts-lib却未装载发布附件owner时拒绝初始化", async () => {
+await it("rejects initialization when ts-lib is selected without loading the publication attachment owner", async () => {
   const contentWithoutPublication = content.filter(
     (member) =>
       member.identity.packageName !== "@ykdz/reference-npm-publication",
@@ -363,7 +363,7 @@ await it("选中ts-lib却未装载发布附件owner时拒绝初始化", async ()
   });
 });
 
-await it("root-only初始化不要求或投影发布附件owner", async () => {
+await it("does not require or project the publication attachment owner for root-only initialization", async () => {
   const contentWithoutPublication = content.filter(
     (member) =>
       member.identity.packageName !== "@ykdz/reference-npm-publication",
@@ -392,7 +392,7 @@ await it("root-only初始化不要求或投影发布附件owner", async () => {
   });
 });
 
-await it("计划锁定实际根与provider事实、允许无关编辑并拒绝相关变更", async () => {
+await it("locks actual root and provider facts in the plan, allows unrelated edits, and rejects relevant changes", async () => {
   await withTarget(async (targetRoot) => {
     const current = generator();
     const initialized = await current.init({

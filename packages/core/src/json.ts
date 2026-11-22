@@ -14,7 +14,7 @@ function compareStrings(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
-/** 检查值是否能无损保存为 JSON 数据。 */
+/** Asserts that a value can be losslessly serialized as JSON (rejecting non-finite numbers, cycles, sparse arrays, non-plain objects, and symbols). */
 export function assertJsonValue(
   value: unknown,
   label: string,
@@ -30,15 +30,15 @@ export function assertJsonValue(
     }
     if (typeof candidate === "number" && Number.isFinite(candidate)) return;
     if (typeof candidate !== "object") {
-      throw new Error(`${label}必须是有效 JSON 数据`);
+      throw new Error(`${label} must be valid JSON data`);
     }
     if (ancestors.has(candidate)) {
-      throw new Error(`${label}必须是有效 JSON 数据`);
+      throw new Error(`${label} must be valid JSON data`);
     }
     ancestors.add(candidate);
     if (Array.isArray(candidate)) {
       if (Object.keys(candidate).length !== candidate.length) {
-        throw new Error(`${label}必须是有效 JSON 数据`);
+        throw new Error(`${label} must be valid JSON data`);
       }
       for (const item of candidate) visit(item);
     } else {
@@ -47,7 +47,7 @@ export function assertJsonValue(
         (prototype !== Object.prototype && prototype !== null) ||
         Object.getOwnPropertySymbols(candidate).length > 0
       ) {
-        throw new Error(`${label}必须是有效 JSON 数据`);
+        throw new Error(`${label} must be valid JSON data`);
       }
       for (const item of Object.values(candidate)) visit(item);
     }
@@ -57,7 +57,7 @@ export function assertJsonValue(
 }
 
 export function cloneJsonValue<Value extends JsonValue>(value: Value): Value {
-  assertJsonValue(value, "数据");
+  assertJsonValue(value, "Value");
   return JSON.parse(JSON.stringify(value)) as Value;
 }
 
@@ -71,9 +71,9 @@ function sortJson(value: JsonValue): JsonValue {
   );
 }
 
-/** 稳定打印 JSON，供元数据作为普通文件进入期望文件树。 */
+/** Serializes a JSON value with sorted object keys and a trailing newline as UTF-8 bytes. */
 export function printCanonicalJson(value: JsonValue): Uint8Array {
-  assertJsonValue(value, "JSON 输出");
+  assertJsonValue(value, "JSON output");
   return new TextEncoder().encode(
     `${JSON.stringify(sortJson(value), null, 2)}\n`,
   );

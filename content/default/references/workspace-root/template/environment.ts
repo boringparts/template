@@ -45,7 +45,7 @@ export function githubCliDevelopmentContainerToolLayer(): DevelopmentContainerTo
   };
 }
 
-/** 浏览器资源版本由最终合成依赖事实提供。 */
+/** Declares the browser-test devcontainer tool layer pinned to the resolved `@playwright/test` version. */
 export function browserTestDevelopmentContainerToolLayer(
   playwrightTestVersion: string,
 ): DevelopmentContainerToolLayer {
@@ -116,14 +116,14 @@ export function parseWorkspaceTemplateConfiguration(
   return { ...value, features };
 }
 
-/** 根参考包在准备阶段读取自有配置和 Dockerfile 片段。 */
+/** Reads workspace-root devcontainer template configuration and Dockerfile fragments during preparation. */
 export function prepareWorkspaceDevelopmentContainerResources(): PreparedWorkspaceDevelopmentContainerResources {
   const read = (source: typeof environmentSources.base, file: string) => {
     try {
       return readFileSync(resolveTemplateSource(source, file), "utf8");
     } catch (cause) {
       throw new Error(
-        `根环境资源 @ykdz/reference-workspace-root#./environment prepare 阶段无法读取 ${file}`,
+        `Failed to read ${file} while preparing @ykdz/reference-workspace-root#./environment`,
         { cause },
       );
     }
@@ -152,7 +152,7 @@ export function prepareWorkspaceDevelopmentContainerResources(): PreparedWorkspa
     ) as unknown;
   } catch (cause) {
     throw new Error(
-      "根环境资源 @ykdz/reference-workspace-root#./environment prepare 阶段无法读取 workspace-template.json",
+      "Failed to read workspace-template.json while preparing @ykdz/reference-workspace-root#./environment",
       { cause },
     );
   }
@@ -218,6 +218,7 @@ function baseDevelopmentContainerToolLayer(
 function completeWorkspaceDevelopmentContainer(options: {
   readonly nodeVersion: string;
   readonly packageManagerPin: string;
+  readonly turboVersion: string;
   readonly layers?: readonly DevelopmentContainerToolLayer[];
   readonly resources: PreparedWorkspaceDevelopmentContainerResources;
 }): DevelopmentContainerToolLayerPlan & {
@@ -231,9 +232,12 @@ function completeWorkspaceDevelopmentContainer(options: {
   ];
   const fragmentTexts = {
     ...options.resources.dockerfileFragments,
-    "base.Dockerfile": projectPnpmBootstrapDockerfile(
-      options.resources.dockerfileFragments["base.Dockerfile"]!,
-      options.packageManagerPin,
+    "base.Dockerfile": projectTurboBootstrapDockerfile(
+      projectPnpmBootstrapDockerfile(
+        options.resources.dockerfileFragments["base.Dockerfile"]!,
+        options.packageManagerPin,
+      ),
+      options.turboVersion,
     ),
   };
   const plan = planDevelopmentContainerToolLayersFromTexts({
@@ -256,30 +260,31 @@ function completeWorkspaceDevelopmentContainer(options: {
         command: "docker",
         args: ["version"],
         failureMessage:
-          "无法连接宿主 Docker；请检查宿主 daemon 是否运行，以及开发容器 Feature 的连接配置与权限。",
+          "Cannot connect to host Docker; verify that the host daemon is running and check the devcontainer Feature socket configuration and permissions.",
       },
       {
         identity: "docker-buildx",
         command: "docker",
         args: ["buildx", "version"],
         failureMessage:
-          "Buildx 不可用；请重建开发容器以完成官方 Feature 安装。",
+          "Docker Buildx is unavailable; rebuild the devcontainer to complete the official Feature installation.",
       },
       {
         identity: "docker-compose",
         command: "docker",
         args: ["compose", "version"],
         failureMessage:
-          "Compose 不可用；请重建开发容器以完成官方 Feature 安装。",
+          "Docker Compose is unavailable; rebuild the devcontainer to complete the official Feature installation.",
       },
     ],
   };
 }
 
-/** 只消费根环境快照和所选能力，投影开发容器配置。 */
+/** Projects the workspace devcontainer plan, features, probes, and Dockerfile from prepared root resources and selected layers. */
 export function projectWorkspaceDevelopmentContainer(options: {
   readonly nodeVersion: string;
   readonly packageManagerPin: string;
+  readonly turboVersion: string;
   readonly layers?: readonly DevelopmentContainerToolLayer[];
   readonly resources: PreparedWorkspaceDevelopmentContainerResources;
 }): ReturnType<typeof completeWorkspaceDevelopmentContainer> {
@@ -300,7 +305,7 @@ export function shellCheckDevelopmentContainerToolLayer(): DevelopmentContainerT
   };
 }
 
-/** 根参考包在准备阶段读取并验证自有编辑器能力声明。 */
+/** Reads and validates the workspace-root editor capability declarations during preparation. */
 export function prepareWorkspaceEditorCustomizationDeclarations(): EditorCustomizationDeclarations {
   try {
     return loadEditorCustomizationDeclarations(
@@ -313,13 +318,13 @@ export function prepareWorkspaceEditorCustomizationDeclarations(): EditorCustomi
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : String(cause);
     throw new Error(
-      `根环境资源 @ykdz/reference-workspace-root#./environment prepare 阶段失败：${detail}`,
+      `Failed to prepare @ykdz/reference-workspace-root#./environment: ${detail}`,
       { cause },
     );
   }
 }
 
-/** 只组合已准备的编辑器声明与实际能力。 */
+/** Projects VS Code extensions and settings from prepared declarations for the requested capabilities. */
 export function projectWorkspaceEditorCustomization(
   capabilities: readonly EditorCustomizationCapability[],
   declarations: EditorCustomizationDeclarations,
@@ -328,21 +333,41 @@ export function projectWorkspaceEditorCustomization(
     (capability) => !declarations.capabilityOrder.includes(capability),
   );
   if (unknownCapability !== undefined) {
-    throw new Error(`未声明的编辑器能力：${unknownCapability}`);
+    throw new Error(`Undeclared editor capability: ${unknownCapability}`);
   }
   return editorCustomizationForCapabilities(capabilities, declarations);
 }
 
-/** 原生安装镜像是根包管理器声明的派生值。 */
+/** Substitutes the pinned pnpm bootstrap image version derived from the root `packageManager` field. */
 export function projectPnpmBootstrapDockerfile(
   source: string,
   packageManagerPin: string,
 ): string {
   const version = /^pnpm@(\d+\.\d+\.\d+)$/u.exec(packageManagerPin)?.[1];
   if (version === undefined)
-    throw new Error("pnpm 安装要求根 packageManager 声明精确版本");
+    throw new Error(
+      "pnpm bootstrap requires an exact version in root packageManager",
+    );
   return source.replaceAll(
     "ghcr.io/pnpm/pnpm:__PNPM_VERSION__",
     `ghcr.io/pnpm/pnpm:${version}`,
+  );
+}
+
+/** Substitutes the pinned standalone Turborepo version derived from the catalog `turbo` entry. */
+export function projectTurboBootstrapDockerfile(
+  source: string,
+  turboVersion: string,
+): string {
+  const version = /^(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)$/u.exec(
+    turboVersion.trim(),
+  )?.[1];
+  if (version === undefined)
+    throw new Error(
+      "Turborepo bootstrap requires an exact version in catalog turbo",
+    );
+  return source.replaceAll(
+    "--version __TURBO_VERSION__",
+    `--version ${version}`,
   );
 }

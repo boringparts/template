@@ -10,7 +10,7 @@ import { parse as parseYaml } from "yaml";
 
 function compose(declarations: readonly SharedRootContribution[]) {
   return composeSharedRootFiles({
-    source: "基础工作区",
+    source: "base-workspace",
     manifest: { scripts: { "base:check": "node --version" } },
     turboTasks: {},
     typescript: { compilerOptions: {}, include: [] },
@@ -18,16 +18,16 @@ function compose(declarations: readonly SharedRootContribution[]) {
   });
 }
 
-void it("合并共享根脚本并复用等价声明", () => {
+void it("merges shared root scripts and reuses equivalent declarations", () => {
   const result = compose([
     {
       kind: "shared-root-files",
-      source: "文档拥有者",
+      source: "docs-owner",
       manifest: { scripts: { "docs:check": "node --version" } },
     },
     {
       kind: "shared-root-files",
-      source: "检查拥有者",
+      source: "check-owner",
       manifest: {
         scripts: {
           "docs:check": "node --version",
@@ -44,36 +44,36 @@ void it("合并共享根脚本并复用等价声明", () => {
   });
 });
 
-void it("共享声明冲突指出字段与双方来源", () => {
+void it("reports field location and both sources on shared declaration conflicts", () => {
   assert.throws(
     () =>
       compose([
         {
           kind: "shared-root-files",
-          source: "文档拥有者",
+          source: "docs-owner",
           manifest: { scripts: { "docs:check": "node --version" } },
         },
         {
           kind: "shared-root-files",
-          source: "检查拥有者",
+          source: "check-owner",
           manifest: { scripts: { "docs:check": "pnpm --version" } },
         },
       ]),
-    /package\.json#\/scripts\/docs:check.*文档拥有者.*检查拥有者/u,
+    /package\.json#\/scripts\/docs:check.*docs-owner.*check-owner/u,
   );
 });
 
-void it("组合独占CI步骤和部分作业设置", () => {
+void it("composes exclusive CI steps and partial job settings", () => {
   const result = compose([
     {
       kind: "shared-root-files",
-      source: "文档拥有者",
-      ciJob: { name: "检查" },
+      source: "docs-owner",
+      ciJob: { name: "Check" },
       ciSteps: [{ steps: [{ id: "docs-check", run: "pnpm run docs:check" }] }],
     },
     {
       kind: "shared-root-files",
-      source: "检查拥有者",
+      source: "check-owner",
       ciJob: { timeoutMinutes: 30 },
       ciSteps: [
         { steps: [{ id: "assets-check", run: "pnpm run assets:check" }] },
@@ -81,15 +81,15 @@ void it("组合独占CI步骤和部分作业设置", () => {
     },
   ]);
 
-  assert.deepEqual(result.ciJob, { name: "检查", timeoutMinutes: 30 });
+  assert.deepEqual(result.ciJob, { name: "Check", timeoutMinutes: 30 });
   assert.deepEqual(
     result.ciSteps.map(({ source, steps }) => ({
       source,
       ids: steps.map((step) => ("id" in step ? step.id : undefined)),
     })),
     [
-      { source: "文档拥有者", ids: ["docs-check"] },
-      { source: "检查拥有者", ids: ["assets-check"] },
+      { source: "docs-owner", ids: ["docs-check"] },
+      { source: "check-owner", ids: ["assets-check"] },
     ],
   );
 
@@ -103,7 +103,7 @@ void it("组合独占CI步骤和部分作业设置", () => {
         "      - id: default-check",
         "        run: pnpm run check",
       ].join("\n"),
-      "基础工作区",
+      "base-workspace",
       result.ciSteps,
     ),
   ) as {
@@ -119,16 +119,16 @@ void it("组合独占CI步骤和部分作业设置", () => {
   );
 });
 
-void it("拒绝共享CI身份冲突", () => {
+void it("rejects conflicting shared CI step IDs", () => {
   const duplicateStep = compose([
     {
       kind: "shared-root-files",
-      source: "文档拥有者",
+      source: "docs-owner",
       ciSteps: [{ steps: [{ id: "same-step", run: "node --version" }] }],
     },
     {
       kind: "shared-root-files",
-      source: "检查拥有者",
+      source: "check-owner",
       ciSteps: [{ steps: [{ id: "same-step", run: "pnpm --version" }] }],
     },
   ]);
@@ -136,9 +136,9 @@ void it("拒绝共享CI身份冲突", () => {
     () =>
       composeCheckWorkflow(
         "jobs:\n  check:\n    steps: []\n",
-        "基础工作区",
+        "base-workspace",
         duplicateStep.ciSteps,
       ),
-    /same-step.*文档拥有者.*检查拥有者/u,
+    /same-step.*docs-owner.*check-owner/u,
   );
 });

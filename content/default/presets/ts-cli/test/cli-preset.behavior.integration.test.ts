@@ -75,9 +75,9 @@ function generator() {
   return createDefaultGenerator({ content });
 }
 
-void describe("TypeScript CLI 公开预设安装行为", () => {
+void describe("TypeScript CLI public preset installation behavior", () => {
   void it(
-    "通过真实生成器验证源码、分发文件、工作区命令与打包安装",
+    "verifies source, built output, workspace binaries, and packed installation via the real generator",
     { timeout: 600_000 },
     async (testContext) => {
       const workspace = await mkdtemp(
@@ -252,10 +252,10 @@ void describe("TypeScript CLI 公开预设安装行为", () => {
       assert.strictEqual(
         await execa(
           process.execPath,
-          ["dist/cli.js", "lookup", "ada", "--output-format", "text"],
+          ["dist/cli.js", "lookup", "ada", "--output", "text"],
           { cwd: packageRoot, cancelSignal: testContext.signal },
         ).then(({ stdout }) => stdout),
-        "找到记录：Ada Lovelace（ada）",
+        "Found record: Ada Lovelace (ada)",
       );
 
       const consumerRoot = path.join(targetRoot, "packages/consumer");
@@ -285,10 +285,10 @@ void describe("TypeScript CLI 公开预设安装行为", () => {
         "release 7.8.9",
       );
       assert.strictEqual(
-        await execa(consumerBin, ["lookup", "ada", "--output-format", "text"], {
+        await execa(consumerBin, ["lookup", "ada", "--output", "text"], {
           cwd: consumerRoot,
         }).then(({ stdout }) => stdout),
-        "找到记录：Ada Lovelace（ada）",
+        "Found record: Ada Lovelace (ada)",
       );
 
       await execa("pnpm", ["run", "publication:pack"], {

@@ -32,7 +32,10 @@ const member = (kind: "preset" | "reference", packageName: string) => {
   const found = content.find(
     (item) => item.kind === kind && item.identity.packageName === packageName,
   );
-  assert.ok(found, `显式内容集合缺少 ${kind} ${packageName}`);
+  assert.ok(
+    found,
+    `Explicit content collection is missing ${kind} ${packageName}`,
+  );
   return found;
 };
 
@@ -42,8 +45,9 @@ const rustPreset = member("preset", "@ykdz/preset-rust-bin");
 const aliasOnlyRustPresetDefinition = definePreset({
   metadata: {
     alias: "rust-alias-only",
-    title: "Rust 别名预设",
-    description: "仅通过参考包公开别名选择 Rust 内容。",
+    title: "Rust Alias Preset",
+    description:
+      "Selects Rust content solely through the reference package public alias.",
   },
   operations: ["init", "add"],
   nodes: {
@@ -85,8 +89,8 @@ after(async () => {
   );
 });
 
-void describe("Rust 原生内容公开组合行为", () => {
-  void it("初始化时从原生 owner 投影 Cargo 文件与共同根工具链", async () => {
+void describe("Rust native content public composition behavior", () => {
+  void it("projects Cargo files and shared root toolchain from the native owner on init", async () => {
     const targetRoot = await createTargetRoot("template-rust-bin-init-");
     const generator = createDefaultGenerator({ content });
     const initialized = await generator.init({
@@ -183,7 +187,7 @@ void describe("Rust 原生内容公开组合行为", () => {
     );
   });
 
-  void it("首次向非 Rust 根加包时保留现有工具链字节并更新运行环境", async () => {
+  void it("preserves existing toolchain bytes and updates the runtime environment when first adding Rust to a non-Rust root", async () => {
     const targetRoot = await createTargetRoot("template-rust-bin-add-");
     const generator = createDefaultGenerator({ content });
     const initialized = await generator.init({
@@ -243,7 +247,7 @@ void describe("Rust 原生内容公开组合行为", () => {
     );
   });
 
-  void it("现有 Rust 根声明缺失时拒绝加包且不改动其他文件", async () => {
+  void it("rejects add without modifying other files when an existing Rust root declaration is missing", async () => {
     const targetRoot = await createTargetRoot("template-rust-bin-missing-");
     const generator = createDefaultGenerator({ content });
     const initialized = await generator.init({
@@ -275,7 +279,7 @@ void describe("Rust 原生内容公开组合行为", () => {
     );
   });
 
-  void it("计划后根工具链变化会使同一进程的旧计划失效", async () => {
+  void it("invalidates an in-process plan when the root toolchain changes after planning", async () => {
     const targetRoot = await createTargetRoot("template-rust-bin-stale-");
     const generator = createDefaultGenerator({ content });
     const initialized = await generator.init({
@@ -321,7 +325,7 @@ void describe("Rust 原生内容公开组合行为", () => {
     );
   });
 
-  void it("通过别名节点加Rust时沿正式预设图读取并锁定根工具链", async () => {
+  void it("reads and locks the root toolchain along the preset graph when adding Rust via an alias node", async () => {
     const targetRoot = await createTargetRoot("template-rust-bin-alias-add-");
     const generator = createDefaultGenerator({
       content: [...content, aliasOnlyRustPreset],

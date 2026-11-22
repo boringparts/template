@@ -141,8 +141,8 @@ after(async () => {
   );
 });
 
-void describe("TypeScript CLI 公开预设", () => {
-  void it("直接参考与单节点预设共享原生命令入口和Node引擎转换", async () => {
+void describe("TypeScript CLI public preset", () => {
+  void it("shares native bin entry and Node engine transformation between direct reference and single-node preset", async () => {
     const targets = await Promise.all([
       createTargetRoot("template-ts-cli-direct-"),
       createTargetRoot("template-ts-cli-preset-"),
@@ -179,7 +179,7 @@ void describe("TypeScript CLI 公开预设", () => {
     for (const manifest of [presetManifest, referenceManifest]) {
       assert.strictEqual(manifest.private, true);
       assert.deepStrictEqual(manifest.bin, { cli: "./dist/cli.js" });
-      assert.strictEqual(manifest.engines.node, "^26.13.0");
+      assert.strictEqual(manifest.engines.node, "^26.13.1");
       assert.deepStrictEqual(manifest.devDependencies, {
         "@demo/tooling-config": "link:../tooling-config",
         "@types/node": "catalog:",
@@ -209,7 +209,7 @@ void describe("TypeScript CLI 公开预设", () => {
     }
   });
 
-  void it("直接参考与预设CLI都只通过显式节点身份连接已有库", async () => {
+  void it("links both direct reference and preset CLIs to an existing library only by explicit node identity", async () => {
     for (const usePreset of [false, true]) {
       const targetRoot = await createTargetRoot(
         usePreset ? "template-ts-cli-preset-link-" : "template-ts-cli-link-",
@@ -240,7 +240,7 @@ void describe("TypeScript CLI 公开预设", () => {
       );
       await writeFile(
         releaseWorkflowPath,
-        `${await readFile(releaseWorkflowPath, "utf8")}\n# 用户保留的发布工作流定制\n`,
+        `${await readFile(releaseWorkflowPath, "utf8")}\n# User-retained release workflow customization\n`,
       );
 
       const planned = await generator.planAdd({
@@ -252,7 +252,7 @@ void describe("TypeScript CLI 公开预设", () => {
       });
       assert.strictEqual(planned.status, "planned", JSON.stringify(planned));
       if (planned.status !== "planned") {
-        throw new Error("CLI显式库连接应可规划");
+        throw new Error("Explicit CLI library link should be plannable");
       }
       assert.strictEqual(planned.blueprint.packageLinkIntents.length, 1);
       const committed = await generator.commitPlan(planned.plan);
@@ -270,7 +270,7 @@ void describe("TypeScript CLI 公开预设", () => {
       );
       assert.match(
         await readFile(releaseWorkflowPath, "utf8"),
-        /# 用户保留的发布工作流定制/u,
+        /# User-retained release workflow customization/u,
       );
 
       manifest.dependencies["@demo/custom"] = "workspace:*";
@@ -310,7 +310,7 @@ void describe("TypeScript CLI 公开预设", () => {
     }
   });
 
-  void it("按实例ID选择同名库，并在后续加包时保留该连接", async () => {
+  void it("selects a library with a shared node name by instance ID and preserves the link across subsequent adds", async () => {
     const targetRoot = await createTargetRoot("template-ts-cli-instance-link-");
     const generator = createDefaultGenerator({ content });
     const initialized = await generator.init({
@@ -338,7 +338,9 @@ void describe("TypeScript CLI 公开预设", () => {
       JSON.stringify(initialized),
     );
     if (initialized.status !== "success") {
-      throw new Error("两个同名节点应初始化为不同的包实例");
+      throw new Error(
+        "Two nodes with the same name should initialize as distinct package instances",
+      );
     }
     const selectedLibrary = initialized.blueprint.packages.find(
       ({ path: packagePath }) => packagePath === "packages/lib-two",
@@ -355,7 +357,9 @@ void describe("TypeScript CLI 公开预设", () => {
     });
     assert.strictEqual(linked.status, "success", JSON.stringify(linked));
     if (linked.status !== "success") {
-      throw new Error("CLI应按实例ID连接指定的库");
+      throw new Error(
+        "CLI should link to the specified library by instance ID",
+      );
     }
     const cliPackage = linked.blueprint.packages.find(
       ({ path: packagePath }) => packagePath === "packages/cli",
@@ -385,7 +389,9 @@ void describe("TypeScript CLI 公开预设", () => {
       JSON.stringify(addedSameName),
     );
     if (addedSameName.status !== "success") {
-      throw new Error("后续同名节点不能改变已有CLI连接");
+      throw new Error(
+        "Subsequent same-named nodes must not alter an existing CLI link",
+      );
     }
     assert.deepStrictEqual(
       addedSameName.blueprint.packageLinkIntents,
@@ -399,7 +405,7 @@ void describe("TypeScript CLI 公开预设", () => {
     );
   });
 
-  void it("预设节点的默认连接读取当前提供者并拒绝失效导出", async () => {
+  void it("reads the current provider for preset node default links and rejects broken exports", async () => {
     const presetNodes = (
       preset.definition as unknown as {
         readonly nodes: Readonly<
@@ -448,7 +454,9 @@ void describe("TypeScript CLI 公开预设", () => {
     });
     assert.strictEqual(valid.status, "planned");
     if (valid.status !== "planned") {
-      throw new Error("预设默认连接应解析到现存library节点");
+      throw new Error(
+        "Preset default link should resolve to the existing library node",
+      );
     }
     assert.strictEqual(valid.blueprint.packageLinkIntents.length, 1);
     const manifestPath = path.join(targetRoot, "packages/lib/package.json");
@@ -468,12 +476,12 @@ void describe("TypeScript CLI 公开预设", () => {
     assert.strictEqual(result.status, "operation-failure");
     assert.match(
       result.status === "operation-failure" ? result.error.message : "",
-      /包连接provider没有公开可导入包根/u,
+      /Package link provider does not expose an importable package root/u,
     );
     assert.strictEqual(await snapshotTree(targetRoot), before);
   });
 
-  void it("唯一性检查采用现存CLI保留的命令定制", async () => {
+  void it("uses customized command names retained by existing CLIs during uniqueness checks", async () => {
     const targetRoot = await createTargetRoot(
       "template-ts-cli-custom-command-",
     );
@@ -514,12 +522,12 @@ void describe("TypeScript CLI 公开预设", () => {
     assert.strictEqual(result.status, "operation-failure");
     assert.match(
       result.status === "operation-failure" ? result.error.message : "",
-      /CLI命令名称 "second" 重复/u,
+      /Duplicate CLI command name "second"/u,
     );
     assert.strictEqual(await snapshotTree(targetRoot), before);
   });
 
-  void it("现存CLI命令事实过期时冲突，且不恢复未连接库manifest", async () => {
+  void it("conflicts when existing CLI command facts go stale without restoring an unlinked library manifest", async () => {
     const targetRoot = await createTargetRoot(
       "template-ts-cli-command-read-fact-",
     );
@@ -548,7 +556,9 @@ void describe("TypeScript CLI 公开预设", () => {
     });
     assert.strictEqual(planned.status, "planned");
     if (planned.status !== "planned") {
-      throw new Error("当前命令名不冲突时应可规划加包");
+      throw new Error(
+        "Add should be plannable when the current command name does not conflict",
+      );
     }
     const existingCliManifest = JSON.parse(
       await readFile(existingCliManifestPath, "utf8"),
@@ -587,7 +597,7 @@ void describe("TypeScript CLI 公开预设", () => {
     assert.strictEqual(unlinkedAddition.status, "success");
   });
 
-  void it("未知节点身份或不兼容的原生提供者会在写入前拒绝", async () => {
+  void it("rejects unknown node identities and incompatible native providers before writing", async () => {
     const targetRoot = await createTargetRoot("template-ts-cli-invalid-link-");
     const generator = createDefaultGenerator({ content });
     const initialized = await generator.init({
@@ -649,7 +659,7 @@ void describe("TypeScript CLI 公开预设", () => {
     assert.strictEqual(await snapshotTree(nativeTarget), beforeNative);
   });
 
-  void it("读取的提供者清单和字符串导出目标会过期而无关编辑可提交", async () => {
+  void it("invalidates plans on read provider manifest and string export target edits while allowing unrelated edits", async () => {
     const targetRoot = await createTargetRoot("template-ts-cli-read-facts-");
     const generator = createDefaultGenerator({ content });
     const initialized = await generator.init({
@@ -689,10 +699,10 @@ void describe("TypeScript CLI 公开预设", () => {
     });
     assert.strictEqual(staleTargetPlan.status, "planned");
     if (staleTargetPlan.status !== "planned") {
-      throw new Error("有效CLI显式连接应可规划");
+      throw new Error("Valid explicit CLI link should be plannable");
     }
     const originalSource = await readFile(providerSourcePath, "utf8");
-    await writeFile(providerSourcePath, `${originalSource}\n// 当前修改\n`);
+    await writeFile(providerSourcePath, `${originalSource}\n// Local edit\n`);
     const staleTargetCommit = await generator.commitPlan(staleTargetPlan.plan);
     assert.strictEqual(staleTargetCommit.status, "conflict");
     await assert.rejects(stat(path.join(targetRoot, "packages/cli")));
@@ -704,12 +714,12 @@ void describe("TypeScript CLI 公开预设", () => {
     });
     assert.strictEqual(staleManifestPlan.status, "planned");
     if (staleManifestPlan.status !== "planned") {
-      throw new Error("当前CLI显式连接应可规划");
+      throw new Error("Current explicit CLI link should be plannable");
     }
     const changedManifest = JSON.parse(
       await readFile(providerManifestPath, "utf8"),
     ) as Record<string, any>;
-    changedManifest.description = "用户修改";
+    changedManifest.description = "user edit";
     await writeFile(
       providerManifestPath,
       `${JSON.stringify(changedManifest, null, 2)}\n`,
@@ -727,9 +737,9 @@ void describe("TypeScript CLI 公开预设", () => {
     });
     assert.strictEqual(unrelatedPlan.status, "planned");
     if (unrelatedPlan.status !== "planned") {
-      throw new Error("当前CLI显式连接应可规划");
+      throw new Error("Current explicit CLI link should be plannable");
     }
-    await writeFile(path.join(targetRoot, "notes.txt"), "用户文件\n");
+    await writeFile(path.join(targetRoot, "notes.txt"), "user file\n");
     const unrelatedCommit = await generator.commitPlan(unrelatedPlan.plan);
     assert.strictEqual(
       unrelatedCommit.status,
@@ -738,7 +748,7 @@ void describe("TypeScript CLI 公开预设", () => {
     );
     assert.strictEqual(
       await readFile(path.join(targetRoot, "notes.txt"), "utf8"),
-      "用户文件\n",
+      "user file\n",
     );
 
     const linkedConsumerManifestPath = path.join(
@@ -755,7 +765,9 @@ void describe("TypeScript CLI 公开预设", () => {
     });
     assert.strictEqual(staleConsumerPlan.status, "planned");
     if (staleConsumerPlan.status !== "planned") {
-      throw new Error("已有CLI连接应可回放并继续加包");
+      throw new Error(
+        "Existing CLI link should replay cleanly for subsequent adds",
+      );
     }
     const customizedConsumer = JSON.parse(
       await readFile(linkedConsumerManifestPath, "utf8"),
@@ -772,7 +784,7 @@ void describe("TypeScript CLI 公开预设", () => {
     await assert.rejects(stat(path.join(targetRoot, "packages/next-cli")));
   });
 
-  void it("当前提供者移除可导入入口时零写入失败", async () => {
+  void it("fails with zero writes when the current provider removes its importable entry", async () => {
     const targetRoot = await createTargetRoot(
       "template-ts-cli-invalid-export-",
     );
@@ -809,7 +821,7 @@ void describe("TypeScript CLI 公开预设", () => {
     assert.strictEqual(await snapshotTree(targetRoot), before);
   });
 
-  void it("新CLI目标目录冲突时保留用户文件内容和权限", async () => {
+  void it("preserves user file contents and permissions when a new CLI target directory conflicts", async () => {
     const targetRoot = await createTargetRoot("template-ts-cli-path-conflict-");
     const generator = createDefaultGenerator({ content });
     const initialized = await generator.init({
@@ -846,7 +858,7 @@ void describe("TypeScript CLI 公开预设", () => {
     assert.strictEqual(await snapshotTree(targetRoot), before);
   });
 
-  void it("整个工作区的二进制入口名称必须唯一", async () => {
+  void it("requires binary command names to be unique across the workspace", async () => {
     const duplicateDefinition = defineReferencePackage({
       manifest: {
         name: "@fixture/duplicate-command",
@@ -912,7 +924,7 @@ void describe("TypeScript CLI 公开预设", () => {
     assert.strictEqual(result.status, "operation-failure");
     assert.match(
       result.status === "operation-failure" ? result.error.message : "",
-      /CLI命令名称 "cli" 重复：@demo\/cli 与 @demo\/duplicate-tool/u,
+      /Duplicate CLI command name "cli" between @demo\/cli and @demo\/duplicate-tool/u,
     );
     assert.strictEqual(await snapshotTree(targetRoot), before);
 
@@ -966,7 +978,7 @@ void describe("TypeScript CLI 公开预设", () => {
       sharedDuplicate.status === "operation-failure"
         ? sharedDuplicate.error.message
         : "",
-      /CLI命令名称 "second" 重复/u,
+      /Duplicate CLI command name "second"/u,
     );
     assert.strictEqual(await snapshotTree(sharedLibraryRoot), sharedBefore);
 
@@ -1001,7 +1013,7 @@ void describe("TypeScript CLI 公开预设", () => {
     });
     assert.strictEqual(stalePlan.status, "planned");
     if (stalePlan.status !== "planned") {
-      throw new Error("新命令名无冲突时应可规划");
+      throw new Error("Non-conflicting new command name should be plannable");
     }
     const staleSharedManifest = JSON.parse(
       await readFile(

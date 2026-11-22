@@ -8,13 +8,15 @@ import type { CliRuntime } from "#main";
 const require = createRequire(import.meta.url);
 const runtime: CliRuntime = {
   argv: process.argv,
-  // 把进程事实的读取留在 runCli 的故障出口内。
+  // Keep process metadata access inside runCli's unexpected-failure boundary.
   get commandName() {
     const manifest = require("../package.json") as {
       bin: Record<string, string>;
     };
     const names = Object.keys(manifest.bin);
-    if (names.length !== 1) throw new Error("CLI 包必须声明唯一命令。");
+    if (names.length !== 1) {
+      throw new Error("CLI package must declare exactly one command in bin.");
+    }
     return names[0]!;
   },
   write: nodeCliOutput({ stdout: process.stdout, stderr: process.stderr }),

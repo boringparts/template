@@ -15,7 +15,9 @@ function cargoManifestName(manifest: CargoFileSnapshot): string {
       ? (packageMetadata as Record<string, unknown>).name
       : undefined;
   if (typeof name !== "string") {
-    throw new Error("Rust Cargo 清单缺少 [package].name 字符串字段");
+    throw new Error(
+      "Rust Cargo manifest is missing a string [package].name field",
+    );
   }
   return name;
 }
@@ -23,12 +25,12 @@ function cargoManifestName(manifest: CargoFileSnapshot): string {
 function cargoLockPackages(lock: CargoFileSnapshot): readonly unknown[] {
   const packages = lock.data.package;
   if (!Array.isArray(packages)) {
-    throw new Error("Rust Cargo 锁文件缺少 [[package]] 条目");
+    throw new Error("Rust Cargo lockfile is missing [[package]] entries");
   }
   return packages;
 }
 
-/** 按包叶名纯投影 Cargo 内容，并保留无关 TOML 字节。 */
+/** Projects Cargo.toml and Cargo.lock to the target package leaf name while preserving unrelated TOML bytes. */
 export function projectRustCargoFiles(options: {
   readonly cargoManifest: CargoFileSnapshot;
   readonly cargoLock: CargoFileSnapshot;
@@ -60,7 +62,7 @@ export function projectRustCargoFiles(options: {
   };
 }
 
-/** Cargo 维护 lint；Rust 包不运行生成器的 TypeScript 检查任务。 */
+/** Replaces generator lint and test scripts with Cargo commands and drops TypeScript-only scripts. */
 export function projectRustPackageScripts(
   scripts: Readonly<Record<string, string>>,
 ): Record<string, string> {
@@ -74,7 +76,7 @@ export function projectRustPackageScripts(
   return projected;
 }
 
-/** 同步移除已退出的 TypeScript 任务及其 format:write 前置依赖。 */
+/** Removes TypeScript-only Turbo tasks and detaches dropped lint dependencies from Rust package tasks. */
 export function projectRustTurboTasks(
   source: Readonly<Record<string, unknown>>,
 ): Record<string, unknown> {

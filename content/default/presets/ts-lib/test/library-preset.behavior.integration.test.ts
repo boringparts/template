@@ -41,9 +41,9 @@ const preset = content.find(
 );
 assert.ok(preset);
 
-void describe("TypeScript 库公开预设安装行为", () => {
+void describe("TypeScript library public preset installation behavior", () => {
   void it(
-    "源码链接即时生效，Turbo 按依赖构建后允许只用分发文件运行",
+    "applies source links immediately and runs from built output alone after Turbo dependency builds",
     { timeout: 300_000 },
     async (testContext) => {
       const workspace = await mkdtemp(

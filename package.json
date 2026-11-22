@@ -60,7 +60,7 @@
     "yaml": "catalog:"
   },
   "engines": {
-    "node": "26.13.0"
+    "node": "26.13.1"
   },
-  "packageManager": "pnpm@12.9.1"
+  "packageManager": "pnpm@12.21.0"
 }

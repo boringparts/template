@@ -2228,7 +2228,7 @@ void describe("Fixture Verification Evidence", () => {
           assert.strictEqual(Reflect.get(error, "exitCode"), 1);
           assert.ok(
             String(Reflect.get(error, "stderr")).includes(
-              "启用场景集必须为 init、package-addition-matrix、focused、deployment 或 capabilities",
+              "Enabled scenario sets must be init, package-addition-matrix, focused, deployment, or capabilities",
             ),
           );
           return true;
@@ -2450,7 +2450,7 @@ void describe("Fixture Verification Evidence", () => {
     }
   });
 
-  void it("仅转换已声明的非空容器环境变量", () => {
+  void it("maps only declared non-empty container environment variables", () => {
     assert.deepStrictEqual(
       fixtureContainerEnvironmentFromEnvironment({
         TEMPLATE_FIXTURE_TURBO_TEAM: "fixture-team",

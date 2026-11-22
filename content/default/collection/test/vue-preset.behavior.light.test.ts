@@ -35,10 +35,10 @@ const vuePreset = content.find(
     member.kind === "preset" &&
     member.identity.packageName === "@ykdz/preset-vue-app",
 );
-assert.ok(vuePreset, "内容集合缺少 Vue 应用预设");
+assert.ok(vuePreset, "Content collection is missing the Vue app preset");
 
-void describe("公开内容集合中的 Vue 预设", () => {
-  void it("通过公开声明初始化原生 Vue 应用及其共享依赖", async (testContext) => {
+void describe("Vue preset in public content collection", () => {
+  void it("initializes a native Vue app and its shared dependencies from public declarations", async (testContext) => {
     const temporaryRoot = await mkdtemp(
       path.join(tmpdir(), "template-content-vue-preset-"),
     );
@@ -47,7 +47,10 @@ void describe("公开内容集合中的 Vue 预设", () => {
     );
     const targetRoot = path.join(temporaryRoot, "demo");
     const generator = createDefaultGenerator({ content });
-    assert.ok(content.includes(vuePreset), "内容集合应提供 Vue 应用预设");
+    assert.ok(
+      content.includes(vuePreset),
+      "Content collection should provide the Vue app preset",
+    );
 
     const initialized = await generator.init({
       targetRoot,

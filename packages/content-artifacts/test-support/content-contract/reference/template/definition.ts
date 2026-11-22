@@ -37,7 +37,7 @@ const referenceDefinition = {
         !("projectName" in value) ||
         typeof value.projectName !== "string"
       ) {
-        throw new Error("包创建输入必须包含项目名");
+        throw new Error("Package creation input must include projectName");
       }
       return { projectName: value.projectName };
     },
@@ -75,7 +75,7 @@ const referenceDefinition = {
       const resource = prepared.resources.find(
         (candidate) => candidate.path === "resources/README.md",
       );
-      if (resource === undefined) throw new Error("参考资源缺失");
+      if (resource === undefined) throw new Error("Missing reference resource");
       return {
         packageDefinitionId,
         files: [

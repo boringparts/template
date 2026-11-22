@@ -1,13 +1,13 @@
 import type { PackageDefinition } from "@ykdz/template-core/project-blueprint";
 
-/** 内容通过稳定节点身份请求的显式包连接，具体可连接性由工作区策略判定。 */
+/** Explicit package link requested via stable node identity; linkability is enforced by workspace policy. */
 export type PackageLinkRequirement = {
   readonly kind: "package-link";
   readonly consumer: PackageDefinition;
   readonly provider: PackageDefinition;
 };
 
-/** 包连接规划中可映射为用户请求问题的默认策略原因。 */
+/** Default-policy reason for a package link planning failure that can be mapped to a user input error. */
 export type PackageLinkValidationIssue =
   | { readonly kind: "unknown-consumer"; readonly path: string }
   | {
@@ -26,7 +26,7 @@ export class PackageLinkValidationError extends Error {
   }
 }
 
-/** 加包前核验根清单中与工作区工具链有关的持久声明。 */
+/** Persisted root manifest toolchain declaration issue detected before adding a package. */
 export type RootToolchainDeclarationIssue =
   | { readonly kind: "invalid-node-declaration" }
   | { readonly kind: "invalid-package-manager-pin" };

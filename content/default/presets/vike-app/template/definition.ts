@@ -39,8 +39,9 @@ const nativePreset = defineNativeContentArtifact(
   definePreset({
     metadata: {
       alias: "vike-app",
-      title: "Vike 应用",
-      description: "组合 Vike Web、数据库和迁移包，提供数据库准备与部署能力。",
+      title: "Vike App",
+      description:
+        "Combines Vike Web, database, and migrations packages with database preparation and deployment support.",
     },
     operations: ["init"],
     nodes,
@@ -59,7 +60,7 @@ const nativePreset = defineNativeContentArtifact(
   },
 );
 
-/** 外层按完整预设身份准备资源，纯组合消费同次正式包求值结果。 */
+/** Outer layer prepares resources by full preset identity; pure composition consumes the same evaluation result. */
 export const preset = Object.freeze({
   ...nativePreset,
   rootContribution:

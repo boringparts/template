@@ -3,7 +3,7 @@ import { it } from "node:test";
 
 import { composeApplicationRequirements } from "../src/application-requirements.ts";
 
-void it("合并相同的Rust需求并指出冲突来源", () => {
+void it("merges identical Rust requirements and reports conflicting sources", () => {
   const rustToolchain = {
     toolchain: "1.98.0",
     components: ["rustfmt", "clippy"],
@@ -13,9 +13,9 @@ void it("合并相同的Rust需求并指出冲突来源", () => {
 
   assert.deepEqual(
     composeApplicationRequirements([
-      { source: "Rust参考包", requirements: { rustToolchain } },
+      { source: "rust-reference-package", requirements: { rustToolchain } },
       {
-        source: "Rust预设",
+        source: "rust-preset",
         requirements: { rustToolchain: { ...rustToolchain } },
       },
     ]),
@@ -24,14 +24,14 @@ void it("合并相同的Rust需求并指出冲突来源", () => {
   assert.throws(
     () =>
       composeApplicationRequirements([
-        { source: "Rust参考包", requirements: { rustToolchain } },
+        { source: "rust-reference-package", requirements: { rustToolchain } },
         {
-          source: "Rust预设",
+          source: "rust-preset",
           requirements: {
             rustToolchain: { ...rustToolchain, toolchain: "1.97.0" },
           },
         },
       ]),
-    /工作区 Rust 工具链要求冲突：来源 Rust参考包 与 Rust预设/u,
+    /Conflicting workspace Rust toolchain requirements between rust-reference-package and rust-preset/u,
   );
 });

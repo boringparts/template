@@ -11,7 +11,7 @@ import {
 } from "../src/generated-content.ts";
 import { sourceGeneratedScenarioRuntime } from "../src/source-generated-runtime.ts";
 
-await test("在真实生成目标上检查格式与依赖目录事实", async () => {
+await test("checks formatting and dependency catalog facts on a real generated target", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "generated-output-"));
   try {
     const scenario = deriveInitializationScenarios(
@@ -41,7 +41,7 @@ await test("在真实生成目标上检查格式与依赖目录事实", async ()
     await writeFile(sourceFile, `  \n${source}`);
     await assert.rejects(
       validateGeneratedOutput(receipt),
-      /modules\/library\/src\/index\.ts.*格式/u,
+      /modules\/library\/src\/index\.ts.*formatting/u,
     );
     await writeFile(sourceFile, source);
 

@@ -4,7 +4,7 @@ import { render } from "vitest-browser-vue";
 import { getHealth } from "../src/api.ts";
 import App from "../src/App.vue";
 
-it("显示 API 健康状态", async () => {
+it("displays the API health status", async () => {
   vi.spyOn(globalThis, "fetch").mockResolvedValue(
     Response.json({ status: "ok" }),
   );

@@ -104,7 +104,7 @@ void describe("Template Repository native task model", () => {
     assert.strictEqual(manifest.packageManager, `pnpm@${pnpm.stdout.trim()}`);
   });
 
-  void it("通过 Turbo 原生能力解析包标签和构建合同", async () => {
+  void it("resolves package tags and build contracts through native Turbo capabilities", async () => {
     const workspace = parse(
       await readFile("pnpm-workspace.yaml", "utf8"),
     ) as WorkspaceConfig;
@@ -134,7 +134,7 @@ void describe("Template Repository native task model", () => {
             (tag) => tag.startsWith("quality:") || tag.startsWith("work:"),
           ).length,
           1,
-          `${task.fullName} 应恰有一个任务职责`,
+          `${task.fullName} should declare exactly one task role`,
         );
       }
     }
@@ -151,7 +151,7 @@ void describe("Template Repository native task model", () => {
     ];
     for (const taskId of buildIds) {
       const task = buildTasks.get(taskId);
-      assert.ok(task, `${taskId} 应出现在原生构建计划中`);
+      assert.ok(task, `${taskId} should appear in the native build plan`);
       assert.equal(task.resolvedTaskDefinition.cache, true);
       assert.deepEqual(task.resolvedTaskDefinition.outputs, ["dist/**"]);
       assert.ok(Object.hasOwn(task.inputs, "package.json"));
@@ -210,7 +210,7 @@ void describe("Template Repository native task model", () => {
       for (const dependency of dependencies)
         assert.ok(
           buildTasks.get(consumer)?.dependencies.includes(dependency),
-          `${consumer} 缺少 ${dependency}`,
+          `${consumer} is missing ${dependency}`,
         );
     assert.deepEqual(
       buildTasks.get("@ykdz/template-core#build")?.dependencies,
@@ -218,7 +218,7 @@ void describe("Template Repository native task model", () => {
     );
   });
 
-  void it("公共检查和修复复用同一执行器，轻重测试按目录递归发现", async () => {
+  void it("reuses the same runner for public checks and fixes and discovers light and heavy tests recursively", async () => {
     const manifest = await readJson<Manifest>("package.json");
     const scripts = manifest.scripts;
 
@@ -329,7 +329,7 @@ void describe("Template Repository native task model", () => {
     );
   });
 
-  void it("为依赖正式类型出口的检查安排所属构建任务", async () => {
+  void it("schedules required build tasks for checks that depend on published type entrypoints", async () => {
     const lintGraph = await runTurboDryRun("lint");
     const fixGraph = await runTurboDryRun("lint:fix");
     const typecheckGraph = await runTurboDryRun("typecheck");
@@ -405,13 +405,13 @@ void describe("Template Repository native task model", () => {
         lintGraph.tasks
           .find(({ taskId }) => taskId === lintTaskId)
           ?.dependencies.includes(dependencyId),
-        `${lintTaskId} 应等待 ${dependencyId}`,
+        `${lintTaskId} should wait for ${dependencyId}`,
       );
       assert.ok(
         fixGraph.tasks
           .find(({ taskId }) => taskId === fixTaskId)
           ?.dependencies.includes(dependencyId),
-        `${fixTaskId} 应等待 ${dependencyId}`,
+        `${fixTaskId} should wait for ${dependencyId}`,
       );
     }
 
@@ -447,7 +447,7 @@ void describe("Template Repository native task model", () => {
         typecheckGraph.tasks
           .find(({ taskId: candidate }) => candidate === taskId)
           ?.dependencies.includes(dependencyId),
-        `${taskId} 应等待 ${dependencyId}`,
+        `${taskId} should wait for ${dependencyId}`,
       );
     }
   });
@@ -578,7 +578,7 @@ void describe("Template Repository native task model", () => {
     assert.ok(tasks.includes("@ykdz/template-workspace#build"));
   });
 
-  void it("源码旅程不造候选，正式 tgz 负责 compiled CLI 消费", async () => {
+  void it("keeps source journeys free of build artifacts while formal tarballs verify compiled CLI consumption", async () => {
     const directory = nativeTaskByName(await queryNativeTaskDirectory());
     const root = await readJson<Manifest>("package.json");
     const cli = await readJson<Manifest>("apps/cli/package.json");

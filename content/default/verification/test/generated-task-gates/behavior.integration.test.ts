@@ -17,7 +17,7 @@ function presetFor(packageName: string) {
   const preset = templatePresets.find(
     (candidate) => candidate.identity.packageName === packageName,
   );
-  assert.ok(preset, `缺少公开预设：${packageName}`);
+  assert.ok(preset, `Missing public preset: ${packageName}`);
   return preset;
 }
 
@@ -25,9 +25,9 @@ function generator() {
   return createDefaultGenerator({ content: templateContent });
 }
 
-void describe("生成任务公共入口", () => {
+void describe("generated task public entrypoints", () => {
   void it(
-    "正式生成包按原生 Node 测试执行并将失败传至根 check",
+    "runs native Node tests in generated packages and propagates failures to root check",
     { timeout: 180_000 },
     async () => {
       const workspace = await mkdtemp(
@@ -191,7 +191,7 @@ void describe("生成任务公共入口", () => {
         const missingRoleTurbo = structuredClone(originalLibraryTurbo);
         missingRoleTurbo.tasks.test!.tags = [];
         await writeJson(libraryTurboPath, missingRoleTurbo);
-        assertRootCommandFailsWith("check", "缺少唯一职责标签");
+        assertRootCommandFailsWith("check", "is missing a unique role tag");
         await writeJson(libraryTurboPath, originalLibraryTurbo);
 
         const ambiguousRoleTurbo = structuredClone(originalLibraryTurbo);
@@ -200,7 +200,7 @@ void describe("生成任务公共入口", () => {
           "work:development",
         ];
         await writeJson(libraryTurboPath, ambiguousRoleTurbo);
-        assertRootCommandFailsWith("check", "有多个职责标签");
+        assertRootCommandFailsWith("check", "has multiple role tags");
         await writeJson(libraryTurboPath, originalLibraryTurbo);
 
         const danglingRoleTurbo = structuredClone(originalLibraryTurbo);
@@ -208,14 +208,14 @@ void describe("生成任务公共入口", () => {
           tags: ["work:on-demand"],
         };
         await writeJson(libraryTurboPath, danglingRoleTurbo);
-        assertRootCommandFailsWith("check", "悬空职责标签");
+        assertRootCommandFailsWith("check", "declares dangling role tag");
         await writeJson(libraryTurboPath, originalLibraryTurbo);
 
         const wrongRootEntry = structuredClone(originalRootManifest);
         wrongRootEntry.scripts["check:heavy"] =
           "node --conditions=source scripts/task-gates.ts check:full";
         await writeJson(rootManifestPath, wrongRootEntry);
-        assertRootCommandFailsWith("check", "公共入口接线错误");
+        assertRootCommandFailsWith("check", "public gate entry is miswired");
         await writeJson(rootManifestPath, originalRootManifest);
 
         const heavyScopeManifest = structuredClone(originalLibraryManifest);
@@ -227,7 +227,10 @@ void describe("生成任务公共入口", () => {
           tags: ["quality:heavy"],
         };
         await writeJson(libraryTurboPath, heavyScopeTurbo);
-        assertRootCommandFailsWith("check", "轻检查不能间接启动重验收");
+        assertRootCommandFailsWith(
+          "check",
+          "light check cannot transitively trigger heavy verification",
+        );
         await writeJson(libraryManifestPath, originalLibraryManifest);
         await writeJson(libraryTurboPath, originalLibraryTurbo);
 
@@ -329,14 +332,17 @@ void describe("生成任务公共入口", () => {
           packageTurbo.tasks = {};
           await writeJson(packageTurboPath, packageTurbo);
         }
-        assertRootCommandFailsWith("check", "轻检查没有选中有效任务");
+        assertRootCommandFailsWith(
+          "check",
+          "Light check selected no executable tasks",
+        );
       } finally {
         await rm(workspace, { recursive: true, force: true });
       }
     },
   );
   void it(
-    "正式生成 Rust 包直接运行 Cargo 并将失败传至根 check",
+    "runs Cargo directly in generated Rust packages and propagates failures to root check",
     { timeout: 180_000 },
     async () => {
       const workspace = await mkdtemp(

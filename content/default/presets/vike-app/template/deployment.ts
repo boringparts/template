@@ -56,7 +56,7 @@ function packageResource(
   };
 }
 
-/** 制品分发完整资源声明；纯组合只消费每次准备产生的快照。 */
+/** Full resource declaration for artifact distribution; pure composition consumes only the snapshot produced by prepare. */
 export const vikeDeploymentResources = [
   packageResource(
     "resources/deployment/Dockerfile",
@@ -86,7 +86,7 @@ type VikePackageContribution = {
 };
 
 type VikePackageManifestFact = {
-  /** 相对目标工作区根目录的实际 package.json 路径。 */
+  /** Actual package.json path relative to the target workspace root. */
   readonly path: string;
   readonly manifest: Readonly<Record<string, unknown>>;
 };
@@ -155,13 +155,17 @@ function assertVikePackageRoles(options: {
   readonly migrations: CompositionPackage;
 }): void {
   if (options.application.definition.role !== "runtime-service") {
-    throw new Error("Vike 应用部署要求应用包具有 runtime-service 角色");
+    throw new Error(
+      "Vike app deployment requires the application package to have the runtime-service role",
+    );
   }
   if (
     options.database.definition.role !== "shared-library" ||
     options.migrations.definition.role !== "shared-library"
   ) {
-    throw new Error("Vike 应用部署要求数据库和迁移包具有 shared-library 角色");
+    throw new Error(
+      "Vike app deployment requires the database and migrations packages to have the shared-library role",
+    );
   }
   if (
     new Set([
@@ -180,7 +184,9 @@ function assertVikePackageRoles(options: {
       options.migrations.packageDefinitionId,
     ]).size !== 3
   ) {
-    throw new Error("Vike 应用部署要求应用、数据库和迁移包是不同实例");
+    throw new Error(
+      "Vike app deployment requires distinct instances for the application, database, and migrations packages",
+    );
   }
 }
 
@@ -231,13 +237,13 @@ function assertVikePackageSources(options: VikePackageContributions): void {
       contribution.manifest.name !== definition.name
     ) {
       throw new Error(
-        `Vike 预设缺少实际包来源：${definition.name} (${definition.path})`,
+        `Vike preset is missing an actual package source: ${definition.name} (${definition.path})`,
       );
     }
     for (const name of names) {
       if (typeof scriptValue(contribution.manifest, name) !== "string") {
         throw new Error(
-          `Vike 数据准备要求 ${definition.name} 的来源声明 scripts.${name}`,
+          `Vike database preparation requires ${definition.name} to declare scripts.${name}`,
         );
       }
     }
@@ -258,13 +264,13 @@ function assertVikePackageSources(options: VikePackageContributions): void {
     const binding = contribution.bindings.get(key);
     if (binding === undefined || !sameVikeInstance(binding, database.package)) {
       throw new Error(
-        `Vike 数据库依赖必须绑定到所选实例：${consumer.name} -> ${database.package.definition.name}`,
+        `Vike database dependency must be bound to the selected instance: ${consumer.name} -> ${database.package.definition.name}`,
       );
     }
   }
 }
 
-/** 只比对三个被部署任务依赖的清单与本次compute产生的manifest事实。 */
+/** Validates only the three package manifests referenced by deployment tasks against the manifest facts produced by this compute pass. */
 function validateVikePackageManifestFacts(options: {
   readonly contributions: VikePackageContributions;
   readonly manifests: readonly VikePackageManifestFact[];
@@ -274,7 +280,9 @@ function validateVikePackageManifestFacts(options: {
   const manifestsByPath = new Map<string, VikePackageManifestFact>();
   for (const manifest of options.manifests) {
     if (manifestsByPath.has(manifest.path)) {
-      throw new Error(`Vike 预设收到重复的实际包清单：${manifest.path}`);
+      throw new Error(
+        `Vike preset received a duplicate actual package manifest: ${manifest.path}`,
+      );
     }
     manifestsByPath.set(manifest.path, manifest);
   }
@@ -289,7 +297,7 @@ function validateVikePackageManifestFacts(options: {
     const actual = manifestsByPath.get(manifestPath)?.manifest;
     if (actual === undefined || actual.name !== definition.name) {
       throw new Error(
-        `Vike 预设的实际包身份与实例不匹配：${definition.name} (${definition.path})`,
+        `Vike preset actual package identity does not match instance: ${definition.name} (${definition.path})`,
       );
     }
     for (const { definition: requiredDefinition, names } of requiredTaskScripts(
@@ -303,7 +311,7 @@ function validateVikePackageManifestFacts(options: {
       for (const name of names) {
         if (scriptValue(actual, name) !== scriptValue(expected, name)) {
           throw new Error(
-            `Vike 数据准备要求 ${definition.name} 的 scripts.${name} 与来源包保持一致`,
+            `Vike database preparation requires ${definition.name} scripts.${name} to match the source package`,
           );
         }
       }
@@ -315,7 +323,7 @@ function parseVikeBuildxStep(source: string): YAMLMap<unknown> {
   const document = parseDocument(source);
   if (document.errors.length > 0 || document.warnings.length > 0) {
     throw new Error(
-      `Vike 部署步骤 YAML 无效：${[...document.errors, ...document.warnings].map((error) => error.message).join("；")}`,
+      `Invalid Vike deployment step YAML: ${[...document.errors, ...document.warnings].map((error) => error.message).join("; ")}`,
     );
   }
   const value = document.contents;
@@ -326,7 +334,9 @@ function parseVikeBuildxStep(source: string): YAMLMap<unknown> {
     typeof id !== "string" ||
     uses === undefined
   ) {
-    throw new Error("Vike Docker Buildx 步骤资源必须是带 uses 的 YAML 对象。");
+    throw new Error(
+      "Vike Docker Buildx step resource must be a YAML mapping with id and uses",
+    );
   }
   return value as YAMLMap<unknown>;
 }
@@ -337,14 +347,19 @@ function resourceText(
 ): string {
   const resource = resourcesByPath.get(resourcePath);
   if (resource === undefined) {
-    throw new Error(`Vike 部署资源快照缺少所属资源：${resourcePath}`);
+    throw new Error(
+      `Vike deployment resource snapshot is missing owned resource: ${resourcePath}`,
+    );
   }
   try {
     return new TextDecoder("utf-8", { fatal: true }).decode(resource.content);
   } catch (cause) {
-    throw new Error(`Vike 部署资源不是有效 UTF-8 文本：${resourcePath}`, {
-      cause,
-    });
+    throw new Error(
+      `Vike deployment resource is not valid UTF-8 text: ${resourcePath}`,
+      {
+        cause,
+      },
+    );
   }
 }
 
@@ -354,19 +369,23 @@ function resourceMode(
 ): number {
   const resource = resourcesByPath.get(resourcePath);
   if (resource === undefined) {
-    throw new Error(`Vike 部署资源快照缺少所属资源：${resourcePath}`);
+    throw new Error(
+      `Vike deployment resource snapshot is missing owned resource: ${resourcePath}`,
+    );
   }
   return resource.mode & 0o111;
 }
 
-/** 纯解析外围准备的所属资源；保留Buildx uses节点及其注释。 */
+/** Purely parses prepared owned resources; preserves the Buildx uses node and its inline comment. */
 function parseVikeDeploymentResourceFacts(
   resources: readonly ResourceFileSnapshot[],
 ): VikeDeploymentResourceFacts {
   const resourcesByPath = new Map<string, ResourceFileSnapshot>();
   for (const resource of resources) {
     if (resourcesByPath.has(resource.path)) {
-      throw new Error(`Vike 部署资源快照包含重复路径：${resource.path}`);
+      throw new Error(
+        `Vike deployment resource snapshot contains duplicate path: ${resource.path}`,
+      );
     }
     resourcesByPath.set(resource.path, resource);
   }
@@ -410,7 +429,7 @@ function parseVikeDeploymentResourceFacts(
   });
 }
 
-/** 每次正式准备时由外围显式调用，只读取此拥有者声明的五个资源。 */
+/** Invoked explicitly by the outer layer during prepare; reads only the five resources declared by this owner. */
 async function prepareVikeDeploymentResourceFacts(): Promise<VikeDeploymentResourceFacts> {
   const snapshots = await Promise.all(
     vikeDeploymentResources.map(
@@ -445,7 +464,9 @@ async function readVikePackageManifest(options: {
   );
   const metadata = await lstat(absolutePath);
   if (!metadata.isFile()) {
-    throw new Error(`Vike部署所需的实际包清单必须是普通文件：${manifestPath}`);
+    throw new Error(
+      `Vike deployment actual package manifest must be a regular file: ${manifestPath}`,
+    );
   }
   const content = new Uint8Array(await readFile(absolutePath));
   let manifest: unknown;
@@ -454,16 +475,21 @@ async function readVikePackageManifest(options: {
       new TextDecoder("utf-8", { fatal: true }).decode(content),
     );
   } catch (cause) {
-    throw new Error(`Vike部署所需的实际包清单必须是有效JSON：${manifestPath}`, {
-      cause,
-    });
+    throw new Error(
+      `Vike deployment actual package manifest must be valid JSON: ${manifestPath}`,
+      {
+        cause,
+      },
+    );
   }
   if (
     typeof manifest !== "object" ||
     manifest === null ||
     Array.isArray(manifest)
   ) {
-    throw new Error(`Vike部署所需的实际包清单必须是对象：${manifestPath}`);
+    throw new Error(
+      `Vike deployment actual package manifest must be a JSON object: ${manifestPath}`,
+    );
   }
   return Object.freeze({
     fact: Object.freeze({
@@ -491,7 +517,9 @@ function selectedPackage(
     item === undefined ||
     item.packageDefinitionId !== selectedPackageId
   ) {
-    throw new Error(`Vike预设prepare缺少选择节点实例：${nodeIdentity}`);
+    throw new Error(
+      `Vike preset prepare is missing selected node instance: ${nodeIdentity}`,
+    );
   }
   return item;
 }
@@ -518,7 +546,9 @@ async function prepareVikeRootContribution(options: {
     contentIdentityKey(options.selection.presetIdentity) !==
       contentIdentityKey(options.ownerIdentity)
   ) {
-    throw new Error("Vike部署prepare需要匹配完整身份的持久预设选择");
+    throw new Error(
+      "Vike deployment prepare requires a persisted preset selection matching the full owner identity",
+    );
   }
   const packages = [
     selectedPackage(options.selection, options.selectedPackages, "web"),
@@ -648,7 +678,9 @@ function selectedEvaluation(
     evaluation === undefined ||
     evaluation.package.packageDefinitionId !== selectedPackageId
   ) {
-    throw new Error(`Vike预设组合缺少本次计算节点：${nodeIdentity}`);
+    throw new Error(
+      `Vike preset composition is missing evaluated node: ${nodeIdentity}`,
+    );
   }
   return evaluation;
 }
@@ -664,7 +696,7 @@ function packageContribution(
   };
 }
 
-/** 合并Vike所属任务和部署附件；不访问磁盘、环境或目标工作树。 */
+/** Composes Vike root tasks and deployment attachments without accessing disk, environment, or the target working tree. */
 function composeVikeDeploymentContribution(options: {
   readonly ownerIdentity: ContentIdentity;
   readonly selection: GenerationRecordSelection;
@@ -684,7 +716,9 @@ function composeVikeDeploymentContribution(options: {
     contentIdentityKey(options.selection.presetIdentity) !==
       contentIdentityKey(options.ownerIdentity)
   ) {
-    throw new Error("Vike部署组合需要匹配完整身份的预设选择");
+    throw new Error(
+      "Vike deployment composition requires a preset selection matching the full owner identity",
+    );
   }
   const contributions: VikePackageContributions = {
     application: packageContribution(
@@ -717,7 +751,9 @@ function composeVikeDeploymentContribution(options: {
   const resources = options.ownerFacts.resources;
   const packageManagerPin = options.rootManifest.packageManager;
   if (typeof packageManagerPin !== "string")
-    throw new Error("Vike 部署缺少根 packageManager 声明");
+    throw new Error(
+      "Vike deployment requires a root packageManager declaration",
+    );
   const buildxStep = parseVikeBuildxStep(resources.buildxStepSource);
   const rootDeclaration: DefaultRootDeclarationData = Object.freeze({
     manifest: Object.freeze({
