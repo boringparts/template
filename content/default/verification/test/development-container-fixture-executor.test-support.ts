@@ -15,7 +15,7 @@ export const requiredCapabilityProbeIdentities = new Set([
   "shellcheck",
 ]);
 
-/** 汇总真实初始化投影中 default owner 提供的能力探针。 */
+/** Collects capability probes provided by the default owner across initialization projections. */
 export async function registryCapabilityProbes(root: string) {
   const workspace = await mkdtemp(
     path.join(tmpdir(), `template-probes-${path.basename(root)}-`),

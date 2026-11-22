@@ -11,8 +11,9 @@ export const preset = defineNativeContentArtifact(
   definePreset({
     metadata: {
       alias: "ts-cli",
-      title: "TypeScript 命令行工具",
-      description: "采用 pnpm catalog 工具配置的 TypeScript 命令行包。",
+      title: "TypeScript CLI",
+      description:
+        "TypeScript command-line package using pnpm catalog tooling configuration.",
     },
     operations: ["init", "add"],
     owner: presetOwnerFromManifest(presetPackage, "./template"),

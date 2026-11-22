@@ -17,6 +17,10 @@ export function createApp() {
 
   const app = new Hono();
 
+  // @vikejs/hono registers Vike's non-handler middleware up front and mounts page rendering via
+  // app.notFound(), so vike(app) must be called before registering application routes.
+  vike(app);
+
   app.route("/api", api);
 
   app.all("/_telefunc", async (c) => {
@@ -29,8 +33,6 @@ export function createApp() {
 
     return response ?? c.notFound();
   });
-
-  vike(app);
 
   return app;
 }

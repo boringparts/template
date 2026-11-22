@@ -138,6 +138,7 @@ export type DependencyPreparationCommand = {
 
 export const developmentContainerPnpmStorePath = "/pnpm/store";
 
+/** Returns a SHA-256 digest of this module file so caches can invalidate when session behavior changes. */
 export async function developmentContainerSessionContractIdentity(): Promise<string> {
   return createHash("sha256")
     .update(await readFile(new URL(import.meta.url)))
@@ -403,6 +404,7 @@ async function runDevelopmentContainerBuildFlight(
   await current;
 }
 
+/** Computes a SHA-256 identity from .devcontainer/devcontainer.json build settings and Dockerfile content. */
 export async function deriveDevelopmentContainerBuildIdentity(options: {
   readonly projectDir: string;
 }): Promise<string> {
@@ -471,6 +473,7 @@ export async function deriveDevelopmentContainerBuildIdentity(options: {
     .digest("hex");
 }
 
+/** Creates a managed dev container session that lazily starts, probes, runs commands, and cleans up owned container resources. */
 export function createDevelopmentContainerSession(options: {
   readonly projectDir: string;
   readonly probes: readonly DevelopmentContainerProbe[];
@@ -1190,7 +1193,7 @@ export function createDevelopmentContainerSession(options: {
             } catch (error) {
               cleanupErrors.push(
                 new Error(
-                  `恢复工作区属主失败，容器清理未完成：${errorMessage(error)}`,
+                  `Failed to restore workspace ownership; container cleanup is incomplete: ${errorMessage(error)}`,
                   { cause: error },
                 ),
               );
@@ -1209,7 +1212,7 @@ export function createDevelopmentContainerSession(options: {
             } catch (error) {
               cleanupErrors.push(
                 new Error(
-                  `移除容器失败，容器清理未完成：${errorMessage(error)}`,
+                  `Failed to remove container; container cleanup is incomplete: ${errorMessage(error)}`,
                   { cause: error },
                 ),
               );
@@ -1357,7 +1360,7 @@ export function createDevelopmentContainerSession(options: {
         try {
           options.onCleanupFailure?.(cleanup.error);
         } catch {
-          // 生命周期通知失败不能覆盖清理原因。
+          // Do not let a lifecycle notification error mask the cleanup failure.
         }
       }
       if (!execution.succeeded) {

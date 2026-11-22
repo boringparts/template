@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url";
 async function readInput(): Promise<string> {
   let input = "";
   for await (const chunk of process.stdin) input += chunk;
-  if (input.length === 0) throw new Error("缺少根资源忽略规则输入。");
+  if (input.length === 0)
+    throw new Error("Missing root resource ignore rules input.");
   return input;
 }
 
@@ -22,7 +23,7 @@ const current = await readFile(destination, "utf8").catch((error: unknown) => {
 if (process.argv.includes("--check")) {
   if (current !== expected) {
     throw new Error(
-      `${fileURLToPath(destination)} 与根声明不一致，请执行 pnpm run sync。`,
+      `${fileURLToPath(destination)} is out of sync with the root declaration; run pnpm run sync.`,
     );
   }
 } else if (current !== expected) {

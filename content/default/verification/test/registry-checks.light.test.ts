@@ -11,8 +11,8 @@ import {
 import { validateGeneratedScenarioReceipt } from "../src/registry-checks.ts";
 import { sourceGeneratedScenarioRuntime } from "../src/source-generated-runtime.ts";
 
-void describe("真实 Generator receipt 检查", () => {
-  void it("拒绝与 default owner Dockerfile 事实不一致的生成产物", async () => {
+void describe("real generator receipt checks", () => {
+  void it("rejects generated output that diverges from default owner Dockerfile facts", async () => {
     const workspace = await mkdtemp(
       path.join(tmpdir(), "template-generated-owner-facts-"),
     );

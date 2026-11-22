@@ -10,6 +10,7 @@ import { databaseStorageTarget } from "#db/storage";
 const relations = defineRelations(schema);
 export type Database = ReturnType<typeof createDatabase>;
 
+/** Opens a Drizzle SQLite connection, creating the parent directory for `databaseFile` if needed. */
 export function createDatabase(databaseFile = databaseStorageTarget()) {
   const file = databaseFile;
   mkdirSync(path.dirname(file), { recursive: true });

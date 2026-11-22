@@ -74,7 +74,7 @@ function member(
     (candidate) =>
       candidate.kind === kind && candidate.identity.packageName === packageName,
   );
-  assert.ok(found, `内容集合缺少 ${kind} ${packageName}`);
+  assert.ok(found, `Content collection is missing ${kind} ${packageName}`);
   return found;
 }
 
@@ -161,8 +161,8 @@ after(async () => {
   );
 });
 
-void describe("Vike 应用组合预设公开行为", () => {
-  void it("拒绝应用角色不符的预设选择且不写入目标", async () => {
+void describe("Vike app composite preset public behavior", () => {
+  void it("rejects a preset selection with an invalid application role without writing to target", async () => {
     const targetRoot = await createTargetRoot();
     const invalid = await createDefaultGenerator({
       content: withVikeWebRole("shared-library"),
@@ -175,13 +175,13 @@ void describe("Vike 应用组合预设公开行为", () => {
     if (invalid.status === "operation-failure") {
       assert.match(
         invalid.error.message,
-        /Vike 应用部署要求应用包具有 runtime-service 角色/u,
+        /Vike app deployment requires the application package to have the runtime-service role/u,
       );
     }
     await assert.rejects(access(targetRoot), { code: "ENOENT" });
   });
 
-  void it("绑定独立数据库并合成数据库任务、部署资源与 CI 声明", async () => {
+  void it("binds standalone database and synthesizes database tasks, deployment resources, and CI declarations", async () => {
     const targetRoot = await createTargetRoot();
     const initialized = await generator().init({
       targetRoot,
@@ -233,7 +233,7 @@ void describe("Vike 应用组合预设公开行为", () => {
       }>(path.join(targetRoot, packagePath, "package.json"));
       assert.ok(
         manifest.devDependencies?.["typescript-7"],
-        `${packagePath} 应声明运行其目标 TypeScript 检查所需的编译器`,
+        `${packagePath} should declare the compiler required to run its TypeScript check`,
       );
     }
 
@@ -335,7 +335,7 @@ void describe("Vike 应用组合预设公开行为", () => {
     );
   });
 
-  void it("加包校验当前清单、保护读取事实并保留部署组合", async () => {
+  void it("validates current manifests, guards read facts, and preserves deployment composition on add", async () => {
     const targetRoot = await createTargetRoot();
     const initialized = await generator().init({
       targetRoot,
@@ -372,7 +372,7 @@ void describe("Vike 应用组合预设公开行为", () => {
     if (invalidAdd.status === "operation-failure") {
       assert.match(
         invalidAdd.error.message,
-        /Vike 数据准备要求 @demo\/db 的 scripts\.db:reset 与来源包保持一致/u,
+        /Vike database preparation requires @demo\/db scripts\.db:reset to match the source package/u,
       );
     }
     assert.deepEqual(await snapshotTree(targetRoot), beforeInvalidAdd);

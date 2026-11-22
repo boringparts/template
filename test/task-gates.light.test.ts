@@ -21,12 +21,12 @@ const taskGatesPath = fileURLToPath(
 const turboExecutablePath = fileURLToPath(import.meta.resolve("turbo"));
 const gateEntries = [
   {
-    label: "模板直接入口",
+    label: "template direct entry",
     scriptPath: taskGatesPath,
     command: "node --conditions=source scripts/task-gates.ts",
   },
   {
-    label: "源码包装入口",
+    label: "source wrapper entry",
     scriptPath: fileURLToPath(
       new URL("../scripts/run-task-gate.ts", import.meta.url),
     ),
@@ -288,7 +288,7 @@ async function addRootTask(
 }
 
 for (const entry of gateEntries) {
-  void it(`${entry.label} 拒绝缺失、未知及多余参数且不执行任务`, async () => {
+  void it(`${entry.label} rejects missing, unknown, and extra arguments without running tasks`, async () => {
     const root = await createWorkspace({ entryCommand: entry.command });
     try {
       for (const args of [[], ["unknown"], ["check", "unexpected"]]) {
@@ -300,7 +300,7 @@ for (const entry of gateEntries) {
         assert.equal(result.exitCode, 2, result.stderr);
         assert.equal(
           result.stderr,
-          `用法：${entry.command} <check|check:heavy|check:full|fix>`,
+          `Usage: ${entry.command} <check|check:heavy|check:full|fix>`,
         );
         assert.deepEqual(await readRuns(root), []);
       }
@@ -309,7 +309,7 @@ for (const entry of gateEntries) {
     }
   });
 
-  void it(`${entry.label} 按公共范围执行并传递任务退出状态`, async () => {
+  void it(`${entry.label} executes the requested public scope and propagates task exit status`, async () => {
     const root = await createWorkspace({
       entryCommand: entry.command,
       failRootHeavy: true,
@@ -365,7 +365,7 @@ void it("check runs light tasks and their native preparation dependencies", asyn
   }
 });
 
-void it("拒绝无命令节点上的悬空职责标签", async () => {
+void it("rejects dangling role tags on commandless nodes", async () => {
   const root = await createWorkspace();
   try {
     const turboPath = path.join(root, "turbo.json");
@@ -400,7 +400,7 @@ void it("拒绝无命令节点上的悬空职责标签", async () => {
   }
 });
 
-void it("保留无职责中转节点的原生依赖遍历", async () => {
+void it("preserves native dependency traversal through roleless transit nodes", async () => {
   const root = await createWorkspace();
   try {
     await mkdir(path.join(root, "packages", "provider"), { recursive: true });
@@ -598,7 +598,7 @@ async function verifyFullGateCancellation(
           break;
         }
       } catch {
-        // 工作区生命周期任务尚未创建日志。
+        // The workspace task has not created the log file yet.
       }
       if (child.exitCode !== null || child.signalCode !== null) {
         break;
@@ -703,7 +703,10 @@ void it("rejects a light task whose native dependency closure includes heavy ver
       reject: false,
     });
     assert.notEqual(result.exitCode, 0);
-    assert.match(result.stderr, /轻检查不能间接启动重验收/);
+    assert.match(
+      result.stderr,
+      /light check cannot transitively trigger heavy verification/u,
+    );
 
     const runs = await readRuns(root);
     assert.deepEqual(runs, []);
@@ -720,7 +723,10 @@ void it("preflights with closures and does not run light work when heavy include
       reject: false,
     });
     assert.notEqual(result.exitCode, 0);
-    assert.match(result.stderr, /常规验收不能间接启动条件验收/);
+    assert.match(
+      result.stderr,
+      /standard verification cannot transitively trigger conditional verification/u,
+    );
 
     const runs = await readRuns(root);
     assert.deepEqual(runs, []);
@@ -739,7 +745,7 @@ void it("reports conditional tasks as unexecuted when ordinary checks exclude th
     assert.equal(result.exitCode, 0, result.stderr);
     assert.match(
       result.stderr,
-      /条件验收未执行：@task-gates\/app#verify:conditional/,
+      /Conditional verification tasks not run: @task-gates\/app#verify:conditional/u,
     );
 
     const runs = await readRuns(root);
@@ -777,7 +783,10 @@ void it("rejects custom check-family tasks assigned to a work role before execut
     });
 
     assert.notEqual(result.exitCode, 0);
-    assert.match(result.stderr, /保留验收任务.*非验收职责 work:repair/);
+    assert.match(
+      result.stderr,
+      /is a reserved verification task and cannot be assigned non-verification role work:repair/u,
+    );
     const runs = await readRuns(root);
     assert.deepEqual(runs, []);
   } finally {
@@ -795,7 +804,10 @@ void it("rejects custom test-family tasks assigned to a work role before executi
     });
 
     assert.notEqual(result.exitCode, 0);
-    assert.match(result.stderr, /\/\/#test:custom 是保留验收任务.*work:repair/);
+    assert.match(
+      result.stderr,
+      /\/\/#test:custom is a reserved verification task.*work:repair/u,
+    );
     const runs = await readRuns(root);
     assert.deepEqual(runs, []);
   } finally {
@@ -814,7 +826,10 @@ for (const name of ["lint", "typecheck", "format:check"]) {
       });
 
       assert.notEqual(result.exitCode, 0);
-      assert.match(result.stderr, new RegExp(`${name}.*保留验收任务`));
+      assert.match(
+        result.stderr,
+        new RegExp(`${name}.*is a reserved verification task`),
+      );
       const runs = await readRuns(root);
       assert.deepEqual(runs, []);
     } finally {
@@ -823,7 +838,7 @@ for (const name of ["lint", "typecheck", "format:check"]) {
   });
 }
 
-void it("拒绝仅新增在根 manifest 中的无职责 script", async () => {
+void it("rejects an unclassified script added only to the root manifest", async () => {
   const root = await createWorkspace();
   try {
     const manifestPath = path.join(root, "package.json");
@@ -838,7 +853,10 @@ void it("拒绝仅新增在根 manifest 中的无职责 script", async () => {
     });
 
     assert.notEqual(result.exitCode, 0);
-    assert.match(result.stderr, /\/\/#verify:unclassified 缺少唯一职责标签/);
+    assert.match(
+      result.stderr,
+      /\/\/#verify:unclassified is missing a unique role tag/u,
+    );
     const runs = await readRuns(root);
     assert.deepEqual(runs, []);
   } finally {
@@ -858,7 +876,7 @@ void it("rejects an executable root task with an unknown role", async () => {
     assert.notEqual(result.exitCode, 0);
     assert.match(
       result.stderr,
-      /\/\/#verify:unknown 使用未知职责标签 quality:unknown/,
+      /\/\/#verify:unknown uses unknown role tag quality:unknown/u,
     );
     const runs = await readRuns(root);
     assert.deepEqual(runs, []);
@@ -880,7 +898,10 @@ void it("rejects an executable root task with conflicting roles", async () => {
     });
 
     assert.notEqual(result.exitCode, 0);
-    assert.match(result.stderr, /\/\/#verify:conflicting 有多个职责标签/);
+    assert.match(
+      result.stderr,
+      /\/\/#verify:conflicting has multiple role tags/u,
+    );
     const runs = await readRuns(root);
     assert.deepEqual(runs, []);
   } finally {
@@ -888,7 +909,7 @@ void it("rejects an executable root task with conflicting roles", async () => {
   }
 });
 
-void it("拒绝清除所属任务职责的包任务", async () => {
+void it("rejects a package task whose role tag was cleared", async () => {
   const root = await createWorkspace();
   try {
     const packageTurboPath = path.join(root, "packages", "app", "turbo.json");
@@ -907,7 +928,7 @@ void it("拒绝清除所属任务职责的包任务", async () => {
     assert.notEqual(result.exitCode, 0);
     assert.match(
       result.stderr,
-      /@task-gates\/app#verify:generated 缺少唯一职责标签/,
+      /@task-gates\/app#verify:generated is missing a unique role tag/u,
     );
     const runs = await readRuns(root);
     assert.deepEqual(runs, []);
@@ -926,7 +947,7 @@ void it("limits quality:entry to the three public root gate tasks", async () => 
     });
 
     assert.notEqual(result.exitCode, 0);
-    assert.match(result.stderr, /\/\/#verify:entry 不能使用 quality:entry/);
+    assert.match(result.stderr, /\/\/#verify:entry cannot use quality:entry/u);
     const runs = await readRuns(root);
     assert.deepEqual(runs, []);
   } finally {
@@ -934,7 +955,7 @@ void it("limits quality:entry to the three public root gate tasks", async () => 
   }
 });
 
-void it("fix 按职责发现异名修复任务，并保留必要轻检查与准备", async () => {
+void it("fix discovers differently named repair tasks by role while keeping required light checks and preparation", async () => {
   const root = await createWorkspace();
   try {
     await addRootTask(root, "rewrite:generated", [
@@ -992,7 +1013,7 @@ void it("fix 按职责发现异名修复任务，并保留必要轻检查与准�
   }
 });
 
-void it("fix 拒绝仅新增在 manifest 的无职责 script，包标签不能代替任务职责", async () => {
+void it("fix rejects an unclassified script added only to a manifest and does not treat package tags as task roles", async () => {
   const root = await createWorkspace();
   try {
     const packagePath = path.join(root, "packages", "app", "package.json");
@@ -1015,7 +1036,7 @@ void it("fix 拒绝仅新增在 manifest 的无职责 script，包标签不能�
     assert.notEqual(result.exitCode, 0);
     assert.match(
       result.stderr,
-      /@task-gates\/app#unclassified 缺少唯一职责标签/u,
+      /@task-gates\/app#unclassified is missing a unique role tag/u,
     );
     assert.deepEqual(await readRuns(root), []);
   } finally {
@@ -1023,7 +1044,7 @@ void it("fix 拒绝仅新增在 manifest 的无职责 script，包标签不能�
   }
 });
 
-void it("允许任意附加标签和显式按需任务，叶任务仍可直接调用", async () => {
+void it("allows arbitrary extra tags and explicit on-demand tasks while keeping leaf tasks directly callable", async () => {
   const root = await createWorkspace();
   try {
     await addRootTask(root, "inspect:cache", [
@@ -1056,7 +1077,7 @@ void it("允许任意附加标签和显式按需任务，叶任务仍可直接�
   }
 });
 
-void it("有职责的无命令聚合节点可以通过原生图承载实际工作", async () => {
+void it("allows commandless aggregate nodes with a role to drive executable work through the native graph", async () => {
   const root = await createWorkspace();
   try {
     const turboPath = path.join(root, "turbo.json");
@@ -1079,7 +1100,7 @@ void it("有职责的无命令聚合节点可以通过原生图承载实际工�
   }
 });
 
-void it("无命令聚合节点的职责也必须符合入口闭包", async () => {
+void it("enforces gate closure rules on commandless aggregate node roles", async () => {
   const root = await createWorkspace();
   try {
     const turboPath = path.join(root, "turbo.json");
@@ -1099,7 +1120,7 @@ void it("无命令聚合节点的职责也必须符合入口闭包", async () =>
     assert.notEqual(result.exitCode, 0);
     assert.match(
       result.stderr,
-      /release:aggregate.*不允许间接启动职责 work:release/u,
+      /release:aggregate.*transitively triggering role work:release is not allowed/u,
     );
     assert.deepEqual(await readRuns(root), []);
   } finally {
@@ -1113,7 +1134,7 @@ for (const [gate, role] of [
   ["fix", "quality:heavy"],
   ["fix", "work:on-demand"],
 ] as const) {
-  void it(`${gate} 拒绝从原生依赖图间接运行 ${role}`, async () => {
+  void it(`${gate} rejects transitively running ${role} from the native dependency graph`, async () => {
     const root = await createWorkspace();
     try {
       await addRootTask(root, "dependency:custom", [role]);
@@ -1135,7 +1156,10 @@ for (const [gate, role] of [
         reject: false,
       });
       assert.notEqual(result.exitCode, 0);
-      assert.match(result.stderr, /dependency:custom.*不允许间接启动职责/u);
+      assert.match(
+        result.stderr,
+        /dependency:custom.*transitively triggering role .* is not allowed/u,
+      );
       assert.deepEqual(await readRuns(root), []);
     } finally {
       await rm(root, { recursive: true, force: true });
@@ -1144,7 +1168,7 @@ for (const [gate, role] of [
 }
 
 for (const entry of ["check", "fix"]) {
-  void it(`拒绝依赖回流公共入口 ${entry}`, async () => {
+  void it(`rejects dependencies that loop back into public gate entry ${entry}`, async () => {
     const root = await createWorkspace();
     try {
       const turboPath = path.join(root, "turbo.json");
@@ -1158,7 +1182,10 @@ for (const entry of ["check", "fix"]) {
         reject: false,
       });
       assert.notEqual(result.exitCode, 0);
-      assert.match(result.stderr, /叶任务不能依赖公共聚合入口/u);
+      assert.match(
+        result.stderr,
+        /leaf tasks cannot depend on public aggregate gate entries/u,
+      );
       assert.deepEqual(await readRuns(root), []);
     } finally {
       await rm(root, { recursive: true, force: true });
@@ -1167,7 +1194,7 @@ for (const entry of ["check", "fix"]) {
 }
 
 for (const mutation of ["missing", "script", "command", "role"] as const) {
-  void it(`直接调用共享实现仍发现公共入口接线错误：${mutation}`, async () => {
+  void it(`detects miswired public gate entry when invoking shared implementation directly: ${mutation}`, async () => {
     const root = await createWorkspace();
     try {
       const manifestPath = path.join(root, "package.json");
@@ -1199,7 +1226,7 @@ for (const mutation of ["missing", "script", "command", "role"] as const) {
         reject: false,
       });
       assert.notEqual(result.exitCode, 0);
-      assert.match(result.stderr, /公共.*入口/u);
+      assert.match(result.stderr, /public gate entry/u);
       assert.deepEqual(await readRuns(root), []);
     } finally {
       await rm(root, { recursive: true, force: true });
@@ -1207,7 +1234,7 @@ for (const mutation of ["missing", "script", "command", "role"] as const) {
   });
 }
 
-void it("轻检查为空失败，重验收和修复为空则明确跳过", async () => {
+void it("fails when light check selects no tasks and explicitly skips empty heavy verification or fix layers", async () => {
   const root = await createWorkspace();
   try {
     for (const directory of [root, path.join(root, "packages", "app")]) {
@@ -1239,10 +1266,13 @@ void it("轻检查为空失败，重验收和修复为空则明确跳过", async
       });
       if (gate === "check" || gate === "check:full") {
         assert.notEqual(result.exitCode, 0);
-        assert.match(result.stderr, /轻检查没有选中有效任务/u);
+        assert.match(
+          result.stderr,
+          /Light check selected no executable tasks/u,
+        );
       } else {
         assert.equal(result.exitCode, 0, result.stderr);
-        assert.match(result.stderr, /没有选中任务，跳过执行/u);
+        assert.match(result.stderr, /selected no tasks; skipping execution/u);
       }
     }
     assert.deepEqual(await readRuns(root), []);

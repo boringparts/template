@@ -126,21 +126,21 @@ export type DefaultCompositionResources = {
 };
 
 export type DefaultOperationFacts = {
-  /** 从本次release快照或当前root manifest读到的实际Node声明。 */
+  /** Effective Node declaration from the release snapshot (init) or current root manifest (add). */
   readonly nodeDeclaration: string;
-  /** init使用release pin；add使用当前root packageManager。 */
+  /** Exact pnpm packageManager pin from the release snapshot (init) or current root manifest (add). */
   readonly packageManagerPin: string;
   readonly resources: DefaultCompositionResources;
-  /** 本次 add 读取到的根 Rust 声明；init 使用发行快照。 */
+  /** Root Rust toolchain declaration read during add; init falls back to the release snapshot. */
   readonly rustToolchainTarget?: RustToolchainTarget;
   readonly rootDeclarations: readonly DefaultRootDeclaration[];
   readonly rootAttachmentDependencies: readonly DefaultRootAttachmentDependencyFact[];
-  /** 现存创建输入中的一次性连接已由蓝图固定为实例ID。 */
+  /** Existing package IDs whose one-time creation links are already fixed as blueprint link intents. */
   readonly existingPackageDefinitionIds: ReadonlySet<PackageDefinitionId>;
   readonly existingPackageLinkIntents: readonly PackageLinkIntent[];
   readonly presetRootContributions: readonly PreparedDefaultPresetRootContribution[];
   readonly presetRootContributionReadFacts: readonly CurrentProjectProjectionEntry[];
-  /** 本次add明确连接端点读取到的当前manifest；键为恢复后的实例ID。 */
+  /** Current manifests read for explicitly linked package endpoints during add, keyed by restored packageDefinitionId. */
   readonly targetManifests: ReadonlyMap<
     PackageDefinitionId,
     Readonly<Record<string, unknown>>
@@ -187,9 +187,9 @@ export type DefaultCompositionOwnerFacts = {
   };
 };
 
-type DefaultContribution = DefaultReferenceContributionFacts<unknown>;
+type DefaultContribution = DefaultReferenceContributionFacts;
 type DefaultEvaluation = CompositionPackageEvaluation<DefaultContribution>;
-type DefaultContentMember = LoadedContentMember<unknown>;
+type DefaultContentMember = LoadedContentMember;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -239,7 +239,9 @@ function composePresetRootContributionDeclarations(options: {
     ({ package: item }) => item.definition.path === ".",
   );
   if (rootPackages.length !== 1) {
-    throw new Error("预设根贡献要求唯一的明确根包实例");
+    throw new Error(
+      "Preset root contribution requires a single explicit root package instance",
+    );
   }
   const rootPackage = rootPackages[0]!.package;
   const declarations: DefaultRootDeclaration[] = [];
@@ -250,7 +252,7 @@ function composePresetRootContributionDeclarations(options: {
     );
     if (member === undefined) {
       throw new Error(
-        `持久预设选择不存在：${contentIdentityLabel(selection.presetIdentity)}`,
+        `Persisted preset selection not found: ${contentIdentityLabel(selection.presetIdentity)}`,
       );
     }
     const owner = presetRootContributionOwner(member.definition);
@@ -260,7 +262,7 @@ function composePresetRootContributionDeclarations(options: {
     );
     if (ownerFacts === undefined) {
       throw new Error(
-        `预设根贡献未按完整身份准备：${contentIdentityLabel(member.identity)}`,
+        `Preset root contribution was not prepared under its full identity: ${contentIdentityLabel(member.identity)}`,
       );
     }
     const selectedPackages = new Map<string, DefaultEvaluation>();
@@ -270,7 +272,7 @@ function composePresetRootContributionDeclarations(options: {
       const selectedEvaluation = packagesById.get(packageDefinitionId);
       if (selectedEvaluation === undefined) {
         throw new Error(
-          `持久预设选择缺少节点实例：${contentIdentityLabel(member.identity)}/${nodeIdentity}`,
+          `Persisted preset selection is missing node instance: ${contentIdentityLabel(member.identity)}/${nodeIdentity}`,
         );
       }
       selectedPackages.set(nodeIdentity, selectedEvaluation);
@@ -287,7 +289,7 @@ function composePresetRootContributionDeclarations(options: {
       composition.rootPackageDefinitionId !== rootPackage.packageDefinitionId
     ) {
       throw new Error(
-        `预设根贡献输出根与默认组合根不匹配：${contentIdentityLabel(member.identity)}`,
+        `Preset root contribution targets a different root package than default composition: ${contentIdentityLabel(member.identity)}`,
       );
     }
     declarations.push({
@@ -300,22 +302,24 @@ function composePresetRootContributionDeclarations(options: {
 
 function parseConventions(value: unknown): DefaultWorkspaceConventions {
   if (!isRecord(value)) {
-    throw new Error("默认工作区约定必须是对象");
+    throw new Error("Default workspace conventions must be an object");
   }
   if (
     typeof value.repositoryName !== "string" ||
     value.repositoryName.trim().length === 0
   ) {
-    throw new Error("默认工作区约定缺少repositoryName");
+    throw new Error("Default workspace conventions are missing repositoryName");
   }
   if (
     typeof value.defaultPackageScope !== "string" ||
     value.defaultPackageScope.trim().length === 0
   ) {
-    throw new Error("默认工作区约定缺少defaultPackageScope");
+    throw new Error(
+      "Default workspace conventions are missing defaultPackageScope",
+    );
   }
   if (value.todo !== undefined && typeof value.todo !== "boolean") {
-    throw new Error("默认工作区约定todo必须是boolean");
+    throw new Error("Default workspace conventions todo must be a boolean");
   }
   return Object.freeze({
     repositoryName: value.repositoryName,
@@ -324,7 +328,7 @@ function parseConventions(value: unknown): DefaultWorkspaceConventions {
   });
 }
 
-/** 外层默认准备拥有者读取的默认环境资源；Composition只接收这份快照。 */
+/** Reads default environment resources for composition; createDefaultComposition consumes only this snapshot without performing I/O. */
 export function prepareDefaultCompositionResources(): DefaultCompositionResources {
   return Object.freeze({
     github: prepareProjectGithubTemplates(),
@@ -362,7 +366,7 @@ export function prepareDefaultInitOperationFacts(
   });
 }
 
-/** 读取声明了根附件的owner快照；调用者负责在每次正式操作前执行。 */
+/** Reads snapshots from owners that declare root attachments; callers must invoke this before each generation operation. */
 export async function prepareDefaultRootDeclarations(
   content: readonly DefaultContentMember[],
 ): Promise<readonly DefaultRootDeclaration[]> {
@@ -380,32 +384,32 @@ export async function prepareDefaultRootDeclarations(
       typeof manifest.name !== "string"
     ) {
       throw new Error(
-        `根附件owner声明不完整：${contentIdentityLabel(member.identity)}`,
+        `Incomplete root attachment owner declaration: ${contentIdentityLabel(member.identity)}`,
       );
     }
     const prepared = await prepare({ excludedPackagePaths: [] });
     if (!isRecord(prepared) || !isRecord(prepared.facts)) {
       throw new Error(
-        `根附件owner prepare未返回事实：${contentIdentityLabel(member.identity)}`,
+        `Root attachment owner prepare did not return facts: ${contentIdentityLabel(member.identity)}`,
       );
     }
     const data = project(prepared.facts.ownerFacts);
     if (data === undefined) continue;
     if (!isRecord(data)) {
       throw new Error(
-        `根附件owner投影必须是对象：${contentIdentityLabel(member.identity)}`,
+        `Root attachment owner projection must be an object: ${contentIdentityLabel(member.identity)}`,
       );
     }
     declarations.push({
       ...data,
       sourceIdentity: member.identity,
       requiredTemplateDependency: manifest.name,
-    } as DefaultRootDeclaration);
+    });
   }
   return Object.freeze(declarations);
 }
 
-/** 正式准备阶段解析owner入口；Composition只消费这份完整身份快照。 */
+/** Resolves root attachment owner entry points during preparation so composition consumes only pre-resolved identity facts. */
 export function prepareDefaultRootAttachmentDependencies(
   content: readonly DefaultContentMember[],
 ): readonly DefaultRootAttachmentDependencyFact[] {
@@ -416,13 +420,13 @@ export function prepareDefaultRootAttachmentDependencies(
     if (dependencies === undefined) continue;
     if (!Array.isArray(dependencies)) {
       throw new Error(
-        `根附件owner依赖必须是列表：${contentIdentityLabel(member.identity)}`,
+        `Root attachment owner dependencies must be an array: ${contentIdentityLabel(member.identity)}`,
       );
     }
     for (const value of dependencies) {
       if (!isRecord(value) || typeof value.key !== "string") {
         throw new Error(
-          `根附件owner依赖声明无效：${contentIdentityLabel(member.identity)}`,
+          `Invalid root attachment owner dependency declaration: ${contentIdentityLabel(member.identity)}`,
         );
       }
       const dependency = value as unknown as ReferenceDependency;
@@ -472,12 +476,12 @@ function validateDefaultFacts(
     !Array.isArray(value.presetRootContributionReadFacts) ||
     !isRecord(value.resources)
   ) {
-    throw new Error("默认工作区本次operationFacts无效");
+    throw new Error("Invalid operationFacts for default workspace composition");
   }
 }
 
 function prepareSelectedRootAttachmentIdentities(options: {
-  readonly packages: readonly CompositionPackage<JsonValue>[];
+  readonly packages: readonly CompositionPackage[];
   readonly content: readonly DefaultContentMember[];
   readonly operationFacts: DefaultOperationFacts;
 }): readonly ContentIdentity[] {
@@ -507,13 +511,13 @@ function prepareSelectedRootAttachmentIdentities(options: {
     if (dependencies === undefined) continue;
     if (!Array.isArray(dependencies)) {
       throw new Error(
-        `根附件owner依赖必须是列表：${contentIdentityLabel(member.identity)}`,
+        `Root attachment owner dependencies must be an array: ${contentIdentityLabel(member.identity)}`,
       );
     }
     for (const value of dependencies) {
       if (!isRecord(value) || typeof value.key !== "string") {
         throw new Error(
-          `根附件owner依赖声明无效：${contentIdentityLabel(member.identity)}`,
+          `Invalid root attachment owner dependency declaration: ${contentIdentityLabel(member.identity)}`,
         );
       }
       const fact = factsByConsumerAndKey.get(
@@ -521,19 +525,19 @@ function prepareSelectedRootAttachmentIdentities(options: {
       );
       if (fact === undefined) {
         throw new Error(
-          `正式准备缺少根附件owner依赖身份：${contentIdentityLabel(member.identity)}/${value.key}`,
+          `Prepared facts are missing root attachment owner dependency identity: ${contentIdentityLabel(member.identity)}/${value.key}`,
         );
       }
       if (fact.result.kind === "error") {
         throw new Error(
-          `根附件owner依赖无法解析：${contentIdentityLabel(member.identity)}/${value.key}：${fact.result.message}`,
+          `Failed to resolve root attachment owner dependency ${contentIdentityLabel(member.identity)}/${value.key}: ${fact.result.message}`,
         );
       }
       const ownerIdentity = fact.result.ownerIdentity;
       const ownerKey = contentIdentityKey(ownerIdentity);
       if (!declarationIdentities.has(ownerKey)) {
         throw new Error(
-          `根附件owner未提供所需声明：${contentIdentityLabel(ownerIdentity)}`,
+          `Root attachment owner did not provide the required declaration: ${contentIdentityLabel(ownerIdentity)}`,
         );
       }
       requested.set(ownerKey, ownerIdentity);
@@ -543,7 +547,7 @@ function prepareSelectedRootAttachmentIdentities(options: {
 }
 
 function packageLinks(options: {
-  readonly packages: readonly CompositionPackage<JsonValue>[];
+  readonly packages: readonly CompositionPackage[];
   readonly content: readonly DefaultContentMember[];
   readonly selections: readonly GenerationRecordSelection[];
   readonly existingPackageDefinitionIds: ReadonlySet<PackageDefinitionId>;
@@ -624,40 +628,54 @@ function packageLinks(options: {
       const linkTo = creationInput.linkTo;
       if (linkTo !== undefined) {
         if (!isRecord(linkTo)) {
-          throw new Error("包连接目标必须是节点身份或现存实例ID");
+          throw new Error(
+            "Package link target must be an object with nodeIdentity or packageDefinitionId",
+          );
         }
         const targetKeys = Object.keys(linkTo);
         if (
           targetKeys.length !== 1 ||
           !["nodeIdentity", "packageDefinitionId"].includes(targetKeys[0]!)
         ) {
-          throw new Error("包连接目标必须且只能指定一种身份");
+          throw new Error(
+            "Package link target must specify exactly one of nodeIdentity or packageDefinitionId",
+          );
         }
         const nodeIdentity = linkTo.nodeIdentity;
         const packageDefinitionId = linkTo.packageDefinitionId;
         let providerId: PackageDefinitionId | undefined;
         if (typeof nodeIdentity === "string") {
           if (nodeIdentity.length === 0) {
-            throw new Error("包连接请求需要非空节点身份");
+            throw new Error(
+              "Package link request requires a non-empty nodeIdentity",
+            );
           }
           const candidates = packagesByNodeIdentity.get(nodeIdentity);
           if (candidates === undefined || candidates.size === 0) {
-            throw new Error(`包连接节点身份不存在：${nodeIdentity}`);
+            throw new Error(
+              `Package link nodeIdentity not found: ${nodeIdentity}`,
+            );
           }
           if (candidates.size > 1) {
-            throw new Error(`包连接节点身份不唯一：${nodeIdentity}`);
+            throw new Error(
+              `Package link nodeIdentity is ambiguous: ${nodeIdentity}`,
+            );
           }
           providerId = candidates.values().next().value;
         } else if (typeof packageDefinitionId === "string") {
           if (packageDefinitionId.length === 0) {
-            throw new Error("包连接请求需要非空实例ID");
+            throw new Error(
+              "Package link request requires a non-empty packageDefinitionId",
+            );
           }
           if (
             !options.existingPackageDefinitionIds.has(
               packageDefinitionId as PackageDefinitionId,
             )
           ) {
-            throw new Error(`包连接实例ID不存在：${packageDefinitionId}`);
+            throw new Error(
+              `Package link packageDefinitionId does not exist: ${packageDefinitionId}`,
+            );
           }
           providerId = packageDefinitionId as PackageDefinitionId;
         }
@@ -667,11 +685,15 @@ function packageLinks(options: {
               ? nodeIdentity
               : typeof packageDefinitionId === "string"
                 ? packageDefinitionId
-                : "实例ID";
-          throw new Error(`包连接目标没有当前实例：${identity}`);
+                : "packageDefinitionId";
+          throw new Error(
+            `Package link target has no active instance: ${identity}`,
+          );
         }
         if (providerId === consumer.packageDefinitionId) {
-          throw new Error("包连接请求不能连接自身");
+          throw new Error(
+            "Package link request cannot link a package to itself",
+          );
         }
         add(consumer.packageDefinitionId, providerId);
       }
@@ -690,7 +712,7 @@ function packageLinks(options: {
       )
     ) {
       throw new Error(
-        `包连接请求必须是路径字符串列表：${contentIdentityLabel(consumer.contentIdentity)}`,
+        `Package linkFrom must be an array of path strings: ${contentIdentityLabel(consumer.contentIdentity)}`,
       );
     }
     for (const packagePath of creationInput.linkFrom as string[]) {
@@ -700,7 +722,7 @@ function packageLinks(options: {
       if (linkedConsumer === undefined) {
         throw new PackageLinkValidationError(
           { kind: "unknown-consumer", path: packagePath },
-          `包连接目标不存在：${packagePath}`,
+          `Package link target not found: ${packagePath}`,
         );
       }
       add(linkedConsumer.packageDefinitionId, consumer.packageDefinitionId);
@@ -827,7 +849,9 @@ function linkedPackageOverrides(options: {
     const consumer = byId.get(intent.consumerId);
     const provider = byId.get(intent.providerId);
     if (consumer === undefined || provider === undefined) {
-      throw new Error("包连接引用了不存在的计算实例");
+      throw new Error(
+        "Package link references a nonexistent computed package instance",
+      );
     }
     const consumerSource = consumer.contribution.facts.manifest;
     const providerSource = provider.contribution.facts.manifest;
@@ -841,7 +865,7 @@ function linkedPackageOverrides(options: {
       if (current !== undefined) return current;
       if (packageInput?.existing === true) {
         throw new Error(
-          `包连接缺少当前manifest事实：${item.package.definition.path}`,
+          `Package link is missing current manifest facts: ${item.package.definition.path}`,
         );
       }
       return source;
@@ -862,7 +886,7 @@ function linkedPackageOverrides(options: {
     ] as const) {
       if (manifest.name !== item.package.definition.name) {
         throw new Error(
-          `包连接manifest名称与实例不符：${item.package.definition.path} 应为 ${item.package.definition.name}`,
+          `Package link manifest name mismatch at ${item.package.definition.path}: expected ${item.package.definition.name}`,
         );
       }
     }
@@ -879,7 +903,7 @@ function linkedPackageOverrides(options: {
           consumerPath: consumer.package.definition.path,
           providerPath: provider.package.definition.path,
         },
-        `包连接consumer不能使用Node包名导入：${consumer.package.definition.path}`,
+        `Package link consumer cannot use Node package imports: ${consumer.package.definition.path}`,
       );
     }
     if (
@@ -893,7 +917,7 @@ function linkedPackageOverrides(options: {
           consumerPath: consumer.package.definition.path,
           providerPath: provider.package.definition.path,
         },
-        `包连接违反默认Package Role边界：${consumer.package.definition.path} (${consumerRole}) -> ${provider.package.definition.path} (${providerRole})`,
+        `Package link violates default Package Role boundary: ${consumer.package.definition.path} (${consumerRole}) -> ${provider.package.definition.path} (${providerRole})`,
       );
     }
     if (!exposesPackageRoot(providerCurrent)) {
@@ -903,7 +927,7 @@ function linkedPackageOverrides(options: {
           consumerPath: consumer.package.definition.path,
           providerPath: provider.package.definition.path,
         },
-        `包连接provider没有公开可导入包根：${provider.package.definition.path}`,
+        `Package link provider does not expose an importable package root: ${provider.package.definition.path}`,
       );
     }
     const providerName = provider.package.definition.name;
@@ -914,7 +938,7 @@ function linkedPackageOverrides(options: {
       previousProvider !== intent.providerId
     ) {
       throw new Error(
-        `包连接名称冲突：${consumer.package.definition.path}/${providerName} 同时绑定 ${previousProvider} 与 ${intent.providerId}`,
+        `Package link name conflict for ${consumer.package.definition.path}/${providerName}: bound to both ${previousProvider} and ${intent.providerId}`,
       );
     }
     linkedNames.set(linkKey, intent.providerId);
@@ -1019,7 +1043,7 @@ function assertUniqueWorkspaceBinaryNames(options: {
       const previousOwner = owners.get(commandName);
       if (previousOwner !== undefined) {
         throw new Error(
-          `CLI命令名称 ${JSON.stringify(commandName)} 重复：${previousOwner} 与 ${item.definition.name}`,
+          `Duplicate CLI command name ${JSON.stringify(commandName)} between ${previousOwner} and ${item.definition.name}`,
         );
       }
       owners.set(commandName, item.definition.name);
@@ -1045,7 +1069,7 @@ function mergeEntries<T>(options: {
       const owner = owners.get(key);
       if (owner !== undefined && !isDeepStrictEqual(result[key], value)) {
         throw new Error(
-          `共享根声明冲突：${options.location}/${key}；来源 ${owner} 与 ${declaration.source}`,
+          `Conflicting shared root declaration at ${options.location}/${key} between ${owner} and ${declaration.source}`,
         );
       }
       if (owner === undefined) {
@@ -1063,7 +1087,7 @@ function developmentContainerFragmentTexts(options: {
 }): Readonly<Record<string, string>> {
   const fragments = { ...options.rootFragments };
   const owners = new Map(
-    Object.keys(fragments).map((path) => [path, "根参考包"]),
+    Object.keys(fragments).map((path) => [path, "root reference package"]),
   );
   for (const { package: item, contribution } of options.packages) {
     const declared =
@@ -1071,18 +1095,20 @@ function developmentContainerFragmentTexts(options: {
     if (declared === undefined) continue;
     if (!isRecord(declared)) {
       throw new Error(
-        `开发容器片段快照无效：${sourceLabel(item.contentIdentity)}`,
+        `Invalid devcontainer fragment snapshot from ${sourceLabel(item.contentIdentity)}`,
       );
     }
     const owner = sourceLabel(item.contentIdentity);
     for (const [path, text] of Object.entries(declared)) {
       if (typeof text !== "string") {
-        throw new Error(`开发容器片段必须是文本：${owner}/${path}`);
+        throw new Error(
+          `Devcontainer fragment must be a string: ${owner}/${path}`,
+        );
       }
       const previousOwner = owners.get(path);
       if (previousOwner !== undefined && fragments[path] !== text) {
         throw new Error(
-          `开发容器 Dockerfile 片段冲突：${path}；来源 ${previousOwner} 与 ${owner}`,
+          `Conflicting devcontainer Dockerfile fragment ${path} between ${previousOwner} and ${owner}`,
         );
       }
       if (previousOwner === undefined) {
@@ -1174,7 +1200,7 @@ function filePath(value: string): string {
       .split("/")
       .some((part) => part === "" || part === "." || part === "..")
   ) {
-    throw new Error(`默认组合根资源路径无效：${value}`);
+    throw new Error(`Invalid default composition root resource path: ${value}`);
   }
   return normalized;
 }
@@ -1221,7 +1247,7 @@ function compositionFilesForRoot(options: {
     const owner = owners.get(target);
     if (owner !== undefined) {
       throw new Error(
-        `默认组合根资源冲突：${target}；来源 ${owner} 与 ${source}`,
+        `Conflicting default composition root resource ${target} between ${owner} and ${source}`,
       );
     }
     owners.set(target, source);
@@ -1323,7 +1349,7 @@ type DefaultComposer = Composition<
   DefaultOperationFacts
 >;
 
-/** 默认共同组合只消费显式实例、已经求得的原生贡献和本次准备快照。 */
+/** Creates the default workspace composition, consuming only explicit instances, evaluated native contributions, and prepared operation snapshots. */
 export function createDefaultComposition(options: {
   readonly rootIdentity: ContentIdentity;
   readonly content: readonly DefaultContentMember[];
@@ -1346,14 +1372,16 @@ export function createDefaultComposition(options: {
         (item) => contentIdentityKey(item.contentIdentity) === rootKey,
       );
       if (roots.length !== 1 || roots[0]?.definition.path !== ".") {
-        throw new Error("默认组合必须包含唯一的原生基础根实例");
+        throw new Error(
+          "Default composition must include a single native workspace root instance",
+        );
       }
       if (
         resolveOptions.blueprint.packages.filter(
           ({ path: packagePath }) => packagePath === ".",
         ).length !== 1
       ) {
-        throw new Error("默认组合只能有一个根包");
+        throw new Error("Default composition allows only one root package");
       }
       const rootAttachmentIdentities = prepareSelectedRootAttachmentIdentities({
         packages: resolveOptions.packages,
@@ -1455,11 +1483,13 @@ export function createDefaultComposition(options: {
           contentIdentityKey(item.contentIdentity) === rootKey,
       );
       if (rootPackages.length !== 1) {
-        throw new Error("默认组合只能合成一个基础根贡献");
+        throw new Error(
+          "Default composition can combine only one workspace root contribution",
+        );
       }
       const rootPackage = rootPackages[0]!;
       if (rootPackage.package.definition.path !== ".") {
-        throw new Error("基础根内容必须拥有目标目录 .");
+        throw new Error("Workspace root content must target directory .");
       }
       const presetRootContributionDeclarations =
         composePresetRootContributionDeclarations({
@@ -1562,7 +1592,9 @@ export function createDefaultComposition(options: {
           document.scope === "package",
       );
       if (rootManifestFact === undefined || rootTurboFact === undefined) {
-        throw new Error("基础根原生贡献必须包含package.json与turbo.json");
+        throw new Error(
+          "Workspace root native contribution must include package.json and turbo.json",
+        );
       }
       const manifest = structuredClone(
         finalManifests.get(rootPackage.package.packageDefinitionId) ??
@@ -1655,7 +1687,7 @@ export function createDefaultComposition(options: {
       if (typescriptDeclarations.length > 0) {
         if (rootTypeScriptFact === undefined) {
           throw new Error(
-            "根TypeScript声明需要基础根提供tsconfig.config.json原生文档",
+            "Root TypeScript declarations require the workspace root to provide tsconfig.config.json",
           );
         }
         const value = structuredClone(
@@ -1685,7 +1717,9 @@ export function createDefaultComposition(options: {
           (!Array.isArray(baseInclude) ||
             baseInclude.some((item) => typeof item !== "string"))
         ) {
-          throw new Error("基础根tsconfig.config.json include必须是字符串列表");
+          throw new Error(
+            "Workspace root tsconfig.config.json include must be an array of strings",
+          );
         }
         const include = [
           ...new Set([
@@ -1705,7 +1739,7 @@ export function createDefaultComposition(options: {
       finalManifests.set(rootPackage.package.packageDefinitionId, manifest);
       const dependencyCatalog = selectTemplateDependencyCatalogEntries(
         collectGeneratedManifestCatalogReferences([...finalManifests.values()]),
-        catalog as Record<string, string>,
+        catalog,
       );
       const packagePaths = combineOptions.blueprint.packages
         .filter(({ path: packagePath }) => packagePath !== ".")
@@ -1806,7 +1840,7 @@ export function createDefaultComposition(options: {
           dependencyCatalog["@playwright/test"] ?? dependencyCatalog.playwright;
         if (playwrightVersion === undefined) {
           throw new Error(
-            "声明Playwright浏览器环境需求的内容必须在实际模板依赖目录中提供playwright或@playwright/test版本",
+            "Content declaring Playwright browser environment needs must provide playwright or @playwright/test in the dependency catalog",
           );
         }
         developmentContainerLayers.push(
@@ -1960,7 +1994,7 @@ export function createDefaultComposition(options: {
         const previous = seenRootPaths.get(file.path);
         if (previous !== undefined) {
           throw new Error(
-            `默认组合根资源冲突：${file.path}；来源 ${previous} 与 ${file.sourcePath}`,
+            `Conflicting default composition root resource ${file.path} between ${previous} and ${file.sourcePath}`,
           );
         }
         seenRootPaths.set(file.path, file.sourcePath);

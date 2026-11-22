@@ -1,8 +1,8 @@
-// 由根 sync:workspace-policy 从原生工具链声明派生，请修改事实源后显式同步。
+// Derived by root sync:workspace-policy from native toolchain declarations; edit the source of truth and run sync explicitly.
 export const releaseToolchainSnapshot = Object.freeze({
-  nodeVersion: "26.13.0",
-  packageManagerPin: "pnpm@12.9.1",
-  rustVersion: "1.99.1",
+  nodeVersion: "26.13.1",
+  packageManagerPin: "pnpm@12.21.0",
+  rustVersion: "1.100.0",
 } as const);
 
 export type ReleaseToolchainSnapshot = typeof releaseToolchainSnapshot;

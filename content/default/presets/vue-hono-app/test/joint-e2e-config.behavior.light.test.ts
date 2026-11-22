@@ -5,8 +5,8 @@ import type { PlaywrightTestConfig } from "@playwright/test";
 
 import configuration from "../resources/joint-e2e/playwright.config.ts";
 
-void describe("Vue-Hono 联合浏览器验收配置", () => {
-  void it("用实际包身份启动 web/API 并保留浏览器失败诊断", () => {
+void describe("Vue-Hono joint browser E2E config", () => {
+  void it("starts web and API using actual package identities and retains browser failure diagnostics", () => {
     const config: PlaywrightTestConfig = configuration;
     const webServers = config.webServer;
     assert.ok(Array.isArray(webServers));

@@ -26,8 +26,8 @@ async function initialize(
   assert.strictEqual(result.status, "success", JSON.stringify(result));
 }
 
-void describe("生成任务公共入口", () => {
-  void it("每个公开初始化预设都投影原生 Turbo 边界命令", async () => {
+void describe("generated task public entrypoints", () => {
+  void it("projects native Turbo boundary commands for every public initialization preset", async () => {
     const workspace = await mkdtemp(path.join(tmpdir(), "template-gates-"));
 
     try {

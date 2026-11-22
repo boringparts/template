@@ -105,7 +105,7 @@ async function waitForFile(filePath: string): Promise<string> {
       await delay(25);
     }
   }
-  throw new Error(`等待文件超时：${filePath}`);
+  throw new Error(`Timed out waiting for file: ${filePath}`);
 }
 
 async function processIsAlive(pid: number): Promise<boolean> {
@@ -178,7 +178,7 @@ function longRunningCommandJourney(options: {
     ...(options.timeoutMs === undefined ? ["      timeoutMs: 800,"] : []),
     "    }];",
     "  },",
-    '  async assertions() { throw new Error("长时间运行的命令意外完成"); },',
+    '  async assertions() { throw new Error("Long-running command completed unexpectedly"); },',
     "};",
     "export default journey;",
   ].join("\n");
@@ -194,7 +194,7 @@ async function removeFixture(root: string): Promise<void> {
 }
 
 void test(
-  "断言失败退出后仍可读取旅程生成的文件",
+  "retains generated journey files after an assertion failure",
   { timeout: 30000 },
   async () => {
     const fixture = await createRunnerFixture();
@@ -213,7 +213,7 @@ void test(
           '    await writeFile(path.join(context.workDir, "generated.txt"), "kept after failure\\n");',
           "  },",
           "  commands() { return []; },",
-          '  async assertions() { throw new Error("注入的旅程断言失败"); },',
+          '  async assertions() { throw new Error("Injected journey assertion failure"); },',
           "};",
           "export default journey;",
         ].join("\n"),
@@ -229,7 +229,10 @@ void test(
           readonly cause: { readonly message: string };
         };
       };
-      assert.strictEqual(report.error.cause.message, "注入的旅程断言失败");
+      assert.strictEqual(
+        report.error.cause.message,
+        "Injected journey assertion failure",
+      );
       assert.strictEqual(
         await readFile(
           path.join(diagnostics, "workspace", "generated.txt"),
@@ -243,24 +246,28 @@ void test(
   },
 );
 
-void test("所选模式没有匹配旅程时验收失败", { timeout: 15000 }, async () => {
-  const fixture = await createRunnerFixture();
-  try {
-    const run = await runRunner(fixture, {
-      diagnosticsRoot: path.join(fixture.root, "ci-workspace"),
-    });
-    assert.notStrictEqual(run.exitCode, 0);
-    assert.match(
-      `${run.stdout}\n${run.stderr}`,
-      /模式 packed 没有可运行的 CLI 旅程/u,
-    );
-  } finally {
-    await removeFixture(fixture.root);
-  }
-});
+void test(
+  "fails when no CLI journeys match the selected mode",
+  { timeout: 15000 },
+  async () => {
+    const fixture = await createRunnerFixture();
+    try {
+      const run = await runRunner(fixture, {
+        diagnosticsRoot: path.join(fixture.root, "ci-workspace"),
+      });
+      assert.notStrictEqual(run.exitCode, 0);
+      assert.match(
+        `${run.stdout}\n${run.stderr}`,
+        /No runnable CLI journeys found for mode packed/u,
+      );
+    } finally {
+      await removeFixture(fixture.root);
+    }
+  },
+);
 
 void test(
-  "命令超时会结束所属进程树并保留失败现场",
+  "terminates owned process trees and retains diagnostics on command timeout",
   { timeout: 15000 },
   async () => {
     const fixture = await createRunnerFixture();
@@ -295,7 +302,7 @@ void test(
 );
 
 void test(
-  "SIGTERM 会取消旅程并等待所属进程异步清理",
+  "cancels the journey on SIGTERM and waits for owned processes to finish async cleanup",
   { timeout: 20000 },
   async () => {
     const fixture = await createRunnerFixture();

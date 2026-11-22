@@ -1,6 +1,6 @@
 import ts from "typescript";
 
-/** 在作者侧把原生 TypeScript/JavaScript 的静态包引用映射为生成身份。 */
+/** Rewrites static top-level TypeScript/JavaScript import and export module specifiers (exact package names and `pkg/...` subpaths) to generated package identities. */
 export function mapTypeScriptModuleSpecifiers(
   sourceText: string,
   names: ReadonlyMap<string, string>,

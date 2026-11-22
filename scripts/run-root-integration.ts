@@ -131,12 +131,14 @@ function handleSignal(signal: Signal): void {
     .catch((error: unknown) => {
       relayFailure = error;
       keepOwnerDirectory = true;
-      process.stderr.write(`无法转发根集成取消信号：${String(error)}\n`);
+      process.stderr.write(
+        `Failed to relay root integration cancellation signal: ${String(error)}\n`,
+      );
     });
   cleanupTimer = setTimeout(() => {
     forcedTermination = true;
     process.stderr.write(
-      "根集成测试未在 30 秒内完成取消清理，将结束其原生进程组\n",
+      "Root integration tests did not finish cancellation cleanup within 30s; killing process group\n",
     );
     stopRunnerGroup("SIGKILL");
   }, 30_000);
@@ -172,19 +174,25 @@ try {
   }
 } catch (error) {
   keepOwnerDirectory = true;
-  process.stderr.write(`根集成测试owner失败：${String(error)}\n`);
+  process.stderr.write(
+    `Root integration test owner failed: ${String(error)}\n`,
+  );
   stopRunnerGroup("SIGKILL");
   process.exitCode = 1;
 } finally {
   if (runTimer !== undefined) clearTimeout(runTimer);
   if (cleanupTimer !== undefined) clearTimeout(cleanupTimer);
   if (keepOwnerDirectory || forcedTermination || relayFailure !== undefined) {
-    process.stderr.write(`保留根集成owner状态：${ownerDirectory}\n`);
+    process.stderr.write(
+      `Preserving root integration owner state: ${ownerDirectory}\n`,
+    );
   } else {
     try {
       await rm(ownerDirectory, { recursive: true, force: true });
     } catch (error) {
-      process.stderr.write(`无法清理根集成owner状态：${String(error)}\n`);
+      process.stderr.write(
+        `Failed to clean up root integration owner state: ${String(error)}\n`,
+      );
       process.exitCode = 1;
     }
   }

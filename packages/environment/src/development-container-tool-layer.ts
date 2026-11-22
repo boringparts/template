@@ -267,6 +267,7 @@ function validateDockerfileFragment(
   return instructions;
 }
 
+/** Validates that base and optional .Dockerfile fragments only use allowed instructions and that the base fragment has exactly one FROM. */
 export function validateDevelopmentContainerDockerfileFragments(options: {
   readonly baseFragment: Omit<DevelopmentContainerDockerfileFragment, "kind">;
   readonly fragments?: readonly Omit<
@@ -554,7 +555,7 @@ function completeDevelopmentContainerToolLayerPlan(
   };
 }
 
-/** 将所属环境准备的 Dockerfile 文本交给纯层规划。 */
+/** Plans tool layers purely from Dockerfile fragment texts prepared by the owning environment. */
 export function planDevelopmentContainerToolLayersFromTexts(options: {
   readonly baseLayer: DevelopmentContainerToolLayer;
   readonly layers?: readonly DevelopmentContainerToolLayer[] | undefined;
@@ -565,7 +566,7 @@ export function planDevelopmentContainerToolLayersFromTexts(options: {
     const text = options.fragmentTexts[layer.dockerfile.from];
     if (text === undefined) {
       throw new Error(
-        `Development Container Tool Layer ${layer.identity} 缺少所属准备文本 ${layer.dockerfile.from}.`,
+        `Development Container Tool Layer ${layer.identity} is missing prepared text for ${layer.dockerfile.from}.`,
       );
     }
     return text;
@@ -573,7 +574,7 @@ export function planDevelopmentContainerToolLayersFromTexts(options: {
   return completeDevelopmentContainerToolLayerPlan(layers, fragmentTexts);
 }
 
-/** 只验证并组合已准备文本，不读取模板资源。 */
+/** Validates and combines prepared Dockerfile fragment texts without reading template resources. */
 export function developmentContainerDockerfileFromText(options: {
   readonly layers: readonly PlannedDevelopmentContainerToolLayer[];
   readonly fragmentTexts: Readonly<Record<string, string>>;
@@ -591,7 +592,7 @@ export function developmentContainerDockerfileFromText(options: {
     const text = options.fragmentTexts[layer.dockerfile.from];
     if (text === undefined) {
       throw new Error(
-        `Development Container Tool Layer ${layer.identity} 缺少所属准备文本 ${layer.dockerfile.from}.`,
+        `Development Container Tool Layer ${layer.identity} is missing prepared text for ${layer.dockerfile.from}.`,
       );
     }
     return {
@@ -611,7 +612,7 @@ export function developmentContainerDockerfileFromText(options: {
   return fragments.map(({ text }) => text.trimEnd()).join("\n\n") + "\n";
 }
 
-/** 所属资源 owner 在准备阶段读取所选层文本，planner 只消费该快照。 */
+/** Reads selected layer Dockerfile fragments during preparation so planning only consumes the snapshot. */
 export async function prepareDevelopmentContainerToolLayerTexts(options: {
   readonly baseLayer: DevelopmentContainerToolLayer;
   readonly layers?: readonly DevelopmentContainerToolLayer[] | undefined;
@@ -632,7 +633,7 @@ export async function prepareDevelopmentContainerToolLayerTexts(options: {
         ] as const;
       } catch (cause) {
         throw new Error(
-          `Development Container Tool Layer ${layer.identity} prepare 阶段无法读取 ${layer.dockerfile.from}.`,
+          `Development Container Tool Layer ${layer.identity} failed to read ${layer.dockerfile.from} during preparation.`,
           { cause },
         );
       }

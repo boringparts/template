@@ -4,7 +4,9 @@ import { fileURLToPath } from "node:url";
 async function readInput(): Promise<string> {
   let input = "";
   for await (const chunk of process.stdin) input += chunk;
-  if (input.length === 0) throw new Error("缺少根工作区政策快照输入。");
+  if (input.length === 0) {
+    throw new Error("Missing root workspace policy snapshot input on stdin.");
+  }
   return input;
 }
 
@@ -19,7 +21,7 @@ const current = await readFile(destination, "utf8").catch((error: unknown) => {
 if (process.argv.includes("--check")) {
   if (current !== expected) {
     throw new Error(
-      `${fileURLToPath(destination)} 与根声明不一致，请执行 pnpm run sync。`,
+      `${fileURLToPath(destination)} is out of sync with root declarations; run pnpm run sync.`,
     );
   }
 } else if (current !== expected) {

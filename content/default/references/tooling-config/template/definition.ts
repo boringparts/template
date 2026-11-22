@@ -17,7 +17,9 @@ const targetExports = Object.freeze(
 const toolingResources = Object.entries(targetExports).map(
   ([exportPath, resourcePath]) => {
     if (typeof resourcePath !== "string" || !resourcePath.startsWith("./")) {
-      throw new Error(`静态工具配置导出必须指向包内资源：${exportPath}`);
+      throw new Error(
+        `Static tooling-config export must point to a package-local resource: ${exportPath}`,
+      );
     }
     const path = resourcePath.slice(2);
     return {

@@ -3,8 +3,8 @@ import { describe, it } from "node:test";
 
 import { cliCommandIdentity } from "../../src/cli-command-identity.ts";
 
-void describe("CLI 命令身份", () => {
-  void it("从清单读取命令名，无版本时标记为 unpublished", () => {
+void describe("CLI command identity", () => {
+  void it("reads the command name from the manifest and marks missing versions as unpublished", () => {
     assert.deepStrictEqual(
       cliCommandIdentity({ bin: { release: "./dist/cli.js" } }),
       { commandName: "release", version: "unpublished" },
@@ -15,14 +15,17 @@ void describe("CLI 命令身份", () => {
     );
   });
 
-  void it("没有唯一命令时拒绝选择运行身份", () => {
-    assert.throws(() => cliCommandIdentity({ bin: {} }), /唯一命令/u);
+  void it("rejects manifests without a single command entry", () => {
+    assert.throws(
+      () => cliCommandIdentity({ bin: {} }),
+      /exactly one command/u,
+    );
     assert.throws(
       () =>
         cliCommandIdentity({
           bin: { release: "./dist/cli.js", ship: "./dist/cli.js" },
         }),
-      /唯一命令/u,
+      /exactly one command/u,
     );
   });
 });

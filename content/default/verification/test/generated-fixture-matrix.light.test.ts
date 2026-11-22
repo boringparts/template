@@ -134,8 +134,8 @@ void describe("registry-derived Package Addition Fixture Matrix", () => {
       try {
         const expectedError =
           manifestOwner === "root"
-            ? "生成工作区根 package.json 必须保持 private:true"
-            : /生成包 packages\/.+\/package\.json 必须默认保持 private:true/u;
+            ? "generated workspace root package.json must remain private:true"
+            : /generated package packages\/.+\/package\.json must default to private:true/u;
         await assert.rejects(
           runGeneratedScenarioSet("init", {
             workspace,
@@ -329,8 +329,8 @@ void describe("registry-derived Package Addition Fixture Matrix", () => {
     const stopSentinel = "container execution stopped after runtime capture";
 
     try {
-      // 真实初始化先渲染再调用 Git，因此可在 Git 接缝观察各场景的根 manifest。
-      // 在首个容器命令处停止；本测试证明运行夹具输入，不把它作为 Docker 成功结果。
+      // Real init renders before invoking Git, so we observe each scenario's root manifest at the Git seam.
+      // Stop at the first container command; this test proves runtime fixture inputs, not Docker success.
       await assert.rejects(
         runGeneratedScenarioSet("init", {
           workspace,

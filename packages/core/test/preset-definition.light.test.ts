@@ -6,8 +6,8 @@ import {
   presetOwnerFromManifest,
 } from "../src/preset-definition.ts";
 
-void describe("预设声明", () => {
-  void it("从所属包的真实公开导出推导预设身份", () => {
+void describe("preset definition", () => {
+  void it("derives preset owner identity from a real public export in the package manifest", () => {
     assert.deepStrictEqual(
       presetOwnerFromManifest(
         {
@@ -33,11 +33,11 @@ void describe("预设声明", () => {
           },
           "./missing",
         ),
-      /未公开所选预设入口/u,
+      /does not publish the selected preset entry/u,
     );
   });
 
-  void it("保留稳定节点、来源成员和允许操作", () => {
+  void it("preserves stable nodes, reference members, and allowed operations", () => {
     const library = {
       alias: "library",
       instance: "independent" as const,
@@ -50,8 +50,8 @@ void describe("预设声明", () => {
     const preset = definePreset({
       metadata: {
         alias: "ts-lib",
-        title: "TypeScript 库",
-        description: "严格 TypeScript 库。",
+        title: "TypeScript Library",
+        description: "Strict TypeScript library.",
       },
       operations: ["init", "add"],
       nodes: { library: { reference: library, layout, creationInput } },
@@ -64,13 +64,14 @@ void describe("预设声明", () => {
     assert.deepStrictEqual(preset.operations, ["init", "add"]);
   });
 
-  void it("保留并冻结同次选择的节点依赖绑定", () => {
+  void it("preserves and freezes sibling node dependency bindings", () => {
     const dependencyBindings = { api: "api" } as const;
     const preset = definePreset({
       metadata: {
         alias: "web-api",
-        title: "Web 与 API",
-        description: "将 Web 的 API 依赖绑定到同次选择的节点。",
+        title: "Web and API",
+        description:
+          "Binds the web node's API dependency to the sibling node in the same selection.",
       },
       operations: ["init"],
       nodes: {
@@ -97,12 +98,12 @@ void describe("预设声明", () => {
     assert.equal(boundNode, "api");
   });
 
-  void it("接受所属包的根公开导出作为预设身份", () => {
+  void it("accepts the owning package root export as preset owner identity", () => {
     const preset = definePreset({
       metadata: {
         alias: "application",
-        title: "应用",
-        description: "包含项目级投影的应用预设。",
+        title: "Application",
+        description: "Application preset with project-level projection.",
       },
       operations: ["init"],
       nodes: {
@@ -119,20 +120,20 @@ void describe("预设声明", () => {
     });
   });
 
-  void it("拒绝无节点、空操作、无效节点名和重复独立参考", () => {
+  void it("rejects empty nodes, empty operations, invalid node names, and duplicate independent references", () => {
     const library = {
       alias: "library",
       instance: "independent" as const,
     };
     const metadata = {
       alias: "ts-lib",
-      title: "TypeScript 库",
-      description: "严格 TypeScript 库。",
+      title: "TypeScript Library",
+      description: "Strict TypeScript library.",
     };
 
     assert.throws(
       () => definePreset({ metadata, operations: ["init"], nodes: {} }),
-      /至少声明一个节点/u,
+      /at least one node/u,
     );
     assert.throws(
       () =>
@@ -141,7 +142,7 @@ void describe("预设声明", () => {
           operations: [],
           nodes: { library: { reference: library } },
         }),
-      /至少允许一种操作/u,
+      /at least one operation/u,
     );
     assert.throws(
       () =>
@@ -150,7 +151,7 @@ void describe("预设声明", () => {
           operations: ["init"],
           nodes: { "bad node": { reference: library } },
         }),
-      /节点身份无效/u,
+      /Invalid preset node identity/u,
     );
     assert.throws(
       () =>
@@ -162,7 +163,7 @@ void describe("预设声明", () => {
             second: { reference: library },
           },
         }),
-      /重复选择独立参考/u,
+      /independent reference more than once/u,
     );
     assert.throws(
       () =>
@@ -179,7 +180,7 @@ void describe("预设声明", () => {
             },
           },
         }),
-      /绑定目标不存在/u,
+      /target does not exist/u,
     );
     assert.throws(
       () =>
@@ -193,7 +194,7 @@ void describe("预设声明", () => {
             },
           },
         }),
-      /依赖绑定无效/u,
+      /Invalid preset node dependency binding/u,
     );
     assert.throws(
       () =>
@@ -207,7 +208,7 @@ void describe("预设声明", () => {
             },
           },
         }),
-      /创建输入操作无效/u,
+      /Invalid preset node creationInput operation/u,
     );
   });
 });

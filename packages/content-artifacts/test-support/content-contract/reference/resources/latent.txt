@@ -1,1 +1,1 @@
-由参考包声明、当前求值未直接读取的完整资源。
+Complete resource declared by the reference package and not directly read by the current evaluation.

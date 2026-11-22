@@ -17,11 +17,11 @@ async function replaceFile(file: string, contents: string): Promise<void> {
   }
 }
 
-/** 准备应用 CLI 自有的工具链声明，并绑定其本地写入位置。 */
+/** Prepares the public CLI package manifest as a repository configuration sync target. */
 export async function prepareRepositoryConfigurationTarget(): Promise<RepositoryConfigurationTarget> {
   const file = fileURLToPath(new URL("../package.json", import.meta.url));
   return {
-    label: "应用 CLI 包清单",
+    label: "public CLI package manifest",
     before: await readFile(file, "utf8"),
     write: (contents) => replaceFile(file, contents),
   };

@@ -47,7 +47,9 @@ function commandOutput(result: unknown): string {
     typeof result.stdout === "string"
   )
     return result.stdout;
-  throw new Error("源码容器验收命令没有返回 stdout");
+  throw new Error(
+    "Source development container check command returned no stdout",
+  );
 }
 
 async function dockerWorkspaceSource(
@@ -81,11 +83,17 @@ async function dockerWorkspaceSource(
     )[0];
   if (mount === undefined)
     throw new Error(
-      `无法从当前容器的实际 bind mount 确定一次性工作区 ${projectDir} 的 Docker 宿主路径`,
+      `Could not resolve Docker host path for temporary workspace ${projectDir} from active container bind mounts`,
     );
   return path.join(mount.Source, path.relative(mount.Destination, projectDir));
 }
 
+/**
+ * Snapshots the current working tree (excluding local agent context and runtime
+ * build directories) into a temporary workspace and runs repository checks
+ * inside its devcontainer. Removes the workspace on success and preserves it
+ * for diagnostics on failure.
+ */
 export async function checkRepositoryDevelopmentContainer(
   options: {
     readonly repositoryRoot?: string;
@@ -174,7 +182,7 @@ export async function checkRepositoryDevelopmentContainer(
         "--quiet",
         "--no-verify",
         "-m",
-        "当前源码容器验收快照",
+        "Snapshot for source development container check",
       ],
       { cwd: projectDir, cancelSignal },
     );
@@ -188,7 +196,7 @@ export async function checkRepositoryDevelopmentContainer(
     );
     if (hostSource.includes(","))
       throw new Error(
-        `Docker bind mount 的源码路径不能包含逗号：${hostSource}`,
+        `Docker bind mount source path must not contain commas: ${hostSource}`,
       );
     const session = createDevelopmentContainerSession({
       projectDir,
@@ -216,14 +224,14 @@ export async function checkRepositoryDevelopmentContainer(
       cancelSignal,
       environment: process.env,
       onCleanupFailure: (error) => {
-        console.error("开发容器清理失败：", error);
+        console.error("Development container cleanup failed:", error);
       },
       recordActivity: (event) => {
         if (
           event.type === "retry" ||
           (event.type === "phase" && event.outcome === "failed")
         )
-          console.error("开发容器检查活动：", event);
+          console.error("Development container check activity:", event);
       },
       run,
     });
@@ -252,7 +260,9 @@ export async function checkRepositoryDevelopmentContainer(
     throw error;
   } finally {
     if (preserveWorkspace)
-      console.error(`源码开发容器验收未完成，保留诊断工作区：${projectDir}`);
+      console.error(
+        `Source development container check did not complete; preserving diagnostic workspace: ${projectDir}`,
+      );
     else await rm(projectDir, { recursive: true, force: true });
   }
 }
@@ -265,7 +275,9 @@ if (
   let exitCode = 1;
   const cancel = (signal: "SIGINT" | "SIGTERM") => {
     exitCode = signal === "SIGINT" ? 130 : 143;
-    controller.abort(new Error(`源码开发容器验收收到 ${signal}`));
+    controller.abort(
+      new Error(`Source development container check received ${signal}`),
+    );
   };
   const interrupt = () => cancel("SIGINT");
   const terminate = () => cancel("SIGTERM");

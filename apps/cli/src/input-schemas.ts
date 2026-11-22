@@ -19,16 +19,21 @@ const additionPresetChoices = cliPresets
 
 const initializationMessages: Record<InitializationInputIssue["code"], string> =
   {
-    PRESET_UNKNOWN: "请选择有效的预设。",
-    FIXED_TOPOLOGY_OVERRIDE: "固定拓扑预设不支持覆盖初始包名称或路径。",
-    INVALID_PACKAGE_NAME: "--name 必须是有效的无 scope 包叶名称。",
-    INVALID_PACKAGE_PATH: "--path 必须恰好包含两个安全路径段。",
-    RESERVED_PACKAGE_PATH: "--path 不能使用保留的工作区目录。",
-    INVALID_PACKAGE_SCOPE: "--scope 必须是不含空白字符的有效 npm scope。",
-    INVALID_REPOSITORY_SCOPE: "目标目录名无法作为默认 scope，请指定 --scope。",
-    CONFLICTING_PACKAGE_IDENTITY: "初始包身份与基础配置包冲突。",
+    PRESET_UNKNOWN: "Select a valid preset.",
+    FIXED_TOPOLOGY_OVERRIDE:
+      "Fixed-topology presets do not support overriding the initial package name or path.",
+    INVALID_PACKAGE_NAME: "--name must be a valid unscoped package leaf name.",
+    INVALID_PACKAGE_PATH: "--path must contain exactly two safe path segments.",
+    RESERVED_PACKAGE_PATH: "--path cannot use a reserved workspace directory.",
+    INVALID_PACKAGE_SCOPE:
+      "--scope must be a valid npm scope without whitespace.",
+    INVALID_REPOSITORY_SCOPE:
+      "The target directory name cannot be used as the default scope; specify --scope.",
+    CONFLICTING_PACKAGE_IDENTITY:
+      "The initial package identity conflicts with the base tooling-config package.",
   };
 
+/** Builds the Zod input schema for `init`, resolving relative target directories against `cwd`. */
 export function initializationInputSchema(cwd: string) {
   return z
     .object({
@@ -36,17 +41,19 @@ export function initializationInputSchema(cwd: string) {
       preset: z.enum(initializationPresetChoices),
       name: z
         .string()
-        .describe("无 scope 的 npm 包叶名称；仅可配置主包的预设允许覆盖。")
+        .describe(
+          "Unscoped npm package leaf name; allowed only for presets with a configurable primary package.",
+        )
         .optional(),
       path: z
         .string()
         .describe(
-          "两个安全路径段；不能使用保留目录；仅可配置主包的预设允许覆盖。",
+          "Two safe path segments outside reserved directories; allowed only for presets with a configurable primary package.",
         )
         .optional(),
       scope: z
         .string()
-        .describe("有效 npm scope；省略时使用目标目录名。")
+        .describe("Valid npm scope; defaults to the target directory name.")
         .optional(),
       dryRun: z.boolean().default(false),
       todo: z.boolean().default(true),
@@ -72,30 +79,32 @@ export function initializationInputSchema(cwd: string) {
 }
 
 const additionMessages: Record<PackageAdditionInputIssue["code"], string> = {
-  PRESET_UNKNOWN: "请选择有效的预设。",
-  PRESET_NOT_ADDABLE: "该预设不支持新增包。",
-  INVALID_PACKAGE_NAME: "--name 必须是有效的无 scope 包叶名称。",
-  INVALID_PACKAGE_PATH: "--path 必须恰好包含两个安全路径段。",
-  RESERVED_PACKAGE_PATH: "--path 不能使用保留工作区目录。",
-  INVALID_LINK_FROM: "--link-from 必须恰好包含两个安全路径段。",
-  RESERVED_LINK_FROM: "--link-from 不能使用保留工作区目录。",
-  UNKNOWN_LINK_FROM: "指定的消费包不存在。",
-  UNSUPPORTED_LINK: "指定的包角色不支持此链接。",
+  PRESET_UNKNOWN: "Select a valid preset.",
+  PRESET_NOT_ADDABLE: "This preset does not support package addition.",
+  INVALID_PACKAGE_NAME: "--name must be a valid unscoped package leaf name.",
+  INVALID_PACKAGE_PATH: "--path must contain exactly two safe path segments.",
+  RESERVED_PACKAGE_PATH: "--path cannot use a reserved workspace directory.",
+  INVALID_LINK_FROM: "--link-from must contain exactly two safe path segments.",
+  RESERVED_LINK_FROM: "--link-from cannot use a reserved workspace directory.",
+  UNKNOWN_LINK_FROM: "The specified consumer package does not exist.",
+  UNSUPPORTED_LINK: "The specified package roles do not support this link.",
 };
 
 export const packageAdditionInputSchema = z
   .object({
     preset: z.enum(additionPresetChoices),
-    name: z.string().describe("无 scope 的 npm 包叶名称。"),
+    name: z.string().describe("Unscoped npm package leaf name."),
     path: z
       .string()
-      .describe("两个安全路径段，不能使用保留工作区目录。")
+      .describe("Two safe path segments outside reserved directories.")
       .optional(),
     linkFrom: z
       .array(
         z
           .string()
-          .describe("消费包路径：两个安全路径段，不能使用保留工作区目录。"),
+          .describe(
+            "Consumer package path: two safe path segments outside reserved workspace directories.",
+          ),
       )
       .default([]),
     dryRun: z.boolean().default(false),

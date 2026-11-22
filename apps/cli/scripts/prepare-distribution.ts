@@ -61,7 +61,7 @@ function archiveByName(
       (current.version !== archive.version || current.sha256 !== archive.sha256)
     ) {
       throw new Error(
-        `CLI 归档无法在同一原生包名下封装多个内容坐标：${archive.name}`,
+        `CLI archive cannot bundle multiple content coordinates under the same package name: ${archive.name}`,
       );
     }
     result.set(archive.name, archive);
@@ -82,7 +82,9 @@ async function resolvedDependencies(): Promise<
     (candidate) => candidate.name === packageManifest.name,
   );
   if (project?.dependencies === undefined) {
-    throw new Error(`pnpm 未返回 CLI 原生依赖解析：${packageManifest.name}`);
+    throw new Error(
+      `pnpm did not return resolved native dependencies for CLI: ${packageManifest.name}`,
+    );
   }
   return project.dependencies;
 }
@@ -96,7 +98,7 @@ async function workspaceRoot(): Promise<string> {
   return path.resolve(stdout.trim());
 }
 
-/** 产品归档不包含只有源码条件的维护入口。 */
+/** Excludes source-only maintenance exports from the published CLI archive manifest. */
 function packageManifestForArchives(
   archives: readonly PackedArtifact[],
   resolved: Readonly<Record<string, WorkspaceDependency>>,
@@ -110,7 +112,9 @@ function packageManifestForArchives(
     if (localArchives.has(name)) continue;
     const version = resolved[name]?.version;
     if (version === undefined || version.startsWith("link:")) {
-      throw new Error(`CLI 原生归档缺少可解析依赖：${name}`);
+      throw new Error(
+        `CLI native archive is missing a resolvable dependency: ${name}`,
+      );
     }
     dependencies[name] = version;
   }
@@ -129,7 +133,9 @@ function packageManifestForArchives(
   delete publishConfig.exports;
   const exports = packageManifest.publishConfig?.exports;
   if (exports === undefined) {
-    throw new Error("CLI 分发清单缺少产品导出配置");
+    throw new Error(
+      "CLI distribution manifest is missing publishConfig.exports",
+    );
   }
 
   return {
@@ -178,18 +184,18 @@ try {
   );
   if (install.exitCode !== 0) {
     throw new Error(
-      `pnpm 原生安装 CLI 内容闭包失败：${install.stderr || install.stdout}`,
+      `pnpm failed to install CLI content closure: ${install.stderr || install.stdout}`,
     );
   }
   await rm(destination, { recursive: true, force: true });
   await cp(stage, destination, { recursive: true });
-  console.log(`CLI 分发目录已准备：${destination}`);
+  console.log(`CLI distribution directory prepared: ${destination}`);
 } finally {
   try {
     await prepared?.cleanup();
   } finally {
     if (process.env.TEMPLATE_CLI_PACK_KEEP_STAGE === "1") {
-      console.error(`保留打包排查现场：${temporaryRoot}`);
+      console.error(`Preserved pack staging directory: ${temporaryRoot}`);
     } else {
       await rm(temporaryRoot, { recursive: true, force: true });
     }

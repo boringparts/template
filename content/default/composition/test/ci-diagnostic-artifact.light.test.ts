@@ -39,8 +39,8 @@ function projectWorkflow(options: {
   );
 }
 
-void describe("CI 诊断产物合同", () => {
-  void it("只返回排序且去重的封闭声明", () => {
+void describe("CI diagnostic artifact contract", () => {
+  void it("returns only sorted, deduplicated closed declarations", () => {
     assert.deepStrictEqual(
       composeCiDiagnosticArtifacts({
         packagePaths: ["apps/web", "apps/admin"],
@@ -63,7 +63,7 @@ void describe("CI 诊断产物合同", () => {
     );
   });
 
-  void it("拒绝未知类型、不安全路径、未知所有者与额外上传字段", () => {
+  void it("rejects unknown kinds, unsafe paths, unknown owners, and extra upload fields", () => {
     const packagePaths = ["apps/web"];
     for (const declaration of [
       {
@@ -86,7 +86,7 @@ void describe("CI 诊断产物合同", () => {
     }
   });
 
-  void it("工作流只投影实际包边界中的诊断所有者", () => {
+  void it("projects only diagnostic owners from actual package boundaries into the workflow", () => {
     const packagePaths = ["apps/web"];
     const workflow = projectWorkflow({
       packagePaths,
@@ -97,7 +97,7 @@ void describe("CI 诊断产物合同", () => {
     assert.match(workflow, /apps\/web/u);
   });
 
-  void it("要求工作流声明的诊断所有者属于真实包边界", () => {
+  void it("requires declared workflow diagnostic owners to belong to real package boundaries", () => {
     for (const declaration of [
       playwright("apps/admin"),
       playwright("services/private"),
@@ -110,12 +110,14 @@ void describe("CI 诊断产物合同", () => {
           }),
         (error) =>
           error instanceof Error &&
-          error.message.includes("CI 诊断制品所有者不是已声明的包边界"),
+          error.message.includes(
+            "CI diagnostic artifact owner is not a declared package boundary",
+          ),
       );
     }
   });
 
-  void it("工作流作业配置由通用根声明提供", () => {
+  void it("populates workflow job configuration from shared root declarations", () => {
     const packagePaths = ["apps/web"];
     assert.match(
       projectWorkflow({
@@ -134,7 +136,7 @@ void describe("CI 诊断产物合同", () => {
     );
   });
 
-  void it("拒绝不安全的诊断所有者", () => {
+  void it("rejects unsafe diagnostic owners", () => {
     const declarationWithPath = {
       ...playwright("apps/web"),
       paths: [".env", "**/*"],

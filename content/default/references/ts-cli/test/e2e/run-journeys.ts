@@ -15,7 +15,7 @@ const e2eRoot = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(e2eRoot, "..", "..");
 
 function assertNever(value: never): never {
-  throw new Error(`不支持的旅程模式：${String(value)}`);
+  throw new Error(`Unsupported journey mode: ${String(value)}`);
 }
 
 type JourneyRunTarget = {
@@ -24,7 +24,7 @@ type JourneyRunTarget = {
 };
 
 const journeyRunnerUsage = [
-  "用法：",
+  "Usage:",
   "  run-journeys.ts source",
   "  run-journeys.ts packed <bin-path>",
 ].join("\n");
@@ -38,22 +38,22 @@ function parseJourneyRunTargets(
 ): readonly JourneyRunTarget[] {
   const first = args[0];
   if (first === undefined) {
-    invalidArguments("缺少旅程模式。");
+    invalidArguments("Missing journey mode.");
   }
 
   if (first === "packed") {
     if (args.length === 1) {
-      invalidArguments("packed 模式必须提供一个可执行文件路径。");
+      invalidArguments("packed mode requires a path to the installed binary.");
     }
     if (args.length !== 2) {
       invalidArguments(
-        "packed 模式只能跟一个可执行文件路径，不能同时运行其他模式。",
+        "packed mode accepts only a single binary path and cannot be combined with other modes.",
       );
     }
     const packedBin = args[1]!;
     if (packedBin === "source" || packedBin === "packed") {
       invalidArguments(
-        `packed 可执行文件路径不能是旅程模式 ${JSON.stringify(packedBin)}。`,
+        `Packed binary path cannot be the journey mode ${JSON.stringify(packedBin)}.`,
       );
     }
     return [{ mode: "packed", packedBin }];
@@ -66,17 +66,17 @@ function parseJourneyRunTargets(
       case "source":
         if (seen.has(argument)) {
           invalidArguments(
-            `旅程模式 ${JSON.stringify(argument)} 重复；每个模式只能指定一次。`,
+            `Duplicate journey mode ${JSON.stringify(argument)}; specify each mode at most once.`,
           );
         }
         seen.add(argument);
         targets.push({ mode: argument });
         break;
       case "packed":
-        invalidArguments("packed 模式不能与 source 模式同时指定。");
+        invalidArguments("packed mode cannot be combined with source mode.");
       default:
         invalidArguments(
-          `未知旅程模式 ${JSON.stringify(argument)}；可用值：source、packed。`,
+          `Unknown journey mode ${JSON.stringify(argument)}; valid values: source, packed.`,
         );
     }
   }
@@ -120,7 +120,9 @@ function invocation(
       };
     case "packed":
       if (packedBin === undefined) {
-        throw new Error("packed 模式必须提供包管理器安装的可执行文件路径。");
+        throw new Error(
+          "packed mode requires the installed executable path from the package manager.",
+        );
       }
       return { executable: packedBin, prefix: [] };
     default:
@@ -167,6 +169,7 @@ async function runCommand(options: {
   });
 }
 
+/** Runs all discovered CLI journeys matching `options.mode` in isolated temporary workspaces. */
 export async function runJourneys(options: {
   readonly mode: CliJourneyMode;
   readonly packedBin?: string;
@@ -234,7 +237,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
     process.stdout.write(`${passed.join("\n")}\n`);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`错误：${message}\n`);
+    process.stderr.write(`Error: ${message}\n`);
     process.exitCode = 1;
   }
 }

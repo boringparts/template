@@ -82,10 +82,10 @@ const filesystemModules = new Set([
 
 function effectDescription(effect: PlanningEffectViolation["effect"]): string {
   const descriptions: Record<PlanningEffectViolation["effect"], string> = {
-    filesystem: "规划阶段调用所属包文件系统能力",
-    "process-global": "规划阶段读取进程全局状态",
-    require: "规划阶段使用 require 加载模块",
-    "computed-dynamic-import": "规划阶段使用计算式动态导入",
+    filesystem: "Filesystem access during planning",
+    "process-global": "Process global access during planning",
+    require: "Module loading via require during planning",
+    "computed-dynamic-import": "Computed dynamic import during planning",
   };
   return descriptions[effect];
 }
@@ -791,6 +791,11 @@ function productionSourceFiles(root: PlanningRoleRoot): readonly string[] {
   return [...files];
 }
 
+/**
+ * Statically analyzes production planning callbacks reachable from `roots`
+ * using `configPath` and reports forbidden side effects deduplicated and sorted
+ * by file, line, column, and role.
+ */
 export function findPlanningEffectViolations(
   roots: readonly PlanningRoleRoot[],
   configPath: string,
@@ -867,16 +872,21 @@ async function packageRootFor(entryFile: string): Promise<string> {
       ) as { readonly name?: unknown };
       if (typeof manifest.name === "string") return directory;
     } catch {
-      // 沿父目录继续查找公开模块所属包清单。
+      // Walk up parent directories to find the package manifest owning this public module.
     }
     const parent = path.dirname(directory);
     if (parent === directory) {
-      throw new Error(`公开模块没有所属包清单：${entryFile}`);
+      throw new Error(`Public module has no owning package.json: ${entryFile}`);
     }
     directory = parent;
   }
 }
 
+/**
+ * Checks all registered content and composition planning roles (or only those
+ * owned by `ownerDirectory`) for forbidden side effects. Writes violation lines
+ * to `process.stderr` and sets `process.exitCode = 1` when violations exist.
+ */
 export async function runAuthorPlanningRoleCheck(
   ownerDirectory?: string,
 ): Promise<void> {
@@ -904,7 +914,9 @@ export async function runAuthorPlanningRoleCheck(
       (root) => absolute(root.packageRoot) === selectedDirectory,
     );
     if (selectedRoots.length === 0) {
-      throw new Error(`此包未通过公开入口登记规划角色：${selectedDirectory}`);
+      throw new Error(
+        `Package registers no planning roles through a public entry: ${selectedDirectory}`,
+      );
     }
     roots.splice(0, roots.length, ...selectedRoots);
   }
@@ -918,7 +930,7 @@ export async function runAuthorPlanningRoleCheck(
       violation.file,
     );
     process.stderr.write(
-      `${effectDescription(violation.effect)}：${violation.role}：${relativeFile}:${violation.line}:${violation.column}\n`,
+      `${effectDescription(violation.effect)}: ${violation.role}: ${relativeFile}:${violation.line}:${violation.column}\n`,
     );
   }
   process.exitCode = 1;
@@ -934,7 +946,7 @@ if (
       ? undefined
       : process.argv[ownerDirectoryIndex + 1];
   if (ownerDirectoryIndex !== -1 && ownerDirectory === undefined) {
-    throw new Error("--owner-directory 缺少包目录");
+    throw new Error("--owner-directory requires a package directory");
   }
   await runAuthorPlanningRoleCheck(ownerDirectory);
 }

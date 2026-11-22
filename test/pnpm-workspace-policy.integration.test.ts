@@ -29,7 +29,9 @@ async function generateNodeOnlyProject(prefix: string): Promise<string> {
     (preset) => preset.identity.packageName === "@ykdz/preset-ts-lib",
   );
   if (nodeOnlyPreset === undefined) {
-    throw new Error("内容集合缺少 TypeScript 库预设");
+    throw new Error(
+      "Content collection is missing the TypeScript library preset",
+    );
   }
 
   await execa(
@@ -58,9 +60,9 @@ async function dockerIsAvailable(): Promise<boolean> {
 
 const hasDocker = await dockerIsAvailable();
 
-void describe("pnpm 工作区约定", () => {
+void describe("pnpm workspace policy", () => {
   void it(
-    "从冻结锁文件安装注入的工作区依赖，并同步构建产物",
+    "installs injected workspace dependencies from a frozen lockfile and syncs build outputs",
     { timeout: 120000 },
     async () => {
       const root = await mkdtemp(path.join(tmpdir(), "pnpm-workspace-policy-"));
@@ -145,7 +147,7 @@ void describe("pnpm 工作区约定", () => {
   );
 
   void it(
-    "按项目包管理器声明与冻结锁文件安装真实生成的预设",
+    "installs a generated preset according to its packageManager pin and frozen lockfile",
     { timeout: 120000 },
     async () => {
       const projectDir = await generateNodeOnlyProject("pnpm-rendered-preset-");
@@ -168,7 +170,7 @@ void describe("pnpm 工作区约定", () => {
   );
 
   void it(
-    "普通用户与 root 按当前根声明切换 pnpm，并完成冻结安装",
+    "switches pnpm per the current root manifest and completes frozen installs for both non-root and root users",
     { timeout: 300000 },
     async (context) => {
       if (!hasDocker) {
@@ -177,7 +179,7 @@ void describe("pnpm 工作区约定", () => {
       }
 
       const projectDir = await generateNodeOnlyProject("pnpm-native-users-");
-      // 期望的 pnpm / node 版本都取自*生成*的根 manifest 与 M1 槽位，不新增版本常量。
+      // Derive expected pnpm and Node versions from the generated root manifest and M1 slot instead of hardcoding versions.
       const generatedRootManifestText = await readFile(
         path.join(projectDir, "package.json"),
         "utf8",
@@ -198,7 +200,7 @@ void describe("pnpm 工作区约定", () => {
         cwd: projectDir,
         env: { ...process.env, CI: "1" },
       });
-      // 根 engines.node 是 Node 版本的真源，容器内实际 node --version 必须与它一致。
+      // Root engines.node is the source of truth for the Node version; the container's runtime node --version must match it.
       const enginesNode = generatedRootManifest.engines?.node;
       if (enginesNode === undefined) {
         throw new Error("generated root manifest is missing engines.node");
@@ -215,17 +217,17 @@ void describe("pnpm 工作区约定", () => {
           "generated devcontainer is missing build.args.NODE_VERSION",
         );
       }
-      // M1 的 build arg 也必须等于根 engines.node，不把潜在漂移当作 expected 真源。
+      // The M1 build arg must also match root engines.node so potential drift is never treated as the expected source of truth.
       assert.strictEqual(nodeBuildArg, enginesNode);
 
-      // 只用本测试独占、唯一命名的资源——绝不对共享 image id 用 --force，也绝不 prune。
+      // Use exclusively owned, uniquely named resources for this test; never force-remove shared image IDs or run prune.
       const stamp = `${process.pid}-${Date.now()}`;
       const imageTag = `t25-pnpm-native-users:${stamp}`;
       const containerName = `t25-pnpm-native-users-run-${stamp}`;
 
       try {
-        // 引导发行物的镜像引用已从构建时根声明派生，无需额外传版本参数；
-        // 项目实际执行版本继续由运行时挂载的当前根 manifest 决定。
+        // The bootstrap distribution image reference is derived from the build-time root declaration without extra version args;
+        // the active project version continues to come from the runtime root manifest.
         await execa(
           "docker",
           [
@@ -271,7 +273,7 @@ void describe("pnpm 工作区约定", () => {
           ],
           { cwd: projectDir },
         );
-        // 通过 docker cp 供应 workspace——客户端/守护进程的 bind 路径未证实同构。
+        // Populate the workspace via docker cp because client and daemon bind mount paths are not guaranteed to match.
         const supplyRootManifest = async (contents: string): Promise<void> => {
           const transfer = path.join(
             projectDir,
@@ -314,8 +316,8 @@ void describe("pnpm 工作区约定", () => {
           "/workspace",
         ]);
 
-        // 先在容器内真实观测一次 node --version：Node 运行时版本必须与根 engines.node 一致，
-        // 不能只用 build arg 文本代替。
+        // Observe the actual node --version inside the container; the runtime version must match
+        // root engines.node rather than relying only on the build arg text.
         const nodeRuntime = await execa(
           "docker",
           [
@@ -334,8 +336,8 @@ void describe("pnpm 工作区约定", () => {
           enginesNode,
         );
 
-        // ★ 非 root 冷态先跑——node 使用自己的可写原生版本缓存；
-        // 在任何 root pnpm 调用之前先跑 node，避免 root 预先下载掩盖非 root 冷态的权限失败。
+        // Run the non-root cold path first so the node user exercises its own writable native version cache
+        // before any root pnpm call can mask non-root permission failures.
         const nodeCold = await execa(
           "docker",
           [
@@ -364,7 +366,7 @@ void describe("pnpm 工作区约定", () => {
           { cwd: projectDir },
         );
 
-        // ★ root 独立冷态——每个用户各自从自己的原生缓存解析。
+        // Run the root cold path independently so each user resolves from its own native cache.
         const rootCold = await execa(
           "docker",
           [
@@ -380,7 +382,7 @@ void describe("pnpm 工作区约定", () => {
         );
         assert.strictEqual(rootCold.stdout.trim(), expectedPnpmVersion);
 
-        // 使用无依赖的本地工具验收全局安装及 PATH，不依赖 registry。
+        // Verify global installs and PATH using a dependency-free local package without contacting a registry.
         for (const user of ["root", "node"]) {
           const globalTool = await execa("docker", [
             "exec",
@@ -400,7 +402,7 @@ container-global-probe`,
           assert.match(globalTool.stdout, /GLOBAL_BIN_OK/u);
         }
 
-        // 不重建镜像，使用与引导版本不同的项目声明验证原生版本选择。
+        // Verify native version switching without rebuilding the image by pointing the manifest to a different pnpm version.
         await supplyRootManifest(
           JSON.stringify({
             ...generatedRootManifest,
@@ -463,7 +465,7 @@ container-global-probe`,
           { cwd: projectDir },
         );
 
-        // 共享工具层对两个用户都保持完好（系统 git 默认分支、TLS 证书库）。
+        // Verify the shared tool layer works for both users (system git default branch and TLS CA bundle).
         for (const user of ["node", "root"]) {
           const sanity = await execa(
             "docker",

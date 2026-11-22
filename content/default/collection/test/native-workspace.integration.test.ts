@@ -87,7 +87,7 @@ assert.ok(libraryPreset);
 assert.ok(cliPreset);
 
 await it(
-  "通过正式归档安装默认SDK，在普通Node进程中初始化库并新进程添加CLI",
+  "installs the default SDK from packed archives, initializes a library in plain Node, and adds a CLI in a fresh process",
   { timeout: 600_000 },
   async () => {
     const temporaryRoot = await mkdtemp(
@@ -203,7 +203,7 @@ await it(
           "const [phase, targetRoot] = process.argv.slice(2);",
           'const libraryPreset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === "@ykdz/preset-ts-lib");',
           'const cliPreset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === "@ykdz/preset-ts-cli");',
-          "if (!libraryPreset || !cliPreset) throw new Error('已安装集合缺少ts-lib或ts-cli预设');",
+          "if (!libraryPreset || !cliPreset) throw new Error('Installed collection is missing ts-lib or ts-cli preset');",
           "const generator = createDefaultGenerator({ content: templateContent });",
           "const result = phase === 'init'",
           "  ? await generator.init({ targetRoot, selection: { presets: [{ contentIdentity: libraryPreset.identity }] }, conventions: { repositoryName: 'packed-native-demo', defaultPackageScope: 'demo' } })",
@@ -238,8 +238,8 @@ await it(
       };
       assert.equal(rootManifest.name, "packed-native-demo");
       assert.equal(rootManifest.version, undefined);
-      assert.equal(rootManifest.engines.node, "26.13.0");
-      assert.equal(rootManifest.packageManager, "pnpm@12.9.1");
+      assert.equal(rootManifest.engines.node, "26.13.1");
+      assert.equal(rootManifest.packageManager, "pnpm@12.21.0");
       assert.match(
         await readFile(path.join(targetRoot, "AGENTS.md"), "utf8"),
         /本地代理上下文/u,
@@ -377,16 +377,10 @@ await it(
       assert.equal(
         await execa(
           process.execPath,
-          [
-            "packages/cli/dist/cli.js",
-            "lookup",
-            "ada",
-            "--output-format",
-            "text",
-          ],
+          ["packages/cli/dist/cli.js", "lookup", "ada", "--output", "text"],
           { cwd: targetRoot },
         ).then(({ stdout }) => stdout),
-        "找到记录：Ada Lovelace（ada）",
+        "Found record: Ada Lovelace (ada)",
       );
       assert.equal(
         await execa(process.execPath, ["dist/linked-library.js"], {
@@ -421,7 +415,7 @@ await it(
         [
           "--input-type=module",
           "-e",
-          'import { greet } from "@demo/lib"; if (greet("Ada").message !== "Hello, Ada") throw new Error("生成库消费结果错误");',
+          'import { greet } from "@demo/lib"; if (greet("Ada").message !== "Hello, Ada") throw new Error("Unexpected generated library consumer result");',
         ],
         { cwd: libraryConsumerRoot },
       );
@@ -540,7 +534,7 @@ await it(
 );
 
 await it(
-  "通过正式归档初始化Vike并在新进程加库后保留数据库部署",
+  "initializes Vike from packed archives and preserves database and deployment setup after adding a library in a fresh process",
   { timeout: 300_000 },
   async () => {
     const temporaryRoot = await mkdtemp(

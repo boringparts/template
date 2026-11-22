@@ -62,7 +62,7 @@ const journey: CliJourney = {
       assert.deepEqual(await snapshot(project), before);
     return [
       {
-        name: "初始化库项目",
+        name: "initialize library project",
         args: [
           "init",
           "project",
@@ -73,19 +73,19 @@ const journey: CliJourney = {
         ],
       },
       {
-        name: "预览自包含的应用",
+        name: "preview standalone application",
         cwd: project,
         args: [...addition("portal"), "--dry-run"],
         prepare: remember,
       },
       {
-        name: "原子添加首个应用",
+        name: "atomically add first application",
         cwd: project,
         args: addition("portal"),
         prepare: unchanged,
       },
       {
-        name: "保留应用和配置定制并预览第二个应用",
+        name: "preserve app and config customizations and preview second application",
         cwd: project,
         args: [...addition("console"), "--dry-run"],
         async prepare() {
@@ -96,10 +96,13 @@ const journey: CliJourney = {
             const full = path.join(project, file);
             await writeFile(
               full,
-              `${await readFile(full, "utf8")}\n// 用户保留的定制\n`,
+              `${await readFile(full, "utf8")}\n// User-retained customization\n`,
             );
           }
-          await writeFile(path.join(project, "user-note.txt"), "用户根文件\n");
+          await writeFile(
+            path.join(project, "user-note.txt"),
+            "user root file\n",
+          );
           const manifestPath = path.join(project, "package.json");
           const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
           manifest.scripts["user:note"] = "node --version";
@@ -122,25 +125,25 @@ const journey: CliJourney = {
         },
       },
       {
-        name: "新增第二个自包含应用并复用工具配置",
+        name: "add second standalone application reusing tooling-config",
         cwd: project,
         args: addition("console"),
         prepare: unchanged,
       },
       {
-        name: "重复应用新增没有写入",
+        name: "repeat application addition performs no writes",
         cwd: project,
         args: addition("console"),
         prepare: remember,
       },
       {
-        name: "后续新增再次回放工具配置关系",
+        name: "subsequent addition replays tooling-config bindings again",
         cwd: project,
         args: addition("dashboard"),
         prepare: unchanged,
       },
       {
-        name: "冲突拒绝整个多包事务",
+        name: "conflict rejects entire multi-package transaction",
         cwd: project,
         args: addition("conflicting"),
         async prepare() {
@@ -151,13 +154,13 @@ const journey: CliJourney = {
         },
       },
       {
-        name: "冲突后预览仍不写入",
+        name: "preview after conflict still performs no writes",
         cwd: project,
         args: [...addition("conflicting"), "--dry-run"],
         prepare: unchanged,
       },
       {
-        name: "独立安装定制后的多应用工作区",
+        name: "install dependencies in customized multi-app workspace",
         cwd: project,
         executable: "pnpm",
         args: ["install"],
@@ -170,7 +173,7 @@ const journey: CliJourney = {
         },
       },
       {
-        name: "检查保留定制的三个独立应用",
+        name: "check three independent applications with retained customizations",
         cwd: project,
         executable: "pnpm",
         args: ["run", "check"],
@@ -227,13 +230,13 @@ const journey: CliJourney = {
     ]) {
       assert.ok(
         (await readFile(path.join(project, file), "utf8")).endsWith(
-          "// 用户保留的定制\n",
+          "// User-retained customization\n",
         ),
       );
     }
     assert.equal(
       await readFile(path.join(project, "user-note.txt"), "utf8"),
-      "用户根文件\n",
+      "user root file\n",
     );
     const root = JSON.parse(
       await readFile(path.join(project, "package.json"), "utf8"),

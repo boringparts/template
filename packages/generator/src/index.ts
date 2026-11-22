@@ -334,7 +334,7 @@ export type GeneratorAdditionOptions<
 > = GeneratorAdditionSelection<CreationInput> & {
   readonly repositoryRoot: string;
   readonly operationFacts: OperationFacts;
-  /** 外围在准备时实际读取的只读目标事实。 */
+  /** Read-only target facts observed externally during preparation so planning can detect concurrent edits. */
   readonly readFacts?: readonly CurrentProjectProjectionEntry[];
 };
 
@@ -429,7 +429,7 @@ export type Generator<
       CreationInput,
       ContributionFacts
     >;
-    /** 外围在准备项目时实际读取的额外只读事实。 */
+    /** Additional read-only target facts observed externally during preparation. */
     readonly readFacts?: readonly CurrentProjectProjectionEntry[];
   }): Promise<GeneratorPlanningResult<OwnerFacts, Conventions, CreationInput>>;
   restoreProject(options: {
@@ -447,6 +447,7 @@ export type Generator<
       CompositionOperationFacts<CompositionDefinition>
     >
   >;
+  /** Commits a change plan previously created by `planInit`, `planAdd`, or `planComputedAdd` on this generator instance. Returns `operation-failure` if the plan is unrecognized or `conflict` if target files diverged since planning. */
   commitPlan(
     plan: ProjectProjectionChangePlan,
   ): Promise<GeneratorResult<OwnerFacts, Conventions, CreationInput>>;
@@ -597,7 +598,9 @@ function preparationSnapshot(
   value: PreparedReference<unknown>,
 ): PreparedReference<unknown> {
   if (!isRecord(value) || !Array.isArray(value.resources)) {
-    throw new Error("参考包准备结果必须是资源快照");
+    throw new Error(
+      "Reference package preparation result must be a resource snapshot",
+    );
   }
   const paths = new Set<string>();
   const resources = value.resources.map((resource) => {
@@ -610,10 +613,14 @@ function preparationSnapshot(
       (resource.mode as number) < 0 ||
       ((resource.mode as number) & ~0o111) !== 0
     ) {
-      throw new Error("参考包准备结果包含无效资源文件");
+      throw new Error(
+        "Reference package preparation result contains an invalid resource file",
+      );
     }
     if (paths.has(resource.path)) {
-      throw new Error(`参考包准备结果包含重复资源：${resource.path}`);
+      throw new Error(
+        `Reference package preparation result contains a duplicate resource: ${resource.path}`,
+      );
     }
     paths.add(resource.path);
     return {
@@ -647,7 +654,7 @@ function requireParsedCreationInput(
 ): JsonValue | undefined {
   if (value === undefined) return undefined;
   const parsed = content.definition.parseCreationInput(value);
-  assertJsonValue(parsed, "包创建输入");
+  assertJsonValue(parsed, "Package creation input");
   return parsed;
 }
 
@@ -655,7 +662,9 @@ function mergeCreationInput(defaults: unknown, supplied: unknown): unknown {
   if (defaults === undefined) return supplied;
   if (supplied === undefined) return defaults;
   if (!isRecord(defaults) || !isRecord(supplied)) {
-    throw new Error("预设创建输入只能通过对象进行补充");
+    throw new Error(
+      "Preset creation input can only be merged with plain objects",
+    );
   }
   return { ...defaults, ...supplied };
 }
@@ -725,7 +734,9 @@ function assertAcyclicPackageDrafts(
           : `${parentId}:${dependencyKey}`
         : `${explicitRoot.selectionId}:${explicitRoot.nodeIdentity}`;
     if (discriminator === undefined) {
-      throw new Error("参考包实例缺少明确的创建地址");
+      throw new Error(
+        "Reference package instance is missing an explicit creation address",
+      );
     }
     return packageId({
       contentIdentity: node.content.identity,
@@ -742,7 +753,7 @@ function assertAcyclicPackageDrafts(
   ): void => {
     const id = packageIdFor(node, parentId, dependencyKey);
     if (visiting.has(id)) {
-      throw new Error("预设节点依赖形成循环");
+      throw new Error("Preset node dependencies form a cycle");
     }
     const edges = node.dependencies.map((dependency) => ({
       key: dependency.key,
@@ -751,7 +762,9 @@ function assertAcyclicPackageDrafts(
     const previousEdges = completed.get(id);
     if (previousEdges !== undefined) {
       if (!isDeepStrictEqual(previousEdges, edges)) {
-        throw new Error("共享参考包的依赖绑定不一致");
+        throw new Error(
+          "Shared reference package has inconsistent dependency bindings",
+        );
       }
       return;
     }
@@ -771,16 +784,17 @@ function requireUniqueNodes(
   const seen = new Set<string>();
   for (const root of roots) {
     if (!/^[a-z][a-z0-9-]*$/u.test(root.nodeIdentity)) {
-      throw new Error(`选择节点标识无效：${root.nodeIdentity}`);
+      throw new Error(`Invalid selection node identity: ${root.nodeIdentity}`);
     }
     if (seen.has(root.nodeIdentity)) {
-      throw new Error(`选择节点标识必须唯一：${root.nodeIdentity}`);
+      throw new Error(
+        `Selection node identity must be unique: ${root.nodeIdentity}`,
+      );
     }
     seen.add(root.nodeIdentity);
   }
 }
 
-/** 为显式内容集合创建通用纯计算引擎。 */
 type CompositionConventions<Definition> = Definition extends {
   parseConventions(value: unknown): infer Conventions;
 }
@@ -825,6 +839,7 @@ type ContentCreationInput<Members extends readonly LoadedContentMember[]> =
       : ReferenceCreationInput<Member>
     : JsonValue;
 
+/** Creates a generator bound to an explicit content collection and composition definition for planning, computing, restoring, and committing workspace projects. */
 export function createGenerator<
   const Members extends readonly LoadedContentMember[],
   const CompositionDefinition extends CompositionDefinitionLike,
@@ -910,7 +925,9 @@ export function createGenerator<
       blueprintFact?.kind !== "file" ||
       generationRecordFact?.kind !== "file"
     ) {
-      throw new Error("目标项目缺少可读取的 schema4 蓝图或 schema6 生成记录");
+      throw new Error(
+        "Target project is missing a readable schema4 blueprint or schema6 generation record",
+      );
     }
     let blueprintValue: unknown;
     let generationRecordValue: unknown;
@@ -924,9 +941,12 @@ export function createGenerator<
         ),
       ) as unknown;
     } catch (error) {
-      throw new Error(`生成元数据不是有效 JSON：${errorMessage(error)}`, {
-        cause: error,
-      });
+      throw new Error(
+        `Generation metadata is not valid JSON: ${errorMessage(error)}`,
+        {
+          cause: error,
+        },
+      );
     }
     const blueprint = assertProjectBlueprint(blueprintValue);
     const generationRecord = parseGenerationRecordStructure(
@@ -1000,7 +1020,7 @@ export function createGenerator<
         )
       ) {
         throw new Error(
-          `共享参考包的创建事实不一致：${contentIdentityLabel(request.content.identity)}`,
+          `Shared reference package has inconsistent creation facts: ${contentIdentityLabel(request.content.identity)}`,
         );
       }
       return {
@@ -1058,7 +1078,7 @@ export function createGenerator<
     const identityKey = contentIdentityKey(draft.content.identity);
     if (options.ancestry.includes(identityKey)) {
       throw new Error(
-        `参考包依赖形成循环：${[...options.ancestry, identityKey].join(" → ")}`,
+        `Reference package dependencies form a cycle: ${[...options.ancestry, identityKey].join(" -> ")}`,
       );
     }
     const dependencies = draft.content.definition.dependencies ?? [];
@@ -1067,7 +1087,9 @@ export function createGenerator<
     const bindingEntries = Object.entries(bindings);
     for (const [key, target] of bindingEntries) {
       if (key.trim().length === 0) {
-        throw new Error(`选择节点依赖绑定无效：${draft.nodeIdentity}/${key}`);
+        throw new Error(
+          `Invalid selection node dependency binding: ${draft.nodeIdentity}/${key}`,
+        );
       }
       if (typeof target === "string") {
         if (
@@ -1075,7 +1097,7 @@ export function createGenerator<
           !options.explicitTargets?.has(target)
         ) {
           throw new Error(
-            `选择节点依赖绑定目标不存在：${draft.nodeIdentity}/${key}`,
+            `Selection node dependency binding target does not exist: ${draft.nodeIdentity}/${key}`,
           );
         }
       } else if (
@@ -1087,7 +1109,7 @@ export function createGenerator<
         )
       ) {
         throw new Error(
-          `选择节点依赖绑定目标不存在：${draft.nodeIdentity}/${key}`,
+          `Selection node dependency binding target does not exist: ${draft.nodeIdentity}/${key}`,
         );
       }
     }
@@ -1108,7 +1130,9 @@ export function createGenerator<
         dependency.key.trim().length === 0 ||
         dependencyKeys.has(dependency.key)
       ) {
-        throw new Error(`参考包依赖键不能为空且不能重复：${dependency.key}`);
+        throw new Error(
+          `Reference package dependency key must be non-empty and unique: ${dependency.key}`,
+        );
       }
       dependencyKeys.add(dependency.key);
       const providerIdentity = normalizeDependencyIdentity(
@@ -1125,7 +1149,7 @@ export function createGenerator<
             : options.restoredTargets?.get(bindingTarget.packageDefinitionId);
         if (selectedTarget === undefined) {
           throw new Error(
-            `选择节点依赖绑定目标不存在：${draft.nodeIdentity}/${dependency.key}`,
+            `Selection node dependency binding target does not exist: ${draft.nodeIdentity}/${dependency.key}`,
           );
         }
         if (
@@ -1133,7 +1157,7 @@ export function createGenerator<
           contentIdentityKey(providerIdentity)
         ) {
           throw new Error(
-            `选择节点依赖绑定身份不一致：${draft.nodeIdentity}/${dependency.key}`,
+            `Selection node dependency binding identity mismatch: ${draft.nodeIdentity}/${dependency.key}`,
           );
         }
         if (dependency.creationInput !== undefined) {
@@ -1148,7 +1172,7 @@ export function createGenerator<
             )
           ) {
             throw new Error(
-              `选择节点依赖创建输入不一致：${draft.nodeIdentity}/${dependency.key}`,
+              `Selection node dependency creation input mismatch: ${draft.nodeIdentity}/${dependency.key}`,
             );
           }
         }
@@ -1168,7 +1192,7 @@ export function createGenerator<
           selectedTargetId !== restoredDependency.restored?.packageDefinitionId
         ) {
           throw new Error(
-            `生成记录中的依赖绑定不一致：${draft.nodeIdentity} → ${dependency.key}`,
+            `Dependency binding mismatch in generation record: ${draft.nodeIdentity} -> ${dependency.key}`,
           );
         }
         populated.push({
@@ -1184,7 +1208,7 @@ export function createGenerator<
           contentIdentityKey(providerIdentity)
         ) {
           throw new Error(
-            `生成记录包含无效依赖绑定：${draft.nodeIdentity} → ${dependency.key}`,
+            `Generation record contains an invalid dependency binding: ${draft.nodeIdentity} -> ${dependency.key}`,
           );
         }
         if (dependency.creationInput !== undefined) {
@@ -1199,7 +1223,7 @@ export function createGenerator<
             )
           ) {
             throw new Error(
-              `生成记录中的依赖创建事实不一致：${draft.nodeIdentity} → ${dependency.key}`,
+              `Dependency creation facts mismatch in generation record: ${draft.nodeIdentity} -> ${dependency.key}`,
             );
           }
         }
@@ -1246,7 +1270,7 @@ export function createGenerator<
     for (const [key] of bindingEntries) {
       if (!dependencyKeys.has(key)) {
         throw new Error(
-          `选择节点依赖绑定键不存在：${draft.nodeIdentity}/${key}`,
+          `Unknown selection node dependency binding key: ${draft.nodeIdentity}/${key}`,
         );
       }
     }
@@ -1320,7 +1344,7 @@ export function createGenerator<
         contentIdentityKey(existing.contentIdentity) !==
           contentIdentityKey(requirement.contentIdentity)
       ) {
-        throw new Error("缓存的内容依赖身份不一致");
+        throw new Error("Cached content dependency identity mismatch");
       }
       dependencyIdentities.set(key, requirement);
     }
@@ -1328,17 +1352,21 @@ export function createGenerator<
       contentIdentityKey(generationRecord.composition.identity) !==
       contentIdentityKey(composition.identity)
     ) {
-      throw new Error("目标项目使用了不兼容的组合定义");
+      throw new Error(
+        "Target project uses an incompatible composition definition",
+      );
     }
     assertGenerationRecordMatchesBlueprint(generationRecord, blueprint);
     const conventions = composition.parseConventions(
       generationRecord.composition.conventions,
     ) as CompositionConventions<CompositionDefinition>;
-    assertJsonValue(conventions, "组合约定");
+    assertJsonValue(conventions, "Composition conventions");
     if (
       !isDeepStrictEqual(conventions, generationRecord.composition.conventions)
     ) {
-      throw new Error("生成记录中的组合约定不符合当前组合定义");
+      throw new Error(
+        "Composition conventions in generation record do not match the current composition definition",
+      );
     }
 
     const recordsById = new Map(
@@ -1365,7 +1393,9 @@ export function createGenerator<
       const content = resolveReference(item.contentIdentity);
       const definition = definitionsById.get(item.packageDefinitionId);
       if (definition === undefined) {
-        throw new Error(`项目蓝图缺少包实例：${item.packageDefinitionId}`);
+        throw new Error(
+          `Project blueprint is missing package instance: ${item.packageDefinitionId}`,
+        );
       }
       const creationInput =
         item.creationInput === null
@@ -1376,7 +1406,7 @@ export function createGenerator<
             ) as ContentCreationInput<Members>);
       if (!isDeepStrictEqual(creationInput ?? null, item.creationInput)) {
         throw new Error(
-          `生成记录中的创建事实不规范：${item.packageDefinitionId}`,
+          `Non-canonical creation facts in generation record: ${item.packageDefinitionId}`,
         );
       }
       contentsById.set(item.packageDefinitionId, content);
@@ -1385,7 +1415,7 @@ export function createGenerator<
         const identity = contentIdentityKey(content.identity);
         if (sharedIdentities.has(identity)) {
           throw new Error(
-            `共享参考包必须只有一个实例：${contentIdentityLabel(content.identity)}`,
+            `Shared reference package must have only one instance: ${contentIdentityLabel(content.identity)}`,
           );
         }
         sharedIdentities.add(identity);
@@ -1409,7 +1439,7 @@ export function createGenerator<
         !isRecord(definition.nodes)
       ) {
         throw new Error(
-          `预设定义无效：${contentIdentityLabel(preset.identity)}`,
+          `Invalid preset definition: ${contentIdentityLabel(preset.identity)}`,
         );
       }
       const presetNodes = Object.entries(definition.nodes);
@@ -1420,12 +1450,12 @@ export function createGenerator<
         )
       ) {
         throw new Error(
-          `生成记录中的预设选择与当前定义不一致：${contentIdentityLabel(preset.identity)}`,
+          `Preset selection in generation record does not match the current definition: ${contentIdentityLabel(preset.identity)}`,
         );
       }
       for (const [nodeIdentity, rawNode] of presetNodes) {
         if (!isRecord(rawNode) || !isRecord(rawNode.reference)) {
-          throw new Error(`预设节点定义无效：${nodeIdentity}`);
+          throw new Error(`Invalid preset node definition: ${nodeIdentity}`);
         }
         const consumerId = selection.nodes[nodeIdentity];
         const consumerRecord =
@@ -1443,12 +1473,16 @@ export function createGenerator<
           contentIdentityKey(consumer.identity) !==
             contentIdentityKey(expected.identity)
         ) {
-          throw new Error(`生成记录中的预设节点引用不一致：${nodeIdentity}`);
+          throw new Error(
+            `Preset node reference mismatch in generation record: ${nodeIdentity}`,
+          );
         }
         const rawBindings = rawNode.dependencyBindings;
         if (rawBindings === undefined) continue;
         if (!isRecord(rawBindings)) {
-          throw new Error(`预设节点依赖绑定无效：${nodeIdentity}`);
+          throw new Error(
+            `Invalid preset node dependency bindings: ${nodeIdentity}`,
+          );
         }
         const declarations = consumer.definition.dependencies ?? [];
         const declaredKeys = new Set(declarations.map(({ key }) => key));
@@ -1458,10 +1492,14 @@ export function createGenerator<
             typeof targetNodeIdentity !== "string" ||
             targetNodeIdentity.trim().length === 0
           ) {
-            throw new Error(`预设节点依赖绑定无效：${nodeIdentity}/${key}`);
+            throw new Error(
+              `Invalid preset node dependency binding: ${nodeIdentity}/${key}`,
+            );
           }
           if (!declaredKeys.has(key)) {
-            throw new Error(`预设节点依赖绑定键不存在：${nodeIdentity}/${key}`);
+            throw new Error(
+              `Unknown preset node dependency binding key: ${nodeIdentity}/${key}`,
+            );
           }
           const providerId = selection.nodes[targetNodeIdentity];
           const providerRecord =
@@ -1476,7 +1514,7 @@ export function createGenerator<
             dependency === undefined
           ) {
             throw new Error(
-              `预设节点依赖绑定目标不存在：${nodeIdentity}/${key}`,
+              `Preset node dependency binding target does not exist: ${nodeIdentity}/${key}`,
             );
           }
           const expectedIdentity = normalizeDependencyIdentity(
@@ -1490,7 +1528,7 @@ export function createGenerator<
             consumerRecord.dependencyBindings[key] !== providerId
           ) {
             throw new Error(
-              `生成记录中的预设节点依赖绑定不一致：${consumerId} → ${key}`,
+              `Preset node dependency binding mismatch in generation record: ${consumerId} -> ${key}`,
             );
           }
           const bindings =
@@ -1501,7 +1539,7 @@ export function createGenerator<
             existingProviderId !== providerId
           ) {
             throw new Error(
-              `生成记录中的预设节点依赖绑定不一致：${consumerId} → ${key}`,
+              `Preset node dependency binding mismatch in generation record: ${consumerId} -> ${key}`,
             );
           }
           bindings.set(key, providerId);
@@ -1516,7 +1554,9 @@ export function createGenerator<
     ): PackageNodeDraft<ContentCreationInput<Members>> => {
       const existing = draftsById.get(id);
       if (existing !== undefined) return existing;
-      if (visiting.has(id)) throw new Error("生成记录依赖包含循环");
+      if (visiting.has(id)) {
+        throw new Error("Generation record dependencies contain a cycle");
+      }
       const item = recordsById.get(id);
       const persistedDefinition = definitionsById.get(id);
       const content = contentsById.get(id);
@@ -1525,7 +1565,9 @@ export function createGenerator<
         persistedDefinition === undefined ||
         content === undefined
       ) {
-        throw new Error(`生成记录引用了未知包实例：${id}`);
+        throw new Error(
+          `Generation record references an unknown package instance: ${id}`,
+        );
       }
 
       visiting.add(id);
@@ -1536,17 +1578,23 @@ export function createGenerator<
           dependency.key.trim().length === 0 ||
           declaredKeys.has(dependency.key)
         ) {
-          throw new Error(`参考包依赖键不能为空且不能重复：${dependency.key}`);
+          throw new Error(
+            `Reference package dependency key must be non-empty and unique: ${dependency.key}`,
+          );
         }
         declaredKeys.add(dependency.key);
       }
       const recordedBindings = Object.entries(item.dependencyBindings);
       if (recordedBindings.some(([key]) => key.trim().length === 0)) {
-        throw new Error(`生成记录中的依赖绑定与当前参考包不一致：${id}`);
+        throw new Error(
+          `Dependency bindings in generation record do not match the current reference package: ${id}`,
+        );
       }
       const recordedKeys = new Set(recordedBindings.map(([key]) => key));
       if (declarations.some(({ key }) => !recordedKeys.has(key))) {
-        throw new Error(`生成记录中的依赖绑定与当前参考包不一致：${id}`);
+        throw new Error(
+          `Dependency bindings in generation record do not match the current reference package: ${id}`,
+        );
       }
       const dependencies = recordedBindings.map(([key, providerId]) => {
         const providerRecord =
@@ -1558,13 +1606,17 @@ export function createGenerator<
           providerRecord === undefined ||
           providerContent === undefined
         ) {
-          throw new Error(`生成记录包含无效依赖绑定：${id} → ${key}`);
+          throw new Error(
+            `Generation record contains an invalid dependency binding: ${id} -> ${key}`,
+          );
         }
         const dependency = declarations.find((item) => item.key === key);
         if (dependency !== undefined) {
           const consumer = contentsById.get(id);
           if (consumer === undefined) {
-            throw new Error(`生成记录引用了未知内容实例：${id}`);
+            throw new Error(
+              `Generation record references an unknown content instance: ${id}`,
+            );
           }
           const declaredIdentity = normalizeDependencyIdentity(
             consumer,
@@ -1575,7 +1627,9 @@ export function createGenerator<
             contentIdentityKey(providerContent.identity) !==
             contentIdentityKey(declaredIdentity)
           ) {
-            throw new Error(`生成记录包含无效依赖绑定：${id} → ${key}`);
+            throw new Error(
+              `Generation record contains an invalid dependency binding: ${id} -> ${key}`,
+            );
           }
           const explicitProviderId = explicitBindingsByConsumer
             .get(id)
@@ -1585,7 +1639,7 @@ export function createGenerator<
             providerId !== explicitProviderId
           ) {
             throw new Error(
-              `生成记录中的预设节点依赖绑定不一致：${id} → ${key}`,
+              `Preset node dependency binding mismatch in generation record: ${id} -> ${key}`,
             );
           }
           const expectedInput = requireParsedCreationInput(
@@ -1599,7 +1653,9 @@ export function createGenerator<
               expectedInput ?? null,
             )
           ) {
-            throw new Error(`生成记录中的依赖创建事实不一致：${id} → ${key}`);
+            throw new Error(
+              `Dependency creation facts mismatch in generation record: ${id} -> ${key}`,
+            );
           }
         }
         return { key, package: buildDraft(providerId) };
@@ -1628,7 +1684,9 @@ export function createGenerator<
       if (reachable.has(id)) return;
       reachable.add(id);
       const item = recordsById.get(id);
-      if (item === undefined) throw new Error(`未知包实例：${id}`);
+      if (item === undefined) {
+        throw new Error(`Unknown package instance: ${id}`);
+      }
       for (const providerId of Object.values(item.dependencyBindings)) {
         collectReachable(providerId);
       }
@@ -1651,7 +1709,7 @@ export function createGenerator<
           !isRecord(definition.nodes)
         ) {
           throw new Error(
-            `预设定义无效：${contentIdentityLabel(preset.identity)}`,
+            `Invalid preset definition: ${contentIdentityLabel(preset.identity)}`,
           );
         }
         const presetNodes = Object.entries(definition.nodes);
@@ -1662,12 +1720,12 @@ export function createGenerator<
           )
         ) {
           throw new Error(
-            `生成记录中的预设选择与当前定义不一致：${contentIdentityLabel(preset.identity)}`,
+            `Preset selection in generation record does not match the current definition: ${contentIdentityLabel(preset.identity)}`,
           );
         }
         for (const [nodeIdentity, node] of presetNodes) {
           if (!isRecord(node) || !isRecord(node.reference)) {
-            throw new Error(`预设节点定义无效：${nodeIdentity}`);
+            throw new Error(`Invalid preset node definition: ${nodeIdentity}`);
           }
           const rootRecord = recordsById.get(selection.nodes[nodeIdentity]!);
           const rootContent =
@@ -1683,7 +1741,9 @@ export function createGenerator<
             contentIdentityKey(rootContent.identity) !==
               contentIdentityKey(expected.identity)
           ) {
-            throw new Error(`生成记录中的预设节点引用不一致：${nodeIdentity}`);
+            throw new Error(
+              `Preset node reference mismatch in generation record: ${nodeIdentity}`,
+            );
           }
         }
       }
@@ -1691,7 +1751,7 @@ export function createGenerator<
         collectReachable(id);
         return { ...buildDraft(id), nodeIdentity };
       });
-      // 规范化 JSON 会按键名排序 nodes，无法从记录恢复原始根数组顺序。
+      // Canonical JSON sorts `nodes` keys alphabetically, so the original root array order cannot be recovered from the record.
       return {
         presetIdentity: selection.presetIdentity,
         selectionId: selection.selectionId,
@@ -1700,7 +1760,9 @@ export function createGenerator<
       };
     });
     if (reachable.size !== recordsById.size) {
-      throw new Error("生成记录包含未被选择引用的包实例");
+      throw new Error(
+        "Generation record contains package instances not referenced by any selection",
+      );
     }
     return result;
   };
@@ -1728,7 +1790,7 @@ export function createGenerator<
       : composition.parseConventions(prepareOptions.conventions);
     const conventions =
       parsedConventions as CompositionConventions<CompositionDefinition>;
-    assertJsonValue(conventions, "组合约定");
+    assertJsonValue(conventions, "Composition conventions");
     if (
       prepareOptions.restored &&
       !isDeepStrictEqual(
@@ -1736,7 +1798,9 @@ export function createGenerator<
         prepareOptions.restored.generationRecord.composition.conventions,
       )
     ) {
-      throw new Error("生成记录中的组合约定不符合当前组合定义");
+      throw new Error(
+        "Composition conventions in generation record do not match the current composition definition",
+      );
     }
     const dependencyIdentities =
       prepareOptions.dependencyIdentities ??
@@ -1923,11 +1987,15 @@ export function createGenerator<
             : contentIdentityKey(group.presetIdentity);
         if (existingPresetIdentity === requestedPresetIdentity) {
           if (!isDeepStrictEqual(existingRoots, requestedRoots)) {
-            throw new Error("相同选择标识对应不同的包创建事实");
+            throw new Error(
+              "Identical selection identity maps to different package creation facts",
+            );
           }
           return;
         }
-        throw new Error("生成记录包含重复选择标识");
+        throw new Error(
+          "Generation record contains a duplicate selection identity",
+        );
       }
       selectionDrafts.push(group);
     };
@@ -1996,7 +2064,9 @@ export function createGenerator<
           ({ nodeIdentity }) => nodeIdentity === root.nodeIdentity,
         )?.dependencyBindings;
         if (dependencyBindings !== undefined && !isRecord(dependencyBindings)) {
-          throw new Error(`选择节点依赖绑定无效：${root.nodeIdentity}`);
+          throw new Error(
+            `Invalid selection node dependency bindings: ${root.nodeIdentity}`,
+          );
         }
         populatePackageNodeDraft({
           draft: root,
@@ -2030,20 +2100,22 @@ export function createGenerator<
         !isRecord(preset.nodes)
       ) {
         throw new Error(
-          `预设定义无效：${contentIdentityLabel(presetMember.identity)}`,
+          `Invalid preset definition: ${contentIdentityLabel(presetMember.identity)}`,
         );
       }
       const definition = preset as unknown as PresetSelectionDefinition;
       if (!definition.operations.includes(operation)) {
         throw new Error(
-          `预设不支持${operation === "init" ? "初始化" : "加包"}：${contentIdentityLabel(presetMember.identity)}`,
+          `Preset does not support ${operation === "init" ? "initialization" : "package addition"}: ${contentIdentityLabel(presetMember.identity)}`,
         );
       }
       const entries = Object.entries(definition.nodes);
       if (entries.length === 0)
-        throw new Error("预设必须至少选择一个软件包节点");
+        throw new Error("Preset must select at least one package node");
       if (presetRequest.creationInput !== undefined && entries.length !== 1) {
-        throw new Error("多节点预设不能接收单个软件包创建输入");
+        throw new Error(
+          "Multi-node preset cannot accept a single package creation input",
+        );
       }
       const presetRoots: {
         readonly content: RuntimeReference;
@@ -2108,7 +2180,9 @@ export function createGenerator<
             ? declaration.dependencyBindings
             : undefined;
         if (dependencyBindings !== undefined && !isRecord(dependencyBindings)) {
-          throw new Error(`预设节点依赖绑定无效：${root.nodeIdentity}`);
+          throw new Error(
+            `Invalid preset node dependency bindings: ${root.nodeIdentity}`,
+          );
         }
         const explicitRoot =
           root.content.definition.instance === "independent"
@@ -2155,10 +2229,10 @@ export function createGenerator<
     if (selectionDrafts.length === 0) {
       throw new Error(
         prepareOptions.restored
-          ? "生成记录至少需要一个选择"
+          ? "Generation record requires at least one selection"
           : operation === "init"
-            ? "初始化至少需要选择一个参考包或预设"
-            : "加包至少需要选择一个参考包或预设",
+            ? "Initialization requires selecting at least one reference package or preset"
+            : "Package addition requires selecting at least one reference package or preset",
       );
     }
     const explicitlySelectedSharedReferences = new Map<
@@ -2258,7 +2332,9 @@ export function createGenerator<
     const packages = restored.generationRecord.packages.map((item) => {
       const definition = definitionsById.get(item.packageDefinitionId);
       if (definition === undefined) {
-        throw new Error(`项目蓝图缺少包实例：${item.packageDefinitionId}`);
+        throw new Error(
+          `Project blueprint is missing package instance: ${item.packageDefinitionId}`,
+        );
       }
       return {
         ...item,
@@ -2363,7 +2439,9 @@ export function createGenerator<
     >,
   ): InitializedProject {
     if (preparedProject.composition !== composition) {
-      throw new Error("准备结果属于另一个组合定义");
+      throw new Error(
+        "Prepared project belongs to a different composition definition",
+      );
     }
     const nodes: PackageNode[] = [];
     const sharedNodes = new Map<string, PackageNode>();
@@ -2411,7 +2489,9 @@ export function createGenerator<
             ) ||
             !isDeepStrictEqual(restored.preparation, prepared.preparation)
           ) {
-            throw new Error(`生成记录中的包实例事实不一致：${restoredId}`);
+            throw new Error(
+              `Inconsistent package instance facts in generation record: ${restoredId}`,
+            );
           }
           nodesByPrepared.set(prepared, restored);
           return restored;
@@ -2440,14 +2520,16 @@ export function createGenerator<
             !isDeepStrictEqual(existing.preparation, prepared.preparation)
           ) {
             throw new Error(
-              `共享参考包的创建事实不一致：${contentIdentityLabel(prepared.content.identity)}`,
+              `Shared reference package has inconsistent creation facts: ${contentIdentityLabel(prepared.content.identity)}`,
             );
           }
           if (restoredId !== undefined && existing.id !== restoredId) {
-            throw new Error(`共享实例标识与生成记录不一致：${restoredId}`);
+            throw new Error(
+              `Shared instance identity does not match generation record: ${restoredId}`,
+            );
           }
           if (wiringNodes.has(existing)) {
-            throw new Error("预设节点依赖形成循环");
+            throw new Error("Preset node dependencies form a cycle");
           }
           wiringNodes.add(existing);
           const proposedDependencies = prepared.dependencies.map(
@@ -2468,7 +2550,9 @@ export function createGenerator<
                 existing.dependencies.get(key)?.id !== provider.id,
             )
           ) {
-            throw new Error("共享参考包的依赖绑定不一致");
+            throw new Error(
+              "Shared reference package has inconsistent dependency bindings",
+            );
           }
           nodesByPrepared.set(prepared, existing);
           return existing;
@@ -2549,7 +2633,7 @@ export function createGenerator<
         const expected = selection.recordedNodeIds?.[root.nodeIdentity];
         if (expected !== undefined && expected !== node.id) {
           throw new Error(
-            `生成记录中的选择节点实例不一致：${root.nodeIdentity}`,
+            `Selection node instance mismatch in generation record: ${root.nodeIdentity}`,
           );
         }
         nodeIds[root.nodeIdentity] = node.id;
@@ -2559,7 +2643,9 @@ export function createGenerator<
         Object.keys(selection.recordedNodeIds).length !==
           Object.keys(nodeIds).length
       ) {
-        throw new Error(`生成记录中的选择节点数量不一致：${id}`);
+        throw new Error(
+          `Selection node count mismatch in generation record: ${id}`,
+        );
       }
       selectionRecords.push({
         selectionId: id,
@@ -2616,10 +2702,14 @@ export function createGenerator<
       for (const { key } of node.content.definition.dependencies ?? []) {
         const provider = node.dependencies.get(key);
         if (provider === undefined) {
-          throw new Error(`参考包依赖尚未绑定：${node.id} → ${key}`);
+          throw new Error(
+            `Reference package dependency is not bound: ${node.id} -> ${key}`,
+          );
         }
         if (provider.contribution === undefined) {
-          throw new Error(`依赖包尚未求值：${provider.id}`);
+          throw new Error(
+            `Dependency package has not been evaluated yet: ${provider.id}`,
+          );
         }
         bindings.set(key, {
           packageDefinitionId: provider.id,
@@ -2645,7 +2735,9 @@ export function createGenerator<
     });
     for (const id of resolution.packageInputs.keys()) {
       if (!nodes.some((node) => node.id === id)) {
-        throw new Error(`组合输入引用了未知软件包实例：${id}`);
+        throw new Error(
+          `Composition inputs reference an unknown package instance: ${id}`,
+        );
       }
     }
     const blueprint = assertProjectBlueprint({
@@ -2669,7 +2761,9 @@ export function createGenerator<
       if (
         !isDeepStrictEqual(existingBlueprintPackages, recordedBlueprintPackages)
       ) {
-        throw new Error("回放后的包定义与持久蓝图不一致");
+        throw new Error(
+          "Replayed package definitions do not match the persisted blueprint",
+        );
       }
       const existingLinks = blueprint.packageLinkIntents.filter(
         ({ consumerId, providerId }) =>
@@ -2681,7 +2775,9 @@ export function createGenerator<
           preparedProject.restored.blueprint.packageLinkIntents,
         )
       ) {
-        throw new Error("回放后的显式包连接与持久蓝图不一致");
+        throw new Error(
+          "Replayed explicit package link intents do not match the persisted blueprint",
+        );
       }
     }
 
@@ -2689,7 +2785,9 @@ export function createGenerator<
     const complete = new Set<PackageDefinitionId>();
     const evaluate = (node: PackageNode): PackageContribution => {
       if (node.contribution !== undefined) return node.contribution;
-      if (visiting.has(node.id)) throw new Error("软件包依赖图包含循环");
+      if (visiting.has(node.id)) {
+        throw new Error("Package dependency graph contains a cycle");
+      }
       visiting.add(node.id);
       for (const provider of node.dependencies.values()) {
         evaluate(provider);
@@ -2707,7 +2805,9 @@ export function createGenerator<
         packageInput: structuredClone(resolution.packageInputs.get(node.id)),
       });
       if (contribution.packageDefinitionId !== node.id) {
-        throw new Error(`包贡献返回了错误的软件包实例标识：${node.id}`);
+        throw new Error(
+          `Package contribution returned a mismatched package instance identity: ${node.id}`,
+        );
       }
       node.contribution = contribution;
       visiting.delete(node.id);
@@ -2717,7 +2817,7 @@ export function createGenerator<
 
     for (const node of nodes) evaluate(node);
     if (complete.size !== nodes.length)
-      throw new Error("部分软件包贡献尚未求值");
+      throw new Error("Some package contributions were not evaluated");
 
     const compositionPackages: CompositionPackageEvaluation[] = nodes.map(
       (node) => ({
@@ -2749,14 +2849,14 @@ export function createGenerator<
         node.id,
         {
           identity: `content:${contentIdentityKey(node.content.identity)}:${node.id}`,
-          label: `${contentIdentityLabel(node.content.identity)}（${node.definition.path}）`,
+          label: `${contentIdentityLabel(node.content.identity)} (${node.definition.path})`,
         } satisfies ProjectProjectionSource,
       ]),
     );
     const packageSources = [...sourcesByPackage.values()];
     const compositionSource: ProjectProjectionSource = {
       identity: `composition:${contentIdentityKey(composition.identity)}`,
-      label: `组合${contentIdentityLabel(composition.identity)}`,
+      label: `composition ${contentIdentityLabel(composition.identity)}`,
     };
     const sourcesByPath = new Map<string, readonly ProjectProjectionSource[]>();
     const addPathSources = (
@@ -2946,7 +3046,8 @@ export function createGenerator<
         {
           path: ".",
           kind: "directory-empty-or-missing",
-          reason: "初始化要求目标目录为空或不存在",
+          reason:
+            "Initialization requires the target directory to be empty or not exist",
           ...(sources.length === 0 ? {} : { sources }),
         },
       ];
@@ -3019,7 +3120,9 @@ export function createGenerator<
         ) ||
         !isDeepStrictEqual(before.blueprint, preparation.restored.blueprint)
       ) {
-        throw new Error("Before 计算结果与恢复的项目记录不一致");
+        throw new Error(
+          "Computed Before state does not match the restored project record",
+        );
       }
       const afterPackages = new Map(
         options.after.generationRecord.packages.map((item) => [
@@ -3038,7 +3141,7 @@ export function createGenerator<
           !isDeepStrictEqual(afterPackages.get(item.packageDefinitionId), item)
         ) {
           throw new Error(
-            `After 未保留既有包实例事实：${item.packageDefinitionId}`,
+            `After state did not preserve existing package instance facts: ${item.packageDefinitionId}`,
           );
         }
       }
@@ -3050,7 +3153,7 @@ export function createGenerator<
           )
         ) {
           throw new Error(
-            `After 未保留既有包定义：${item.packageDefinitionId}`,
+            `After state did not preserve existing package definition: ${item.packageDefinitionId}`,
           );
         }
       }
@@ -3063,7 +3166,9 @@ export function createGenerator<
             selection,
           )
         ) {
-          throw new Error(`After 未保留既有内容选择：${selection.selectionId}`);
+          throw new Error(
+            `After state did not preserve existing content selection: ${selection.selectionId}`,
+          );
         }
       }
       if (
@@ -3072,7 +3177,9 @@ export function createGenerator<
           before.generationRecord.composition,
         )
       ) {
-        throw new Error("After 未保留既有组合事实");
+        throw new Error(
+          "After state did not preserve existing composition facts",
+        );
       }
       after = {
         ...options.after,
@@ -3101,7 +3208,7 @@ export function createGenerator<
           item.packageDefinitionId,
           {
             identity: `content:${contentIdentityKey(item.contentIdentity)}:${item.packageDefinitionId}`,
-            label: `${contentIdentityLabel(item.contentIdentity)}（${item.definition.path}）`,
+            label: `${contentIdentityLabel(item.contentIdentity)} (${item.definition.path})`,
           } satisfies ProjectProjectionSource,
         ]),
       );
@@ -3111,7 +3218,7 @@ export function createGenerator<
           .map((item) => ({
             path: item.path,
             kind: "must-not-exist" as const,
-            reason: `新包路径必须不存在：${item.path}`,
+            reason: `New package path must not exist: ${item.path}`,
             ...(sourcesById.get(item.packageDefinitionId) === undefined
               ? {}
               : { sources: [sourcesById.get(item.packageDefinitionId)!] }),
@@ -3250,7 +3357,7 @@ export function createGenerator<
         phase: "commit",
         error: {
           message:
-            "提交计划必须由当前生成器的 planInit、planAdd 或 planComputedAdd 创建",
+            "Change plan must be created by planInit, planAdd, or planComputedAdd of the current generator",
         },
       };
     }

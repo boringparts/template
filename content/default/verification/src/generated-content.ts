@@ -11,7 +11,7 @@ import type { JsonValue } from "@ykdz/template-core/json";
 import type { PresetSelectionDefinition } from "@ykdz/template-core/reference-package";
 
 export type ChecksPreset = LoadedContentMember<
-  PresetSelectionDefinition<JsonValue> & {
+  PresetSelectionDefinition & {
     readonly metadata: {
       readonly alias: string;
       readonly title: string;
@@ -250,7 +250,7 @@ async function focusedConsumerPath(options: {
   return undefined;
 }
 
-/** 运行唯一内容集合的真实 init/add，并返回同次正式处理产生的收据。 */
+/** Runs real init/add against the single content collection and returns the receipt from that execution. */
 export async function materializeGeneratedScenario(options: {
   readonly runtime: GeneratedScenarioRuntime;
   readonly scenario: GeneratedScenario;

@@ -143,7 +143,7 @@ function findOwnerViolations(fixture: OwnerFixture, identity: string) {
 }
 
 void describe("author planning role check", () => {
-  void it("只限制纯规划回调并允许准备阶段读取资源", async () => {
+  void it("restricts pure planning callbacks while allowing resource reads during preparation", async () => {
     const fixture = await createOwnerFixture(
       "author-planning-rules-",
       "@fixture/planning-owner",
@@ -241,7 +241,7 @@ export function readOwnerValue(): string {
     }
   });
 
-  void it("拒绝 targetName 规划回调中的文件与进程状态读取", async () => {
+  void it("rejects filesystem and process state reads in targetName planning callbacks", async () => {
     const fixture = await createOwnerFixture(
       "author-planning-target-name-",
       "@fixture/target-name-owner",
@@ -328,15 +328,15 @@ export const reference = defineReferencePackage({
 
   for (const sdk of [
     {
-      label: "已安装声明",
+      label: "installed declarations",
       sourceTypes: false,
     },
     {
-      label: "源码条件",
+      label: "source conditions",
       sourceTypes: true,
     },
   ]) {
-    void it(`根据公开 SDK 的${sdk.label}识别规划角色`, async () => {
+    void it(`identifies planning roles from public SDK ${sdk.label}`, async () => {
       const fixture = await createOwnerFixture(
         "author-planning-declaration-",
         "@fixture/installed-owner",
@@ -375,7 +375,7 @@ export const reference: ReferencePackageDefinition = {
     });
   }
 
-  void it("通过公开 namespace SDK 导入识别纯参考包求值", async () => {
+  void it("identifies pure reference package evaluation through public namespace SDK imports", async () => {
     const fixture = await createOwnerFixture(
       "author-planning-namespace-sdk-",
       "@fixture/namespace-owner",
@@ -413,7 +413,7 @@ export const reference: sdk.ReferencePackageDefinition = {
     }
   });
 
-  void it("识别参考包纯函数、组合函数与默认 owner 回调中的规划副作用", async () => {
+  void it("detects planning side effects across reference package functions, composition functions, and default owner callbacks", async () => {
     const fixture = await createOwnerFixture(
       "author-planning-functional-contracts-",
       "@fixture/functional-owner",
@@ -526,7 +526,7 @@ export const rootContribution = {
     }
   });
 
-  void it("扫描 owner 生产配置中的纯 factory 回调", async () => {
+  void it("scans pure factory callbacks in owner production configs", async () => {
     const fixture = await createOwnerFixture(
       "author-planning-production-sources-",
       "@fixture/production-owner",
@@ -595,7 +595,7 @@ export const reference = defineReferencePackage({
     }
   });
 
-  void it("拒绝纯参考包求值 helper 中的进程状态、require 和计算式动态加载", async () => {
+  void it("rejects process state reads, require calls, and computed dynamic imports in pure reference package evaluation helpers", async () => {
     const fixture = await createOwnerFixture(
       "author-planning-effects-",
       "@fixture/effect-owner",
@@ -656,7 +656,7 @@ export function loadComputedModule(): void {
     }
   });
 
-  void it("允许纯变换使用静态 owner JSON 元数据", async () => {
+  void it("allows pure transforms to use static owner JSON metadata", async () => {
     const fixture = await createOwnerFixture(
       "author-planning-static-metadata-",
       "@fixture/static-metadata-owner",

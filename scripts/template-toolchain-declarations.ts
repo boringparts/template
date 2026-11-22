@@ -11,6 +11,10 @@ export type TemplateToolchainDeclarations = {
   readonly playwrightTestVersion: string;
 };
 
+/**
+ * Validates root toolchain declarations and derives the public CLI Node caret
+ * range and pinned pnpm version.
+ */
 export function deriveTemplateToolchain(
   declarations: TemplateToolchainDeclarations,
 ): {
@@ -25,24 +29,28 @@ export function deriveTemplateToolchain(
   const diagnostics: string[] = [];
   if (!/^\d+\.\d+\.\d+$/u.test(node))
     diagnostics.push(
-      `根 engines.node 必须声明精确的已测 Node patch 版本（形如 24.16.0），当前为 ${declarations.rootNodeEngine}`,
+      `Root engines.node must declare an exact tested Node patch version (e.g. 24.16.0), got ${declarations.rootNodeEngine}`,
     );
   if (pnpmVersion === undefined)
     diagnostics.push(
-      `根 packageManager 必须是唯一精确 pnpm 固定值（形如 pnpm@11.21.0，不带范围或 hash），当前为 ${declarations.packageManagerDeclaration}`,
+      `Root packageManager must be an exact pnpm pin (e.g. pnpm@11.21.0 without range or hash), got ${declarations.packageManagerDeclaration}`,
     );
   if (!/^\d+\.\d+\.\d+$/u.test(declarations.rustToolchainChannel.trim()))
     diagnostics.push(
-      `根 rust-toolchain.toml 必须声明精确的已测 Rust 版本（形如 1.97.1，不接受 stable、beta、nightly 或范围），当前为 ${declarations.rustToolchainChannel}`,
+      `Root rust-toolchain.toml must declare an exact tested Rust version (e.g. 1.97.1; stable, beta, nightly, and ranges are not allowed), got ${declarations.rustToolchainChannel}`,
     );
   if (declarations.playwrightTestVersion.trim().length === 0) {
     diagnostics.push(
-      "根 pnpm-workspace.yaml 必须在 catalog 中声明 @playwright/test 版本",
+      "Root pnpm-workspace.yaml must declare @playwright/test in catalog",
     );
   }
   return { diagnostics, cliNodeEngine: `^${node}`, pnpmVersion };
 }
 
+/**
+ * Extracts `engines.node` from a manifest or returns a missing-field
+ * placeholder for validation diagnostics.
+ */
 export function readNodeEngine(manifest: {
   readonly engines?: unknown;
 }): string {
@@ -51,13 +59,18 @@ export function readNodeEngine(manifest: {
     typeof engines === "object" && engines !== null
       ? (engines as { readonly node?: unknown }).node
       : undefined;
-  return typeof node === "string" ? node : "(缺失 engines.node)";
+  return typeof node === "string" ? node : "(missing engines.node)";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Reads root toolchain declarations from `package.json`, `rust-toolchain.toml`,
+ * and `pnpm-workspace.yaml`, using missing-field placeholders so callers can
+ * report all validation diagnostics together.
+ */
 export async function readTemplateToolchainDeclarations(
   repositoryRoot: string,
 ): Promise<TemplateToolchainDeclarations> {
@@ -96,11 +109,11 @@ export async function readTemplateToolchainDeclarations(
     packageManagerDeclaration:
       typeof manifest.packageManager === "string"
         ? manifest.packageManager
-        : "(缺失 packageManager)",
+        : "(missing packageManager)",
     rustToolchainChannel:
       typeof channel === "string"
         ? channel
-        : "(缺失 rust-toolchain.toml 的 channel)",
+        : "(missing rust-toolchain.toml channel)",
     playwrightTestVersion:
       typeof playwrightTestVersion === "string" ? playwrightTestVersion : "",
   };

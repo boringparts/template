@@ -26,7 +26,10 @@ const member = (kind: "preset" | "reference", packageName: string) => {
   const found = content.find(
     (item) => item.kind === kind && item.identity.packageName === packageName,
   );
-  assert.ok(found, `显式内容集合缺少 ${kind} ${packageName}`);
+  assert.ok(
+    found,
+    `Explicit content collection is missing ${kind} ${packageName}`,
+  );
   return found;
 };
 
@@ -54,7 +57,7 @@ after(async () => {
   );
 });
 
-await it("把组合声明的浏览器和ShellCheck需求投影进同一容器", async () => {
+await it("projects declared browser and ShellCheck requirements from composition into the same container", async () => {
   const targetRoot = await createTargetRoot();
   const initialized = await createDefaultGenerator({ content }).init({
     targetRoot,
@@ -114,7 +117,7 @@ await it("把组合声明的浏览器和ShellCheck需求投影进同一容器", 
   );
 });
 
-await it("未声明浏览器或ShellCheck时不添加对应容器层", async () => {
+await it("omits browser and ShellCheck container layers when neither requirement is declared", async () => {
   const targetRoot = await createTargetRoot();
   const initialized = await createDefaultGenerator({ content }).init({
     targetRoot,

@@ -16,7 +16,7 @@ export function presetByAlias(alias: string): CliPreset | undefined {
   return presetIndex.resolve(alias, "preset");
 }
 
-/** 命令和检查共享同一正式内容集合对应的默认生成器。 */
+/** Shared default generator backed by the canonical content collection for commands and checks. */
 export const cliGenerator = createDefaultGenerator({
   content: templateContent,
 });

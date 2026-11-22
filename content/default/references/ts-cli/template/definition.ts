@@ -109,7 +109,9 @@ function nodeDeclarationFrom(value: unknown): string {
     !("nodeDeclaration" in value) ||
     typeof value.nodeDeclaration !== "string"
   ) {
-    throw new Error("CLI 生成需要默认组合提供有效的 Node 声明");
+    throw new Error(
+      "CLI generation requires a valid nodeDeclaration from the default composition",
+    );
   }
   return value.nodeDeclaration;
 }
@@ -233,7 +235,7 @@ export const referencePackage = defineReferencePackage({
     const tasks = recordFrom(value.tasks);
     const build = tasks === undefined ? undefined : recordFrom(tasks.build);
     if (tasks === undefined || build === undefined) {
-      throw new Error("CLI 原生 turbo.json 必须声明 build 任务");
+      throw new Error("CLI native turbo.json must declare a build task");
     }
     return {
       ...value,

@@ -19,7 +19,7 @@ function resource(
 ): ResourceFileSnapshot {
   const snapshot = resources.find(({ path }) => path === resourcePath);
   if (snapshot === undefined) {
-    throw new Error(`npm publication缺少所属资源：${resourcePath}`);
+    throw new Error(`Missing owned npm publication resource: ${resourcePath}`);
   }
   return snapshot;
 }

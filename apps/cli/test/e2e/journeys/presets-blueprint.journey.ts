@@ -39,7 +39,7 @@ const journey: CliJourney = {
     return [
       {
         name: "list presets text",
-        args: ["presets", "--output-format", "text"],
+        args: ["presets", "--output", "text"],
       },
       { name: "list presets", args: ["presets"] },
       {
@@ -48,7 +48,7 @@ const journey: CliJourney = {
           "blueprint",
           "validate",
           "valid-blueprint.json",
-          "--output-format",
+          "--output",
           "text",
         ],
       },
@@ -62,7 +62,7 @@ const journey: CliJourney = {
           "blueprint",
           "validate",
           "legacy-blueprint.json",
-          "--output-format",
+          "--output",
           "text",
         ],
       },
@@ -80,7 +80,7 @@ const journey: CliJourney = {
           "blueprint",
           "validate",
           "malformed-blueprint.json",
-          "--output-format",
+          "--output",
           "text",
         ],
       },
@@ -95,9 +95,10 @@ const journey: CliJourney = {
       assert.equal(result.exitCode, 1);
       assert.equal(result.stdout, "");
     }
-    assert.match(results[0]?.stdout ?? "", /内置预设/u);
+    assert.match(results[0]?.stdout ?? "", /^Built-in presets/mu);
     const catalog = JSON.parse(results[1]?.stdout ?? "");
-    assert.equal(catalog.schemaVersion, "2");
+    assert.equal(catalog.schemaVersion, "3");
+    assert.equal(catalog.outputMode, "structured");
     assert.equal(catalog.kind, "data");
     assert.equal(catalog.variant, "listed");
     const names: string[] = catalog.data.presets.map(
@@ -107,16 +108,19 @@ const journey: CliJourney = {
     assert.equal(new Set(names).size, names.length);
     for (const name of names)
       assert.ok(results[0]?.stdout.includes(`${name}:`));
-    assert.match(results[2]?.stdout ?? "", /蓝图有效/u);
+    assert.match(results[2]?.stdout ?? "", /Blueprint is valid\./u);
     assert.deepEqual(JSON.parse(results[3]?.stdout ?? ""), {
-      schemaVersion: "2",
+      schemaVersion: "3",
       command: "validateBlueprint",
+      outputMode: "structured",
       kind: "data",
       variant: "valid",
       data: { path: path.join(context.workDir, "valid-blueprint.json") },
     });
-    assert.match(results[4]?.stderr ?? "", /蓝图无效/u);
+    assert.match(results[4]?.stderr ?? "", /Blueprint is invalid\./u);
     const invalid = JSON.parse(results[5]?.stderr ?? "");
+    assert.equal(invalid.schemaVersion, "3");
+    assert.equal(invalid.outputMode, "structured");
     assert.equal(invalid.kind, "failure");
     assert.equal(invalid.variant, "invalid");
     assert.deepEqual(
@@ -124,14 +128,16 @@ const journey: CliJourney = {
       [".schemaVersion"],
     );
     const missing = JSON.parse(results[6]?.stderr ?? "");
+    assert.equal(missing.schemaVersion, "3");
+    assert.equal(missing.outputMode, "structured");
     assert.equal(missing.variant, "operationFailed");
     assert.equal(missing.data.reason, "not-found");
     assert.equal(
       missing.data.path,
       path.join(context.workDir, "missing-blueprint.json"),
     );
-    assert.match(results[7]?.stderr ?? "", /JSON 格式无效/u);
-    assert.match(results[7]?.stderr ?? "", /建议/u);
+    assert.match(results[7]?.stderr ?? "", /Invalid blueprint JSON/u);
+    assert.match(results[7]?.stderr ?? "", /Suggestion:/u);
   },
 };
 

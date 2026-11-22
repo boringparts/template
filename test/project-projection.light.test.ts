@@ -121,8 +121,8 @@ async function planAtTarget(options: {
   });
 }
 
-void describe("期望文件树协调", () => {
-  void it("合并文本中的非重叠生成变化并保留用户插入内容", () => {
+void describe("desired project projection reconciliation", () => {
+  void it("merges non-overlapping generated text changes while preserving user insertions", () => {
     const before = textProjection("README.md", "first\ncommon\nlast\n");
     const after = textProjection(
       "README.md",
@@ -143,13 +143,13 @@ void describe("期望文件树协调", () => {
     );
   });
 
-  void it("为同处文本冲突返回位置、双方来源且不产生部分变更", () => {
-    const beforeSource = { identity: "content:before", label: "基础内容" };
+  void it("returns location and contributing sources for overlapping text conflicts without partial mutations", () => {
+    const beforeSource = { identity: "content:before", label: "Base content" };
     const currentSource = {
       identity: "workspace:current",
-      label: "用户文件",
+      label: "User file",
     };
-    const afterSource = { identity: "content:after", label: "新增内容" };
+    const afterSource = { identity: "content:after", label: "Added content" };
     const before = textProjection("README.md", "first\nbase\n", {
       sources: [beforeSource],
     });
@@ -172,11 +172,11 @@ void describe("期望文件树协调", () => {
     assert.ok(result.conflicts[0]?.region);
     assert.deepEqual(
       result.conflicts[0]?.sources?.map(({ label }) => label),
-      ["基础内容", "用户文件", "新增内容"],
+      ["Base content", "User file", "Added content"],
     );
   });
 
-  void it("递归合并结构化对象和显式身份数组并保留 Current 成员", () => {
+  void it("recursively merges structured objects and explicit identity-set arrays while preserving Current members", () => {
     const identitySets = [
       {
         location: "/members",
@@ -242,7 +242,7 @@ void describe("期望文件树协调", () => {
     );
   });
 
-  void it("拒绝身份重复的 Current 数组成员", () => {
+  void it("rejects Current array members with duplicate identities", () => {
     const identitySets = [
       {
         location: "/members",
@@ -278,7 +278,7 @@ void describe("期望文件树协调", () => {
     assert.equal(Object.hasOwn(result, "mutations"), false);
   });
 
-  void it("结构化字段、二进制与执行位冲突分别带有定位信息", () => {
+  void it("attaches location details to structured field, binary, and executable mode conflicts", () => {
     const structured = reconcileProjectProjections({
       before: structuredProjection("settings.json", {
         settings: { timeout: 10 },
@@ -338,7 +338,7 @@ void describe("期望文件树协调", () => {
     assert.equal(Object.hasOwn(mode, "mutations"), false);
   });
 
-  void it("拒绝通过缩短 After 期望树删除既有生成路径", () => {
+  void it("rejects deleting an existing generated path by omitting it from the After projection", () => {
     assert.throws(
       () =>
         reconcileProjectProjections({
@@ -351,7 +351,7 @@ void describe("期望文件树协调", () => {
   });
 });
 
-void describe("已声明镜像位置", () => {
+void describe("declared mirror slots", () => {
   const toolVersion = "24.16.0";
   const driftedVersion = "999";
   const configPath = "container/config.json";
@@ -362,7 +362,7 @@ void describe("已声明镜像位置", () => {
     },
   ];
 
-  void it("只读取声明的 JSON 镜像路径并恢复根值，同时保留用户字段", async () => {
+  void it("reads only declared JSON mirror paths and restores root values while preserving user fields", async () => {
     const targetRoot = await mkdtemp(
       path.join(tmpdir(), "template-projection-json-mirror-"),
     );
@@ -395,7 +395,7 @@ void describe("已声明镜像位置", () => {
           2,
         )}\n`,
       );
-      await writeFile(currentPlainPath, "用户配置\n");
+      await writeFile(currentPlainPath, "user config\n");
 
       const current = await readProjectProjectionCurrent({
         targetRoot,
@@ -428,13 +428,13 @@ void describe("已声明镜像位置", () => {
           userOnly: { retained: true },
         },
       );
-      assert.equal(await readFile(currentPlainPath, "utf8"), "用户配置\n");
+      assert.equal(await readFile(currentPlainPath, "utf8"), "user config\n");
     } finally {
       await rm(targetRoot, { recursive: true, force: true });
     }
   });
 
-  void it("在同一结构化文件中同时协调普通变化和镜像值", () => {
+  void it("reconciles ordinary changes and mirror values in the same structured file", () => {
     const reconciliation = { mirrorSlots };
     const before = structuredProjection(
       configPath,
@@ -484,7 +484,7 @@ void describe("已声明镜像位置", () => {
     );
   });
 
-  void it("按命名文本锚点恢复生成区并保留区外用户文本", () => {
+  void it("restores generated regions by named text anchor while preserving surrounding user text", () => {
     const launcherPath = "deploy/launcher.txt";
     const anchor = {
       id: "tool-version-anchor",
@@ -528,7 +528,7 @@ void describe("已声明镜像位置", () => {
     );
   });
 
-  void it("无法定位仍被引用的锚点时返回阻断冲突", () => {
+  void it("returns a blocking conflict when a still-referenced anchor cannot be located", () => {
     const launcherPath = "deploy/launcher.txt";
     const anchor = {
       id: "tool-version-anchor",
@@ -570,8 +570,8 @@ void describe("已声明镜像位置", () => {
   });
 });
 
-void describe("规划与提交", () => {
-  void it("预览不写入，提交合并用户定制、保留既有路径并创建新包文件", async () => {
+void describe("planning and commit", () => {
+  void it("previews without writing, and commits by merging user edits, keeping existing paths, and creating new package files", async () => {
     const targetRoot = await mkdtemp(
       path.join(tmpdir(), "template-projection-preview-"),
     );
@@ -659,12 +659,18 @@ void describe("规划与提交", () => {
     }
   });
 
-  void it("任一文件冲突都阻断整份计划并保留所有目标内容", async () => {
+  void it("blocks the entire plan on any file conflict and leaves all target files untouched", async () => {
     const targetRoot = await mkdtemp(
       path.join(tmpdir(), "template-projection-no-partial-plan-"),
     );
-    const beforeSource = { identity: "content:before", label: "现有参考包" };
-    const afterSource = { identity: "content:after", label: "新增参考包" };
+    const beforeSource = {
+      identity: "content:before",
+      label: "Existing reference package",
+    };
+    const afterSource = {
+      identity: "content:after",
+      label: "Added reference package",
+    };
     const beforeReadme = textProjection("README.md", "base\n", {
       sources: [beforeSource],
     });
@@ -710,7 +716,7 @@ void describe("规划与提交", () => {
       assert.equal(planning.conflicts[0]?.path, "README.md");
       assert.deepEqual(
         planning.conflicts[0]?.sources?.map(({ label }) => label),
-        ["现有参考包", "新增参考包"],
+        ["Existing reference package", "Added reference package"],
       );
       assert.equal(Object.hasOwn(planning, "plan"), false);
       assert.equal(await readFile(readmePath, "utf8"), "user edit\n");
@@ -721,7 +727,7 @@ void describe("规划与提交", () => {
     }
   });
 
-  void it("拒绝过期的相关事实，但允许无关文件变化后提交", async () => {
+  void it("rejects stale relevant facts while allowing commits after unrelated file changes", async () => {
     const targetRoot = await mkdtemp(
       path.join(tmpdir(), "template-projection-stale-facts-"),
     );
@@ -788,7 +794,7 @@ void describe("规划与提交", () => {
     }
   });
 
-  void it("初始化只接受空目录或缺失目标，并在目标变化后拒绝旧计划", async () => {
+  void it("accepts only an empty or missing target for initialization and rejects stale plans after target changes", async () => {
     const parentRoot = await mkdtemp(
       path.join(tmpdir(), "template-projection-init-target-"),
     );
@@ -798,7 +804,7 @@ void describe("规划与提交", () => {
       {
         path: ".",
         kind: "directory-empty-or-missing",
-        reason: "初始化目标必须为空或不存在",
+        reason: "Initialization target must be empty or missing",
       },
     ];
     const missingTarget = path.join(parentRoot, "missing");
@@ -857,7 +863,7 @@ void describe("规划与提交", () => {
     }
   });
 
-  void it("提交前拒绝被占用的新包路径且保留占用者和既有文件", async () => {
+  void it("rejects an occupied new package path before commit while preserving the occupant and existing files", async () => {
     const targetRoot = await mkdtemp(
       path.join(tmpdir(), "template-projection-new-package-path-"),
     );
@@ -878,7 +884,7 @@ void describe("规划与提交", () => {
       {
         path: "packages/new",
         kind: "must-not-exist",
-        reason: "新包目录已被占用",
+        reason: "New package directory is already occupied",
       },
     ];
 
@@ -916,7 +922,7 @@ void describe("规划与提交", () => {
     }
   });
 
-  void it("真实提交失败时恢复已覆盖文件的内容和完整模式", async () => {
+  void it("restores overwritten file contents and full modes when commit fails", async () => {
     const targetRoot = await mkdtemp(
       path.join(tmpdir(), "template-projection-write-rollback-"),
     );

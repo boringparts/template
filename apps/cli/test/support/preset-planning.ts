@@ -8,7 +8,10 @@ import { createDefaultGenerator } from "@ykdz/template-workspace/default-generat
 
 const generator = createDefaultGenerator({ content: templateContent });
 
-/** 用正式规划结果读取预设实际选择的包身份，测试不再推断作者默认路径。 */
+/**
+ * Runs production init planning for a preset so tests inspect its resolved
+ * packages and projection instead of assuming author default paths.
+ */
 export async function planPreset(member: TemplatePreset): Promise<{
   readonly packages: readonly PackageDefinition[];
   readonly projection: ProjectProjection;
@@ -27,7 +30,7 @@ export async function planPreset(member: TemplatePreset): Promise<{
   });
   if (result.status !== "planned") {
     throw new Error(
-      `预设 ${member.definition.metadata.alias} 无法完成正式规划：${result.status}`,
+      `Preset ${member.definition.metadata.alias} failed production planning: ${result.status}`,
     );
   }
   const selection = result.generationRecord.selections.find(
@@ -37,7 +40,9 @@ export async function planPreset(member: TemplatePreset): Promise<{
       presetIdentity.namespace === member.identity.namespace,
   );
   if (selection === undefined) {
-    throw new Error(`正式规划没有记录预设 ${member.definition.metadata.alias}`);
+    throw new Error(
+      `Production planning did not record preset ${member.definition.metadata.alias}`,
+    );
   }
   const selectedPackageIds = new Set(Object.values(selection.nodes));
   return {

@@ -186,9 +186,9 @@ function fileText(
   return new TextDecoder("utf-8", { fatal: true }).decode(file.content);
 }
 
-await test("只投影显式声明的资源，并保留普通资源来源字节", async (context) => {
+await test("projects only explicitly declared resources and preserves ordinary resource bytes", async (context) => {
   const files = {
-    "src/new.txt": "新源码\n",
+    "src/new.txt": "new source\n",
     "src/data.json": "null\n",
     "test/fixture.json": '{\n\t"include": ["template/example"]\n}\n',
   };
@@ -203,7 +203,7 @@ await test("只投影显式声明的资源，并保留普通资源来源字节",
   }
 });
 
-await test("映射 TypeScript 导入到显式绑定并保留源文件执行权限", async (context) => {
+await test("rewrites TypeScript imports to explicit bindings and preserves source executable permissions", async (context) => {
   const sourceText = [
     'import { own } from "@author/application/internal";',
     'export { shared } from "@author/shared/runtime";',
@@ -254,12 +254,12 @@ await test("映射 TypeScript 导入到显式绑定并保留源文件执行权�
   assert.equal(output.mode, 0o111);
 });
 
-await test("剔除作者资源、脚本和任务，同时在求值中形成原生包文件", async (context) => {
+await test("strips author resources, scripts, and tasks while producing native package files during evaluation", async (context) => {
   const setup = await fixture(
     context,
     {
-      "src/application.txt": "应用\n",
-      "template/definition.js": "作者描述\n",
+      "src/application.txt": "application\n",
+      "template/definition.js": "author definition\n",
       "tsconfig.template.json": "{}\n",
       "tsconfig.json": JSON.stringify({
         include: ["src/**/*.ts", "template/**/*.ts"],
@@ -342,7 +342,7 @@ await test("剔除作者资源、脚本和任务，同时在求值中形成原�
   assert.deepEqual(packageManifest.scripts, { test: "node --test" });
 });
 
-await test("保留依赖协议，并只重映射精确包任务身份", async (context) => {
+await test("preserves dependency protocols and rewrites only exact package task identities", async (context) => {
   const setup = await fixture(
     context,
     {
@@ -365,7 +365,7 @@ await test("保留依赖协议，并只重映射精确包任务身份", async (c
         devDependencies: { "@author/config": "workspace:*" },
         optionalDependencies: { "@author/config": "workspace:../config" },
         peerDependencies: { "@author/component": "^1.0.0" },
-        description: "说明 @author/config#build 不属于任务身份",
+        description: "Note that @author/config#build is not a task identity",
       },
     },
   );
@@ -419,7 +419,7 @@ await test("保留依赖协议，并只重映射精确包任务身份", async (c
   });
   assert.equal(
     contribution.facts.manifest.description,
-    "说明 @author/config#build 不属于任务身份",
+    "Note that @author/config#build is not a task identity",
   );
   const turboDocument = contribution.facts.nativeDocuments.find(
     ({ path: documentPath }) => documentPath === "turbo.json",

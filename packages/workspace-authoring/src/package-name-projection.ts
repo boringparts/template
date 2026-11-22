@@ -1,4 +1,4 @@
-/** 投影结构化配置中的精确包身份、公开子路径和 Turbo 任务身份。 */
+/** Rewrites exact package names, subpath specifiers (`pkg/...`), and Turbo task specifiers (`pkg#...`) across JSON keys and string values. */
 export function mapPackageNamesInJson(
   value: unknown,
   names: ReadonlyMap<string, string>,

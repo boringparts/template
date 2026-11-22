@@ -54,7 +54,7 @@ async function uiTsconfigPaths(root: string): Promise<readonly string[]> {
   return configPaths.toSorted();
 }
 
-/** 语法树中是否出现仓库已命名的 TypeScript 6 编程 API 导入。 */
+/** Returns whether the syntax tree imports the repository's TypeScript 6 programmatic API. */
 function importsTypeScript6Api(sourceFile: ts.SourceFile): boolean {
   let found = false;
   function visitNode(node: ts.Node): void {
@@ -93,7 +93,7 @@ function readTypeScriptSource(absolutePath: string): ts.SourceFile {
   );
 }
 
-/** 真实生成仓库内直接导入 TypeScript 编程 API 的脚本路径。 */
+/** Script paths in a generated repository that directly import the TypeScript programmatic API. */
 async function compilerApiScriptPaths(
   root: string,
 ): Promise<readonly string[]> {
@@ -180,7 +180,9 @@ void describe("Erasable TypeScript enforcement", () => {
             JSON.stringify(initialized),
           );
           if (initialized.status !== "success") {
-            throw new Error(`公开预设初始化失败：${preset.alias}`);
+            throw new Error(
+              `Failed to initialize public preset: ${preset.alias}`,
+            );
           }
           await mkdir(path.join(targetDir, "node_modules/@vue"), {
             recursive: true,
@@ -355,7 +357,9 @@ void describe("Erasable TypeScript enforcement", () => {
           JSON.stringify(initialized),
         );
         if (initialized.status !== "success") {
-          throw new Error(`公开预设初始化失败：${preset.alias}`);
+          throw new Error(
+            `Failed to initialize public preset: ${preset.alias}`,
+          );
         }
         return { initialized, targetDir };
       }),
@@ -373,7 +377,7 @@ void describe("Erasable TypeScript enforcement", () => {
         ),
       ]),
     );
-    /** 真实生成文件中直接导入 TypeScript 6 编程 API 的脚本路径。 */
+    /** Script paths in generated files that directly import the TypeScript 6 programmatic API. */
     const typescript6ApiScripts = [
       ...new Set(
         (

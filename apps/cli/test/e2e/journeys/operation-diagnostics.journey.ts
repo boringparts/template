@@ -34,7 +34,7 @@ const journey: CliJourney = {
     const snapshotPath = path.join(context.workDir, "binding-before-add.json");
     const commands: CliJourneyCommand[] = [
       {
-        name: "创建必要绑定反例项目",
+        name: "create project for missing required dependency binding case",
         args: [
           "init",
           "binding-project",
@@ -45,7 +45,7 @@ const journey: CliJourney = {
         ],
       },
       {
-        name: "必要绑定缺失时运行实际 CLI 加包进程",
+        name: "run CLI add package process when a required dependency binding is missing",
         cwd: project,
         async prepare() {
           const generationPath = path.join(
@@ -71,7 +71,9 @@ const journey: CliJourney = {
               "@ykdz/reference-tooling-config",
           );
           if (library === undefined || configuration === undefined) {
-            throw new Error("生成记录缺少预期的共享配置包实例");
+            throw new Error(
+              "Generation record is missing the expected shared tooling-config package instance",
+            );
           }
           const configurationKey = Object.entries(
             library.dependencyBindings,
@@ -80,7 +82,9 @@ const journey: CliJourney = {
               packageDefinitionId === configuration.packageDefinitionId,
           )?.[0];
           if (configurationKey === undefined) {
-            throw new Error("生成记录没有共享配置包绑定");
+            throw new Error(
+              "Generation record is missing the shared tooling-config dependency binding",
+            );
           }
           delete library.dependencyBindings[configurationKey];
           await writeFile(
@@ -113,8 +117,14 @@ const journey: CliJourney = {
     assert.equal(bindingFailure?.stdout, "");
     const bindingEnvelope = JSON.parse(bindingFailure?.stderr ?? "");
     assert.equal(bindingEnvelope.variant, "operationFailed");
-    assert.match(bindingEnvelope.data.error.message, /生成记录.*依赖绑定/u);
-    assert.match(bindingEnvelope.data.error.suggestion, /配置.*目录/u);
+    assert.match(
+      bindingEnvelope.data.error.message,
+      /Dependency bindings in generation record/u,
+    );
+    assert.match(
+      bindingEnvelope.data.error.suggestion,
+      /configuration and directory/u,
+    );
     assert.doesNotMatch(
       bindingEnvelope.data.error.message,
       /file:\/\/|\/(?:tmp|workspaces|root)\//u,

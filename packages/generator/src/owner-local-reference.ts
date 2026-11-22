@@ -21,7 +21,9 @@ function publicReferenceSpecifierAddress(specifier: string): {
     specifier.startsWith("file:") ||
     specifier.includes("\\")
   ) {
-    throw new Error(`原生依赖必须使用规范公开包specifier：${specifier}`);
+    throw new Error(
+      `Native dependency must use a canonical public package specifier: ${specifier}`,
+    );
   }
   const parts = specifier.split("/");
   const packageLength = specifier.startsWith("@") ? 2 : 1;
@@ -30,7 +32,9 @@ function publicReferenceSpecifierAddress(specifier: string): {
     parts.slice(0, packageLength).some((part) => part.length === 0) ||
     parts.slice(packageLength).some((part) => part.length === 0)
   ) {
-    throw new Error(`原生依赖的公开包specifier无效：${specifier}`);
+    throw new Error(
+      `Invalid public package specifier for native dependency: ${specifier}`,
+    );
   }
   const packageName = parts.slice(0, packageLength).join("/");
   const exportSegments = parts.slice(packageLength);
@@ -46,15 +50,17 @@ function canonicalModuleURL(value: string, label: string): string {
   try {
     url = new URL(value);
   } catch (error) {
-    throw new Error(`${label}不是绝对模块URL：${value}`, { cause: error });
+    throw new Error(`${label} is not an absolute module URL: ${value}`, {
+      cause: error,
+    });
   }
   if (url.protocol !== "file:") {
-    throw new Error(`${label}必须是文件URL：${value}`);
+    throw new Error(`${label} must be a file URL: ${value}`);
   }
   return url.href;
 }
 
-/** 用consumer所在命名空间、公开地址和解析模块URL规范化引用身份。 */
+/** Normalizes a reference dependency to its canonical `ContentIdentity` using the consumer's namespace, public package specifier, and resolved module URL. Throws if an `ownerLocal` dependency does not resolve to the current revision within the same namespace. */
 export function resolveReferenceDependencyIdentity(options: {
   readonly consumerIdentity: ContentIdentity;
   readonly dependency: ReferenceDependency;
@@ -72,11 +78,14 @@ export function resolveReferenceDependencyIdentity(options: {
     resolved = ownerLocal.resolve(ownerLocal.specifier);
   } catch (error) {
     throw new Error(
-      `原生依赖公开入口解析失败：${ownerLocal.specifier}：${errorMessage(error)}`,
+      `Failed to resolve native dependency public entry ${ownerLocal.specifier}: ${errorMessage(error)}`,
       { cause: error },
     );
   }
-  const resolvedURL = canonicalModuleURL(resolved, "原生依赖解析结果");
+  const resolvedURL = canonicalModuleURL(
+    resolved,
+    "Resolved native dependency",
+  );
   const namespaceCandidates = options.members.filter(
     (member) =>
       member.kind === "reference" &&
@@ -86,12 +95,14 @@ export function resolveReferenceDependencyIdentity(options: {
   );
   const resolvedCandidates = namespaceCandidates.filter(
     (member) =>
-      canonicalModuleURL(member.source.moduleURL, "内容成员公开模块入口") ===
-      resolvedURL,
+      canonicalModuleURL(
+        member.source.moduleURL,
+        "Content member public module entry",
+      ) === resolvedURL,
   );
   if (resolvedCandidates.length > 1) {
     throw new Error(
-      `原生依赖解析到同一公开身份的多个内容修订，不能猜选：${ownerLocal.specifier}`,
+      `Native dependency resolved to multiple content revisions with the same public identity: ${ownerLocal.specifier}`,
     );
   }
   if (resolvedCandidates.length === 1) {
@@ -99,22 +110,24 @@ export function resolveReferenceDependencyIdentity(options: {
   }
   if (namespaceCandidates.length > 0) {
     throw new Error(
-      `原生依赖 ${ownerLocal.specifier} 未解析到当前内容修订的公开模块入口`,
+      `Native dependency ${ownerLocal.specifier} did not resolve to the current content revision's public module entry`,
     );
   }
   const sameNamespaceModuleCandidates = options.members.filter(
     (member) =>
       member.kind === "reference" &&
       member.identity.namespace === options.consumerIdentity.namespace &&
-      canonicalModuleURL(member.source.moduleURL, "内容成员公开模块入口") ===
-        resolvedURL,
+      canonicalModuleURL(
+        member.source.moduleURL,
+        "Content member public module entry",
+      ) === resolvedURL,
   );
   if (sameNamespaceModuleCandidates.length > 0) {
     throw new Error(
-      `原生依赖公开地址与实际内容入口不一致：${ownerLocal.specifier}`,
+      `Native dependency public address does not match the actual content entry: ${ownerLocal.specifier}`,
     );
   }
   throw new Error(
-    `原生依赖 ${ownerLocal.specifier} 必须由消费内容的同一命名空间公开，且解析到当前修订`,
+    `Native dependency ${ownerLocal.specifier} must be published in the same namespace as the consumer and resolve to the current revision`,
   );
 }

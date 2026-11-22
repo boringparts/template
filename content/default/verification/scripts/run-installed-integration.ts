@@ -106,7 +106,9 @@ async function relaySignal(signal: Signal): Promise<void> {
     }
     if (childClosed) return;
     if (!registeredWorker && Date.now() >= registrationDeadline)
-      throw new Error("未能在 5 秒内发现原生测试文件 worker");
+      throw new Error(
+        "Failed to discover a native test file worker within 5 seconds",
+      );
     await delay(25);
   }
 }
@@ -129,12 +131,14 @@ function handleSignal(signal: Signal): void {
     .then(() => relaySignal(signal))
     .catch((error: unknown) => {
       relayFailure = error;
-      process.stderr.write(`无法转发集成取消信号：${String(error)}\n`);
+      process.stderr.write(
+        `Failed to forward integration cancellation signal: ${String(error)}\n`,
+      );
     });
   forceKillTimer = setTimeout(() => {
     forcedTermination = true;
     process.stderr.write(
-      "集成测试未在 30 秒内完成取消清理，将结束其原生进程组。\n",
+      "Integration tests did not finish cancellation cleanup within 30 seconds; terminating their process group.\n",
     );
     stopRunnerGroup("SIGKILL");
   }, 30_000);
@@ -168,7 +172,9 @@ try {
       completion.code ?? (completion.signal === "SIGINT" ? 130 : 1);
   }
 } catch (error) {
-  process.stderr.write(`checks 原生集成测试入口失败：${String(error)}\n`);
+  process.stderr.write(
+    `Native integration test runner failed: ${String(error)}\n`,
+  );
   stopRunnerGroup("SIGKILL");
   process.exitCode = 1;
 } finally {
@@ -176,7 +182,9 @@ try {
   try {
     await rm(ownerDirectory, { recursive: true, force: true });
   } catch (error) {
-    process.stderr.write(`无法清理集成测试 owner 状态：${String(error)}\n`);
+    process.stderr.write(
+      `Failed to clean up integration test owner state: ${String(error)}\n`,
+    );
     process.exitCode = 1;
   }
 }

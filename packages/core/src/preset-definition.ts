@@ -2,32 +2,34 @@ import type { ContentIdentity } from "./content-identity.ts";
 
 export type PresetOperation = "init" | "add";
 
-/** 声明预设项目行为的所属原生包出口。 */
+/** Owning native package export that declares a preset's project behavior. */
 export type PresetOwnerDeclaration = {
   readonly packageName: string;
   readonly exportPath: string;
 };
 
-/** 记录中的预设选择使用完整规范身份。 */
+/** Persisted preset selection represented by its full canonical content identity. */
 export type PresetOwnerSelection = ContentIdentity;
 
-/** 从包清单实际公开指向预设声明的出口推导其持久身份。 */
+/** Derives a preset's owner declaration from an export path published in its package.json manifest. */
 export function presetOwnerFromManifest(
   manifest: unknown,
   exportPath: string,
 ): PresetOwnerDeclaration {
   if (!isRecord(manifest) || typeof manifest.name !== "string") {
-    throw new Error("预设所属包清单缺少包名");
+    throw new Error("Preset owner package manifest is missing a name");
   }
-  requireText(manifest.name, "所属包名");
+  requireText(manifest.name, "owner package name");
   if (!isRecord(manifest.exports)) {
-    throw new Error("预设所属包清单缺少公开出口");
+    throw new Error("Preset owner package manifest is missing an exports map");
   }
   if (
     (exportPath !== "." && !exportPath.startsWith("./")) ||
     !Object.hasOwn(manifest.exports, exportPath)
   ) {
-    throw new Error("预设所属包清单未公开所选预设入口");
+    throw new Error(
+      "Preset owner package manifest does not publish the selected preset entry",
+    );
   }
   return { packageName: manifest.name, exportPath };
 }
@@ -43,11 +45,11 @@ export type PresetNode<
   CreationInput = never,
 > = {
   readonly reference: Reference;
-  /** 将此节点的依赖显式绑定到同一次预设选择中的节点。 */
+  /** Explicitly binds this node's dependency requirement keys to sibling nodes in the same preset selection. */
   readonly dependencyBindings?: Readonly<Record<string, string>>;
-  /** 由工作区策略解释的节点布局覆盖。 */
+  /** Node layout override interpreted by the workspace composition policy. */
   readonly layout?: Layout;
-  /** 按操作应用、并可由单次调用补充的原生创建输入。 */
+  /** Default creation input per operation, overridable by individual invocations. */
   readonly creationInput?: Partial<Record<PresetOperation, CreationInput>>;
 };
 
@@ -106,7 +108,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function requireText(value: unknown, label: string): asserts value is string {
   if (typeof value !== "string" || value.trim().length === 0) {
-    throw new Error(`预设${label}不能为空`);
+    throw new Error(`Preset ${label} must not be empty`);
   }
 }
 
@@ -116,7 +118,7 @@ type PresetBaseOptions<Nodes extends PresetNodeMap> = {
   readonly nodes: Nodes;
 };
 
-/** 创建不读取资源、不执行规划的预设组合声明。 */
+/** Validates and freezes a declarative preset definition without reading resources or running planning. */
 export function definePreset<const Nodes extends PresetNodeMap>(
   options: PresetBaseOptions<Nodes> & {
     readonly owner?: PresetOwnerDeclaration;
@@ -131,38 +133,40 @@ export function definePreset<const Nodes extends PresetNodeMap>(
     readonly owner?: PresetOwnerDeclaration;
   },
 ): unknown {
-  requireText(options.metadata.alias, "别名");
-  requireText(options.metadata.title, "标题");
-  requireText(options.metadata.description, "说明");
+  requireText(options.metadata.alias, "alias");
+  requireText(options.metadata.title, "title");
+  requireText(options.metadata.description, "description");
   if (options.owner !== undefined) {
     if (!isRecord(options.owner)) {
-      throw new Error("预设所属包身份无效");
+      throw new Error("Preset owner declaration is invalid");
     }
-    requireText(options.owner.packageName, "所属包名");
-    requireText(options.owner.exportPath, "公开导出路径");
+    requireText(options.owner.packageName, "owner package name");
+    requireText(options.owner.exportPath, "public export path");
     if (
       options.owner.exportPath !== "." &&
       !options.owner.exportPath.startsWith("./")
     ) {
-      throw new Error("预设公开导出路径必须是包的公开入口");
+      throw new Error(
+        "Preset public export path must be '.' or start with './'",
+      );
     }
   }
   if (!Array.isArray(options.operations) || options.operations.length === 0) {
-    throw new Error("预设至少允许一种操作");
+    throw new Error("Preset must allow at least one operation");
   }
   const operations: PresetOperation[] = [];
   for (const operation of options.operations) {
     if (operation !== "init" && operation !== "add") {
-      throw new Error(`预设操作无效：${String(operation)}`);
+      throw new Error(`Invalid preset operation: ${String(operation)}`);
     }
     if (operations.includes(operation)) {
-      throw new Error(`预设操作重复：${operation}`);
+      throw new Error(`Duplicate preset operation: ${operation}`);
     }
     operations.push(operation);
   }
   const nodeEntries = Object.entries(options.nodes);
   if (nodeEntries.length === 0) {
-    throw new Error("预设至少声明一个节点");
+    throw new Error("Preset must declare at least one node");
   }
   const independentReferences = new Set<PresetReference>();
   const nodeIdentities = new Set(nodeEntries.map(([identity]) => identity));
@@ -172,7 +176,7 @@ export function definePreset<const Nodes extends PresetNodeMap>(
   > = {};
   for (const [identity, value] of nodeEntries) {
     if (!/^[a-z][a-z0-9-]*$/u.test(identity)) {
-      throw new Error(`预设节点身份无效：${identity}`);
+      throw new Error(`Invalid preset node identity: ${identity}`);
     }
     if (
       !isRecord(value) ||
@@ -181,36 +185,40 @@ export function definePreset<const Nodes extends PresetNodeMap>(
       value.reference.alias.trim().length === 0 ||
       !["shared", "independent"].includes(String(value.reference.instance))
     ) {
-      throw new Error(`预设节点缺少有效参考：${identity}`);
+      throw new Error(`Preset node is missing a valid reference: ${identity}`);
     }
     const reference = value.reference as NodeReference<Nodes>;
     if (reference.instance === "independent") {
       if (independentReferences.has(reference)) {
-        throw new Error(`预设重复选择独立参考：${reference.alias}`);
+        throw new Error(
+          `Preset selects independent reference more than once: ${reference.alias}`,
+        );
       }
       independentReferences.add(reference);
     }
     if (value.creationInput !== undefined) {
       if (!isRecord(value.creationInput)) {
-        throw new Error(`预设节点创建输入无效：${identity}`);
+        throw new Error(`Invalid preset node creationInput: ${identity}`);
       }
       for (const operation of Object.keys(value.creationInput)) {
         if (
           (operation !== "init" && operation !== "add") ||
           !options.operations.includes(operation)
         ) {
-          throw new Error(`预设节点创建输入操作无效：${identity}/${operation}`);
+          throw new Error(
+            `Invalid preset node creationInput operation: ${identity}/${operation}`,
+          );
         }
         if (!isRecord(value.creationInput[operation])) {
           throw new Error(
-            `预设节点创建输入必须是对象：${identity}/${operation}`,
+            `Preset node creationInput must be an object: ${identity}/${operation}`,
           );
         }
       }
     }
     if (value.dependencyBindings !== undefined) {
       if (!isRecord(value.dependencyBindings)) {
-        throw new Error(`预设节点依赖绑定无效：${identity}`);
+        throw new Error(`Invalid preset node dependencyBindings: ${identity}`);
       }
       for (const [key, target] of Object.entries(value.dependencyBindings)) {
         if (
@@ -218,10 +226,14 @@ export function definePreset<const Nodes extends PresetNodeMap>(
           typeof target !== "string" ||
           target.trim().length === 0
         ) {
-          throw new Error(`预设节点依赖绑定无效：${identity}/${key}`);
+          throw new Error(
+            `Invalid preset node dependency binding: ${identity}/${key}`,
+          );
         }
         if (!nodeIdentities.has(target)) {
-          throw new Error(`预设节点依赖绑定目标不存在：${identity}/${key}`);
+          throw new Error(
+            `Preset node dependency binding target does not exist: ${identity}/${key}`,
+          );
         }
       }
     }

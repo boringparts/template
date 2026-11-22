@@ -91,7 +91,7 @@ async function withUnreadableAuthorDirectories<Result>(
 }
 
 void it(
-  "正式安装Vue与Vue-Hono内容后以新进程初始化、加包并运行生成项目任务",
+  "initializes, adds packages, and runs generated project tasks in fresh processes after installing packed Vue and Vue-Hono content",
   { timeout: 600_000 },
   async () => {
     const temporaryRoot = await mkdtemp(
@@ -196,12 +196,12 @@ void it(
           "let customizedApi;",
           "if (!initialize) {",
           '  const webSourcePath = "apps/web/src/App.vue";',
-          "  customizedWeb = `${await readText(webSourcePath)}\\n<!-- 用户页面定制 -->\\n`;",
+          "  customizedWeb = `${await readText(webSourcePath)}\\n<!-- user web customization -->\\n`;",
           "  await writeFile(`${targetRoot}/${webSourcePath}`, customizedWeb);",
           "  await chmod(`${targetRoot}/${webSourcePath}`, 0o640);",
           "  if (!vueOnly) {",
           '    const apiSourcePath = "apps/api/src/server.ts";',
-          "    customizedApi = `${await readText(apiSourcePath)}\\n// 用户 API 定制\\n`;",
+          "    customizedApi = `${await readText(apiSourcePath)}\\n// user API customization\\n`;",
           "    await writeFile(`${targetRoot}/${apiSourcePath}`, customizedApi);",
           "  }",
           '  const rootManifest = JSON.parse(await readText("package.json"));',

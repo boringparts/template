@@ -1,7 +1,7 @@
 import { loadContentSource } from "@ykdz/template-generator/content-source";
 export { deriveContentMembers as deriveTemplateMembers } from "@ykdz/template-core/content-identity";
 
-/** 所有可选择内容只在这里登记一次，并从原生公开入口装载。 */
+/** Registers all selectable content once and loads each member from its native public entry point. */
 export const templateContent = await loadContentSource({
   namespace: "ykdz",
   resolve: (specifier) => import.meta.resolve(specifier),

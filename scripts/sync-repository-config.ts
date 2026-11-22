@@ -49,7 +49,9 @@ function replaceStrings(
       property === undefined ||
       !ts.isStringLiteral(property.initializer)
     )
-      throw new Error(`${source.fileName}: 无法识别唯一字符串字段 ${name}`);
+      throw new Error(
+        `${source.fileName}: could not identify unique string field ${name}`,
+      );
     edits.push({
       start: property.initializer.getStart(source),
       end: property.initializer.end,
@@ -83,16 +85,20 @@ async function prepareOwnerTarget(
   const entry = resolve.resolve(specifier);
   const ownerModule: unknown = await import(pathToFileURL(entry).href);
   if (!isRecord(ownerModule))
-    throw new Error(`${specifier}: 无法读取维护公开入口`);
+    throw new Error(`${specifier}: could not read public configuration entry`);
   const prepare: unknown = Reflect.get(
     ownerModule,
     "prepareRepositoryConfigurationTarget",
   );
   if (typeof prepare !== "function")
-    throw new Error(`${specifier}: 缺少维护目标准备能力`);
+    throw new Error(
+      `${specifier}: missing prepareRepositoryConfigurationTarget export`,
+    );
   const target: unknown = await Reflect.apply(prepare, undefined, []);
   if (!isPreparedOwnerTarget(target))
-    throw new Error(`${specifier}: 维护目标不符合宿主合同`);
+    throw new Error(
+      `${specifier}: prepared configuration target violates host contract`,
+    );
   return target;
 }
 
@@ -118,7 +124,7 @@ function projectCli(file: string, contents: string, value: string): string {
     initializer === undefined ||
     !ts.isObjectLiteralExpression(initializer)
   )
-    throw new Error(`${file}: 无法识别 engines`);
+    throw new Error(`${file}: could not identify engines object`);
   return replaceStrings(source, initializer, { node: value });
 }
 
@@ -132,7 +138,10 @@ async function replaceFile(file: string, contents: string): Promise<void> {
   }
 }
 
-/** 同步与只读检查消费同一完整计划；输入预检期间不改写目标。 */
+/**
+ * Computes the full repository configuration projection without modifying any
+ * targets; shared by sync and read-only check.
+ */
 export async function planRepositoryConfiguration(
   repositoryRoot: string,
 ): Promise<readonly Target[]> {
@@ -195,6 +204,7 @@ export async function planRepositoryConfiguration(
   return targets;
 }
 
+/** Returns drift diagnostics for managed repository configuration targets without modifying files. */
 export async function checkRepositoryConfiguration(
   repositoryRoot: string,
 ): Promise<readonly string[]> {
@@ -202,11 +212,14 @@ export async function checkRepositoryConfiguration(
     .filter(({ before, after }) => before !== after)
     .map(
       ({ label, before }) =>
-        `${label} ${before === undefined ? "缺失受管投影" : "配置投影漂移"}；请运行 pnpm run sync`,
+        `${label}: ${before === undefined ? "missing managed projection" : "configuration projection drifted"}; run pnpm run sync`,
     );
 }
 
-/** 写入替身仅用于系统边界故障验收。 */
+/**
+ * Applies drifted repository configuration targets and returns updated labels.
+ * The optional `replace` hook exists only for fault-injection tests at the write boundary.
+ */
 export async function syncRepositoryConfiguration(
   repositoryRoot: string,
   replace: (label: string, write: () => Promise<void>) => Promise<void> = (
@@ -224,7 +237,7 @@ export async function syncRepositoryConfiguration(
     }
   } catch (error) {
     throw new Error(
-      `仓库配置同步写入失败；已更新文件：${updated.length === 0 ? "无" : updated.join("、")}；修复环境后重新运行 sync:repository`,
+      `Repository configuration sync failed while writing; updated files: ${updated.length === 0 ? "none" : updated.join(", ")}; fix the environment and re-run sync:repository`,
       { cause: error },
     );
   }
@@ -241,7 +254,8 @@ if (
       index === -1
         ? path.resolve(import.meta.dirname, "..")
         : process.argv[index + 1];
-    if (root === undefined) throw new Error("--repository-root 缺少路径");
+    if (root === undefined)
+      throw new Error("--repository-root requires a path");
     if (process.argv.includes("--check")) {
       const diagnostics = await checkRepositoryConfiguration(
         path.resolve(root),
@@ -249,13 +263,13 @@ if (
       if (diagnostics.length > 0) {
         console.error(diagnostics.join("\n"));
         process.exitCode = 1;
-      } else console.log("仓库配置静态投影一致");
+      } else console.log("Repository configuration projections are up to date");
     } else {
       const updated = await syncRepositoryConfiguration(path.resolve(root));
       console.log(
         updated.length === 0
-          ? "仓库配置静态投影一致，无需修改"
-          : `已同步仓库配置：${updated.join("、")}`,
+          ? "Repository configuration projections are up to date; no changes needed"
+          : `Synchronized repository configuration: ${updated.join(", ")}`,
       );
     }
   } catch (error) {

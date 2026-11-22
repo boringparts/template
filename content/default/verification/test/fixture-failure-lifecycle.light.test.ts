@@ -57,7 +57,7 @@ function hasErrorMessage(error: unknown, expected: string): boolean {
   );
 }
 
-void it("部分启动失败后先恢复属主，再移除所属容器", async () => {
+void it("restores workspace ownership before removing the owned container after partial startup failure", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "fixture-partial-up-owner-"));
   const projectDir = path.join(root, "project");
   await mkdir(projectDir, { recursive: true });
@@ -114,7 +114,7 @@ void it("部分启动失败后先恢复属主，再移除所属容器", async ()
   }
 });
 
-void it("清理时首次恢复属主失败后，execute 重试成功再移除容器", async () => {
+void it("retries ownership restoration during execute cleanup and removes the container once it succeeds", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "fixture-owner-retry-"));
   const projectDir = path.join(root, "project");
   await mkdir(projectDir, { recursive: true });
@@ -177,7 +177,7 @@ void it("清理时首次恢复属主失败后，execute 重试成功再移除容
   }
 });
 
-void it("连续恢复属主失败时保留容器并允许显式 close 再试", async () => {
+void it("keeps the container and allows explicit close retry when ownership restoration fails repeatedly", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "fixture-owner-persistent-"));
   const projectDir = path.join(root, "project");
   await mkdir(projectDir, { recursive: true });
@@ -226,9 +226,14 @@ void it("连续恢复属主失败时保留容器并允许显式 close 再试", a
     assert.ok(failure instanceof AggregateError);
     assert.ok(hasCause(failure, operationFailure));
     assert.ok(hasErrorMessage(failure, "owner restore remains unavailable"));
-    assert.match(failure.message, /清理未完成/u);
+    assert.match(failure.message, /container cleanup is incomplete/u);
     assert.ok(notifiedCleanupFailure instanceof AggregateError);
-    assert.ok(hasErrorMessage(notifiedCleanupFailure, "清理未完成"));
+    assert.ok(
+      hasErrorMessage(
+        notifiedCleanupFailure,
+        "container cleanup is incomplete",
+      ),
+    );
     assert.deepStrictEqual(events, ["restore-1", "restore-2"]);
     assert.equal(removeAttempts, 0);
 

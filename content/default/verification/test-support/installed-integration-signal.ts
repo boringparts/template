@@ -8,7 +8,9 @@ const workerPidDirectory =
 const signalFile = process.env.TEMPLATE_CHECKS_INTEGRATION_SIGNAL_FILE;
 
 function signalError(signal: NodeJS.Signals): Error {
-  return new Error(`集成验收收到 ${signal}，正在停止当前安装型场景`);
+  return new Error(
+    `Installed integration received ${signal}; stopping the current scenario`,
+  );
 }
 
 function abortForSignal(signal: NodeJS.Signals): void {

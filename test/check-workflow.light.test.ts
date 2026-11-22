@@ -457,7 +457,7 @@ void describe("Fixture Verification Evidence check workflow", () => {
     assert.equal(upload.with?.["retention-days"], 7);
   });
 
-  void it("在诊断上传前清理 Fixture 容器并恢复工作区属主", async () => {
+  void it("cleans up Fixture containers and restores workspace ownership before uploading diagnostics", async () => {
     const workflow = await checkWorkflow();
     const check = workflow.jobs.check;
     const steps = check.steps;

@@ -19,7 +19,7 @@ type RootDependencyMaintenanceContribution = Pick<
   "dependencyMaintenance"
 >;
 
-/** 在包求值前合并所选 owner 的相同工具要求，并报告相互冲突的来源。 */
+/** Merges identical tool requirements across selected owners before package evaluation; throws if two sources conflict. */
 export function composeApplicationRequirements(
   declarations: readonly {
     readonly source: string;
@@ -36,7 +36,7 @@ export function composeApplicationRequirements(
       !isDeepStrictEqual(rustToolchain, requirement)
     ) {
       throw new Error(
-        `工作区 Rust 工具链要求冲突：来源 ${rustToolchainSource} 与 ${declaration.source}`,
+        `Conflicting workspace Rust toolchain requirements between ${rustToolchainSource} and ${declaration.source}`,
       );
     }
     rustToolchain ??= requirement;
@@ -45,7 +45,7 @@ export function composeApplicationRequirements(
   return rustToolchain === undefined ? {} : { rustToolchain };
 }
 
-/** 将本次目标根事实或初始化快照固定为包求值可见的稳定共同输入。 */
+/** Resolves target root facts or the initialization snapshot into stable common inputs visible to package evaluation. */
 export function resolveApplicationRequirements(options: {
   readonly declared: Pick<ApplicationRequirements, "rustToolchain">;
   readonly rustToolchainTarget?: RustToolchainTarget;
@@ -65,7 +65,7 @@ export function resolveApplicationRequirements(options: {
   };
 }
 
-/** 合并包及根文件拥有者的依赖维护声明。 */
+/** Merges dependency maintenance declarations from package contributions and root file owners. */
 export function projectDependencyMaintenancePolicy(options: {
   readonly contributions: readonly DependencyMaintenanceContribution[];
   readonly rootContributions: readonly RootDependencyMaintenanceContribution[];

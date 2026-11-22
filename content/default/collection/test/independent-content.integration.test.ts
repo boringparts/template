@@ -25,7 +25,7 @@ import { unprivilegedProcessOptions } from "../test-support/unprivileged-process
 
 const workspaceRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 
-void it("任意内容集合仅携带显式执行闭包并交付未被初始化选择的拥有者资源", async () => {
+void it("carries only the explicit execution closure for an arbitrary content collection and delivers unselected owner resources", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "independent-content-"));
   const ownerRoot = path.join(root, "owner");
   const consumer = path.join(root, "consumer");
@@ -51,7 +51,7 @@ void it("任意内容集合仅携带显式执行闭包并交付未被初始化�
   );
   await writeFile(
     path.join(ownerRoot, "resources/latent.txt"),
-    "完整资源声明\n",
+    "complete resource declaration\n",
   );
   await writeFile(
     path.join(ownerRoot, "src/index.ts"),
@@ -63,7 +63,7 @@ void it("任意内容集合仅携带显式执行闭包并交付未被初始化�
       '  instance: "independent",',
       "  manifest,",
       '  async prepare() { return { resources: [{ path: "resources/latent.txt", content: await readFile(new URL("../resources/latent.txt", import.meta.url)), mode: 0 }], facts: {} }; },',
-      '  parseCreationInput(value: unknown) { if (typeof value !== "object" || value === null || !("name" in value) || typeof value.name !== "string") throw new Error("创建输入无效"); return { name: value.name }; },',
+      '  parseCreationInput(value: unknown) { if (typeof value !== "object" || value === null || !("name" in value) || typeof value.name !== "string") throw new Error("Invalid creation input"); return { name: value.name }; },',
       '  createDefinition({ creationInput }: { readonly creationInput: { readonly name: string } | undefined }) { const name = creationInput?.name ?? "neutral"; return { name, path: `packages/${name}`, role: "independent" }; },',
       "  evaluate({ packageDefinitionId }: { readonly packageDefinitionId: `package-${string}` }) { return { packageDefinitionId, files: [], facts: {} }; },",
       '  unselectedResource: () => readFile(new URL("../resources/latent.txt", import.meta.url), "utf8"),',
@@ -161,7 +161,7 @@ void it("任意内容集合仅携带显式执行闭包并交付未被初始化�
         'import { templateContent } from "@fixture/neutral-collection";',
         'await assert.rejects(readdir(process.argv[2]), { code: "EACCES" });',
         'assert.equal(templateContent[0].alias, "neutral");',
-        'assert.equal(await templateContent[0].definition.unselectedResource(), "完整资源声明\\n");',
+        'assert.equal(await templateContent[0].definition.unselectedResource(), "complete resource declaration\\n");',
         'for (const name of ["@ykdz/template-workspace-authoring/content-artifact", "never-install-target-application"]) { assert.throws(() => import.meta.resolve(name)); }',
       ].join("\n"),
     );

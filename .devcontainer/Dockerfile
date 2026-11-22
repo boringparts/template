@@ -2,10 +2,10 @@ ARG NODE_VERSION
 FROM node:${NODE_VERSION}-bookworm-slim
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-# 覆盖镜像支持的两个用户，非交互命令也能直接执行全局工具。
+# Cover both users supported by the image so non-interactive commands can run global tools directly.
 ENV PATH="/root/.local/share/pnpm/bin:/home/node/.local/share/pnpm/bin:$PATH"
 # @template-mirror pnpm-bootstrap
-COPY --from=ghcr.io/pnpm/pnpm:12.9.1 /opt/pnpm /opt/pnpm
+COPY --from=ghcr.io/pnpm/pnpm:12.21.0 /opt/pnpm /opt/pnpm
 # @end-template-mirror
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \

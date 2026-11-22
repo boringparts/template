@@ -10,13 +10,13 @@ import type { ReferencePackageDefinition } from "@ykdz/template-core/reference-p
 
 export type ContentSourceOptions = Readonly<{
   readonly namespace: string;
-  /** 解析函数必须由拥有该集合的模块提供。 */
+  /** Module resolver provided by the module owning this content collection. */
   readonly resolve: (specifier: string) => string;
-  /** 每个成员只登记一个实际公开代码入口。 */
+  /** Public code entry specifiers; register only one entry per member. */
   readonly members: readonly string[];
 }>;
 
-/** 以公开specifier和字面量import共同选择一个内容模块。 */
+/** Selects a content module using both its public package specifier and a literal dynamic import for type inference. */
 export type ContentSourceEntry<Module = unknown> = Readonly<{
   readonly specifier: string;
   readonly load: () => Promise<Module>;
@@ -32,11 +32,11 @@ type DefinitionFromModule<Module> = Module extends {
     ? LoadedContentMember<Definition, "preset">
     : never;
 
-/** 从公开原生模块导出推导一个来源成员的定义与种类。 */
+/** Infers a loaded content member's definition type and kind from a public native module namespace. */
 export type LoadedContentSourceMember<Module = unknown> =
   DefinitionFromModule<Module>;
 
-/** 保留每个选择回调中真实模块的主定义类型和种类。 */
+/** Preserves the concrete definition type and kind of each entry's loader callback. */
 export type LoadedContentSourceMembers<
   Entries extends readonly ContentSourceEntry[],
 > = {
@@ -72,7 +72,7 @@ type PresetDefinition = Readonly<{
 
 export type LoadedSourceMember = DynamicLoadedSourceMember;
 
-/** 经来源自己的Node解析器，从公开代码与数据入口装载本次内容集合。 */
+/** Loads a content collection from public package code and manifest entries using the collection's own Node module resolver. Throws if any specifier is invalid, fails to resolve to a local `file:` URL, mismatches its manifest, or lacks a single primary preset or reference package export. */
 export function loadContentSource<
   const Entries extends readonly ContentSourceEntry[],
 >(
@@ -85,7 +85,7 @@ export async function loadContentSource(
   options: RuntimeContentSourceOptions,
 ): Promise<readonly LoadedSourceMember[]> {
   if (options.namespace.trim().length === 0) {
-    throw new Error("内容来源命名空间不能为空");
+    throw new Error("Content source namespace cannot be empty");
   }
   const members = await Promise.all(
     options.members.map(async (entry) =>
@@ -107,12 +107,12 @@ async function loadMember(
   const resolvedModuleURL = resolveLocalURL(
     options.resolve,
     specifier,
-    "代码入口",
+    "code entry",
   );
   const resolvedManifestURL = resolveLocalURL(
     options.resolve,
     `${address.packageName}/reference`,
-    "原生清单入口",
+    "native manifest entry",
   );
   const [moduleNamespace, manifestNamespace] = await Promise.all([
     import(resolvedModuleURL),
@@ -122,7 +122,7 @@ async function loadMember(
     const typedNamespace = await typeLoader();
     if (typedNamespace !== moduleNamespace) {
       throw new Error(
-        `内容${specifier}的类型回调与resolver解析的公开代码入口不一致`,
+        `Type loader callback for content ${specifier} did not return the same module as the resolved public code entry`,
       );
     }
   }
@@ -132,12 +132,12 @@ async function loadMember(
   const manifest = assertNativeManifest(manifestValue, specifier);
   if (manifest.name !== address.packageName) {
     throw new Error(
-      `内容${specifier}的原生清单包名不匹配：预期${address.packageName}，实际${manifest.name}`,
+      `Native manifest package name mismatch for content ${specifier}: expected ${address.packageName}, got ${manifest.name}`,
     );
   }
   if (!Object.hasOwn(manifest.exports, address.exportPath)) {
     throw new Error(
-      `内容${specifier}未由原生清单公开导出入口${address.exportPath}`,
+      `Content ${specifier} is not publicly exported at ${address.exportPath} in the native manifest`,
     );
   }
 
@@ -147,14 +147,18 @@ async function loadMember(
       "manifest" in loaded.definition &&
       !isDeepStrictEqual(loaded.definition.manifest, manifest)
     ) {
-      throw new Error(`内容${specifier}的参考包定义清单与原生清单不一致`);
+      throw new Error(
+        `Reference package definition manifest does not match native manifest for content ${specifier}`,
+      );
     }
   } else if (
     loaded.definition.owner !== undefined &&
     (loaded.definition.owner.packageName !== manifest.name ||
       loaded.definition.owner.exportPath !== address.exportPath)
   ) {
-    throw new Error(`预设${specifier}的所属入口与实际公开内容入口不一致`);
+    throw new Error(
+      `Preset ${specifier} owner entry does not match its resolved public content entry`,
+    );
   }
 
   const identity: ContentIdentity = Object.freeze({
@@ -190,7 +194,9 @@ function primaryDefinition(
       readonly definition: PresetDefinition;
     } {
   if (!isRecord(moduleNamespace)) {
-    throw new Error(`内容${specifier}的公开代码入口未导出对象`);
+    throw new Error(
+      `Public code entry for content ${specifier} did not export an object`,
+    );
   }
   const candidates: { readonly kind: ContentKind; readonly value: unknown }[] =
     [];
@@ -204,7 +210,9 @@ function primaryDefinition(
     });
   }
   if (candidates.length !== 1) {
-    throw new Error(`内容${specifier}必须只公开一个预设或参考包主定义`);
+    throw new Error(
+      `Content ${specifier} must export exactly one primary preset or reference package definition`,
+    );
   }
   const candidate = candidates[0]!;
   if (candidate.kind === "preset") {
@@ -213,7 +221,9 @@ function primaryDefinition(
       candidate.value.kind !== "preset" ||
       !isRecord(candidate.value.metadata)
     ) {
-      throw new Error(`内容${specifier}的公开定义不是预设`);
+      throw new Error(
+        `Exported definition for content ${specifier} is not a valid preset`,
+      );
     }
     const definition = candidate.value as unknown as PresetDefinition;
     return {
@@ -225,7 +235,9 @@ function primaryDefinition(
 
   const definition = candidate.value;
   if (!isReferencePackageDefinition(definition)) {
-    throw new Error(`内容${specifier}的公开定义不是有效参考包定义`);
+    throw new Error(
+      `Exported definition for content ${specifier} is not a valid reference package definition`,
+    );
   }
   return {
     kind: "reference",
@@ -244,7 +256,9 @@ function publicSpecifierAddress(specifier: string): {
     specifier.startsWith("/") ||
     specifier.startsWith("file:")
   ) {
-    throw new Error(`内容成员必须使用公开包specifier：${specifier}`);
+    throw new Error(
+      `Content member must use a public package specifier: ${specifier}`,
+    );
   }
   const parts = specifier.split("/");
   const packageLength = specifier.startsWith("@") ? 2 : 1;
@@ -252,7 +266,9 @@ function publicSpecifierAddress(specifier: string): {
     parts.length < packageLength ||
     parts.slice(0, packageLength).some((part) => part.length === 0)
   ) {
-    throw new Error(`内容成员的公开包specifier无效：${specifier}`);
+    throw new Error(
+      `Invalid public package specifier for content member: ${specifier}`,
+    );
   }
   const packageName = parts.slice(0, packageLength).join("/");
   const exportSegments = parts.slice(packageLength);
@@ -273,7 +289,7 @@ function resolveLocalURL(
     resolved = resolve(specifier);
   } catch (error) {
     throw new Error(
-      `${label}解析失败：${specifier}：${error instanceof Error ? error.message : String(error)}`,
+      `Failed to resolve ${label} ${specifier}: ${error instanceof Error ? error.message : String(error)}`,
       { cause: error },
     );
   }
@@ -281,10 +297,10 @@ function resolveLocalURL(
   try {
     url = new URL(resolved);
   } catch {
-    throw new Error(`${label}解析结果不是绝对URL：${specifier}`);
+    throw new Error(`Resolved ${label} is not an absolute URL: ${specifier}`);
   }
   if (url.protocol !== "file:") {
-    throw new Error(`${label}必须解析为本地文件URL：${specifier}`);
+    throw new Error(`Resolved ${label} must be a local file URL: ${specifier}`);
   }
   return url.href;
 }
@@ -298,7 +314,9 @@ function assertNativeManifest(
     typeof value.name !== "string" ||
     !isRecord(value.exports)
   ) {
-    throw new Error(`内容${specifier}的公开原生清单缺少包名或exports`);
+    throw new Error(
+      `Public native manifest for content ${specifier} is missing name or exports`,
+    );
   }
   return value as NativeManifest;
 }
@@ -323,7 +341,9 @@ function isReferencePackageDefinition(
 
 function requireAlias(value: unknown, specifier: string): string {
   if (typeof value !== "string" || value.trim().length === 0) {
-    throw new Error(`内容${specifier}的公开定义缺少有效别名`);
+    throw new Error(
+      `Public definition for content ${specifier} is missing a valid alias`,
+    );
   }
   return value;
 }

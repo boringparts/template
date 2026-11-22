@@ -33,7 +33,7 @@ export type DefaultPackagePathValidation = {
   readonly reservedWorkspaceCollection?: string;
 };
 
-/** 默认策略用来校验新 npm 包名的事实。 */
+/** Validates whether a string is a legal npm package name for new packages under the default policy. */
 export function isValidDefaultNpmPackageName(value: string): boolean {
   if (
     value.length === 0 ||
@@ -67,12 +67,12 @@ export function isValidDefaultNpmPackageName(value: string): boolean {
   );
 }
 
-/** 默认工作区 scope 的 npm 身份片段规则。 */
+/** Validates the npm scope segment format for the default workspace package scope. */
 export function isValidDefaultPackageScope(value: string): boolean {
   return defaultPackageScope.test(value);
 }
 
-/** 默认工作区包采用两段目录，并保留工作区工具目录。 */
+/** Validates the default two-segment package path shape and flags reserved workspace collection directories. */
 export function validateDefaultPackagePath(
   value: string,
 ): DefaultPackagePathValidation {
@@ -134,7 +134,7 @@ function defaultBlueprintIssues(
   return blueprint.packages.flatMap(defaultPackageIssues);
 }
 
-/** 验证默认策略持久化蓝图的 npm 命名、角色与目录合同。 */
+/** Validates a persisted project blueprint against the default policy's npm naming, role, and directory contracts. */
 export function validateDefaultProjectBlueprint(
   value: unknown,
 ): BlueprintValidationResult {
@@ -144,7 +144,7 @@ export function validateDefaultProjectBlueprint(
   return issues.length === 0 ? result : { ok: false, issues };
 }
 
-/** 验证默认策略在分配持久化实例标识前的包拓扑。 */
+/** Validates package topology under the default policy before assigning persisted package definition IDs. Throws ProjectBlueprintValidationError on violations. */
 export function assertDefaultProjectBlueprintDraft(
   value: ProjectBlueprintDraft,
 ): ProjectBlueprintDraft {
@@ -156,7 +156,7 @@ export function assertDefaultProjectBlueprintDraft(
   return blueprint;
 }
 
-/** 验证默认策略已经持久化的蓝图。 */
+/** Validates a persisted project blueprint under the default policy. Throws ProjectBlueprintValidationError on violations. */
 export function assertDefaultProjectBlueprint(
   value: unknown,
 ): ProjectBlueprint {
@@ -167,7 +167,7 @@ export function assertDefaultProjectBlueprint(
   return result.value;
 }
 
-/** 在默认策略创建实例时校验其角色、npm 名称和目录。 */
+/** Validates a package definition's role, npm name, and path when instantiating under the default policy. Throws ProjectBlueprintValidationError on violations. */
 export function assertDefaultPackageDefinition(
   definition: PackageDefinition,
 ): PackageDefinition {

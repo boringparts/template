@@ -17,13 +17,13 @@ async function replaceFile(file: string, contents: string): Promise<void> {
   }
 }
 
-/** 准备 Rust 参考包自有的工具链模板，并绑定其本地写入位置。 */
+/** Prepares the Rust toolchain template as a repository configuration sync target. */
 export async function prepareRepositoryConfigurationTarget(): Promise<RepositoryConfigurationTarget> {
   const file = fileURLToPath(
     new URL("../template/rust-toolchain.toml", import.meta.url),
   );
   return {
-    label: "Rust 工具链模板",
+    label: "Rust toolchain template",
     before: await readFile(file, "utf8"),
     write: (contents) => replaceFile(file, contents),
   };

@@ -27,7 +27,7 @@ const check = process.argv.includes("--check");
 async function formattedSource(name: string, source: string): Promise<string> {
   const result = await format(name, source, formatterConfig);
   if (result.errors.length > 0) {
-    throw new Error(`无法格式化 ${name}。`);
+    throw new Error(`Failed to format ${name}.`);
   }
   return result.code;
 }
@@ -54,14 +54,14 @@ async function sendToOwner(
   );
   if (result.failed) {
     throw new Error(
-      `${packageName} ${taskName} 失败：${result.stderr || result.stdout}`,
+      `${packageName} ${taskName} failed: ${result.stderr || result.stdout}`,
     );
   }
 }
 
 const workspaceSnapshot = await formattedSource(
   "workspace-policy-snapshot.ts",
-  `// 由根 sync:workspace-policy 从原生声明派生，请修改其事实源后显式同步。
+  `// Derived by root sync:workspace-policy from native declarations; edit the source of truth and run sync explicitly.
 export const dependencyCatalogSnapshot: Readonly<Record<string, string>> = ${JSON.stringify(workspace.catalog, null, 2)};
 
 export const workspaceInstallPolicySnapshot = ${JSON.stringify(installPolicy, null, 2)};
@@ -69,7 +69,7 @@ export const workspaceInstallPolicySnapshot = ${JSON.stringify(installPolicy, nu
 );
 const resourceIgnoreSnapshot = await formattedSource(
   "resource-ignore-snapshot.ts",
-  `// 由根 sync:workspace-policy 从根 .gitignore 派生，请修改事实源后显式同步。
+  `// Derived by root sync:workspace-policy from root .gitignore; edit the source of truth and run sync explicitly.
 export const resourceIgnoreSnapshot = ${JSON.stringify(ignore)};
 `,
 );
@@ -81,7 +81,7 @@ if (derived.diagnostics.length > 0)
   throw new Error(derived.diagnostics.join("\n"));
 const toolchainSnapshot = await formattedSource(
   "release-toolchain-snapshot.ts",
-  `// 由根 sync:workspace-policy 从原生工具链声明派生，请修改事实源后显式同步。
+  `// Derived by root sync:workspace-policy from native toolchain declarations; edit the source of truth and run sync explicitly.
 export const releaseToolchainSnapshot = Object.freeze(${JSON.stringify({ nodeVersion: declarations.rootNodeEngine.trim(), packageManagerPin: declarations.packageManagerDeclaration.trim(), rustVersion: declarations.rustToolchainChannel.trim() }, null, 2)} as const);
 
 export type ReleaseToolchainSnapshot = typeof releaseToolchainSnapshot;

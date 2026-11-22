@@ -41,7 +41,7 @@ export type PackedArtifact = {
   readonly version: string;
   readonly tarball: string;
   readonly sha256: string;
-  /** 内容所属制品的来源身份；SDK制品没有内容来源身份。 */
+  /** Content origin identity of the owning artifact; omitted for SDK packages. */
   readonly provider?: {
     readonly identity: ContentIdentity;
     readonly specifier: string;
@@ -60,12 +60,12 @@ export type PreparedContentCollection = {
     readonly installRoot: string;
     readonly packed: PackedArtifact;
   }[];
-  /** 按来源命名空间隔离解析上下文的原生内容入口包。 */
+  /** Native content provider packages that isolate module resolution per origin namespace. */
   readonly providers: readonly PackedArtifact[];
   readonly sdkPackages: readonly PackedArtifact[];
   readonly collection: PackedArtifact;
   readonly archives: ReadonlyMap<string, PackedArtifact>;
-  /** 由当前pnpm工作区清单实际解析出的版本。 */
+  /** Package versions resolved from the current pnpm workspace manifest. */
   readonly resolvedVersions: ReadonlyMap<string, string>;
   readonly commands: readonly string[];
   cleanup(): Promise<void>;
@@ -73,17 +73,17 @@ export type PreparedContentCollection = {
 
 export type PrepareContentCollectionOptions = {
   readonly content: readonly NativeMember[];
-  /** 从同一已加载集合中选择任意预设或参考入口作为闭包根。 */
+  /** Preset or reference entries selected from `content` as closure roots. */
   readonly roots: readonly NativeMember[];
-  /** 调用者所属集合的原生包名。 */
+  /** Native package name of the generated content collection package. */
   readonly packageName: string;
   readonly workspaceRoot?: string;
-  /** 外部作者工作区集合的原生清单版本。 */
+  /** Explicit package version used when `packageName` is not a workspace project (e.g., an external author workspace). */
   readonly collectionVersion?: string;
   readonly root?: string;
-  /** 供独立作者工作区使用的原生SDK归档；不含本轮内容成员。 */
+  /** Pre-packed native SDK archives for standalone author workspaces; excludes current content members. */
   readonly sdkArchives?: readonly PackedArtifact[];
-  /** 调用者为该集合显式选择的额外SDK闭包根。 */
+  /** Extra SDK closure root package names explicitly requested by the caller. */
   readonly additionalSdkRoots?: readonly string[];
 };
 
@@ -103,7 +103,7 @@ function ownerDefinition(member: NativeMember): PreparedOwnerDefinition {
   return member.definition as PreparedOwnerDefinition;
 }
 
-/** 分发保留所属制品的完整静态用途，实例条件只约束生成目标。 */
+// Distribution retains full static dependency purposes of the owning artifact; instance conditions only constrain generation targets.
 function distributionDependencies(
   member: ReferenceMember,
   contentByIdentity: ReadonlyMap<string, ReferenceMember>,
@@ -120,7 +120,7 @@ function distributionDependencies(
     const matching = sameNamespace.length > 0 ? sameNamespace : candidates;
     if (matching.length > 1)
       throw new Error(
-        `所属制品 ${contentIdentityLabel(member.identity)} 的静态依赖 ${dependency.name} 对应多个内容入口，无法按来源消歧`,
+        `Static dependency ${dependency.name} of owning artifact ${contentIdentityLabel(member.identity)} matches multiple content entries and cannot be disambiguated by origin`,
       );
     const provider = matching[0];
     if (provider !== undefined)
@@ -141,14 +141,16 @@ function selectedMembers(
   readonly members: readonly NativeMember[];
 } {
   if (roots.length === 0) {
-    throw new Error("原生内容集合至少需要一个公开入口根");
+    throw new Error(
+      "Native content collection requires at least one public entry root",
+    );
   }
   const contentByIdentity = new Map<string, NativeMember>();
   for (const member of content) {
     const key = contentIdentityKey(member.identity);
     if (contentByIdentity.has(key)) {
       throw new Error(
-        `原生内容集合存在重复身份：${contentIdentityLabel(member.identity)}`,
+        `Duplicate identity in native content collection: ${contentIdentityLabel(member.identity)}`,
       );
     }
     contentByIdentity.set(key, member);
@@ -165,7 +167,7 @@ function selectedMembers(
       available.source.manifestURL !== root.source.manifestURL
     ) {
       throw new Error(
-        `内容入口根未由当前原生集合按同一来源修订登记：${contentIdentityLabel(root.identity)}`,
+        `Content entry root is not registered with the same origin revision in the current native collection: ${contentIdentityLabel(root.identity)}`,
       );
     }
     selectedRoots.set(key, available);
@@ -192,7 +194,7 @@ function selectedMembers(
       const child = referencesByIdentity.get(contentIdentityKey(dependency));
       if (child === undefined) {
         throw new Error(
-          `原生入口闭包缺少成员 ${dependency.packageName}#${dependency.exportPath}`,
+          `Native entry closure is missing member ${dependency.packageName}#${dependency.exportPath}`,
         );
       }
       visit(child);
@@ -251,14 +253,16 @@ function orderedMembers(
     const key = contentIdentityKey(member.identity);
     if (visited.has(key)) return;
     if (visiting.has(key)) {
-      throw new Error(`原生内容依赖形成循环：${member.identity.packageName}`);
+      throw new Error(
+        `Circular native content dependency detected: ${member.identity.packageName}`,
+      );
     }
     visiting.add(key);
     for (const dependency of distributionDependencies(member, byIdentity)) {
       const child = byIdentity.get(contentIdentityKey(dependency));
       if (child === undefined) {
         throw new Error(
-          `策略闭包在编译排序时缺少成员：${dependency.packageName}`,
+          `Closure is missing member during build ordering: ${dependency.packageName}`,
         );
       }
       visit(child);
@@ -414,7 +418,9 @@ async function resolvedOwnerDependencies(
   const projects = JSON.parse(stdout) as unknown;
   const project = Array.isArray(projects) ? projects[0] : projects;
   if (typeof project !== "object" || project === null) {
-    throw new Error(`原生包管理器未返回所属包的项目依赖：${ownerRoot}`);
+    throw new Error(
+      `Package manager did not return project dependencies for owning package: ${ownerRoot}`,
+    );
   }
   const node = project as PnpmDependencyNode;
   const dependencies = new Map<string, PnpmDependencyNode>();
@@ -457,7 +463,7 @@ function ownerVersionForDependency(
   }
   if (!/^(?:workspace|catalog|link):/u.test(specifier)) return specifier;
   throw new Error(
-    `原生包管理器未解析依赖坐标 ${name}@${specifier}；无法投影安装清单`,
+    `Package manager did not resolve dependency coordinate ${name}@${specifier}; cannot project install manifest`,
   );
 }
 
@@ -489,7 +495,7 @@ function artifactInstallDependencies(
             : undefined;
     if (contentCandidates.length > 1) {
       throw new Error(
-        `所属制品 ${contentIdentityLabel(member.identity)} 的依赖 ${dependency.name} 在同一来源中对应多个内容入口`,
+        `Dependency ${dependency.name} of owning artifact ${contentIdentityLabel(member.identity)} matches multiple content entries in the same origin`,
       );
     }
     if (
@@ -498,7 +504,7 @@ function artifactInstallDependencies(
       dependency.purposes.includes("template-execution")
     ) {
       throw new Error(
-        `所属制品 ${contentIdentityLabel(member.identity)} 的执行依赖 ${dependency.name} 存在多个来源，无法按原生坐标选择`,
+        `Execution dependency ${dependency.name} of owning artifact ${contentIdentityLabel(member.identity)} matches multiple origins and cannot be selected by native coordinate`,
       );
     }
     const contentArtifact =
@@ -513,7 +519,7 @@ function artifactInstallDependencies(
     }
     if (selectedContent !== undefined) {
       throw new Error(
-        `执行依赖 ${dependency.name} 缺少已准备内容制品：${contentIdentityLabel(selectedContent.identity)}`,
+        `Execution dependency ${dependency.name} is missing a prepared content artifact: ${contentIdentityLabel(selectedContent.identity)}`,
       );
     }
     if (!dependency.purposes.includes("template-execution")) continue;
@@ -534,11 +540,13 @@ function safePath(value: string): string {
     raw.startsWith("/") ||
     raw.split("/").some((part) => part === "..")
   ) {
-    throw new Error(`所属制品包含越界路径：${value}`);
+    throw new Error(`Owning artifact contains an out-of-bounds path: ${value}`);
   }
   const normalized = path.posix.normalize(raw);
   if (normalized === ".") {
-    throw new Error(`所属制品路径不能指向包根目录：${value}`);
+    throw new Error(
+      `Owning artifact path cannot point to the package root: ${value}`,
+    );
   }
   return normalized;
 }
@@ -622,7 +630,7 @@ function parsePackOutput(stdout: string): string {
       return output.filename;
     }
   } catch {
-    // 未输出 JSON 的 pnpm 版本会以纯文本输出归档路径。
+    // pnpm versions that do not emit JSON print the archive path as plain text.
   }
   const lines = stdout.trim().split("\n");
   return lines.at(-1) ?? "";
@@ -635,7 +643,9 @@ async function packNativeProject(
   commandLog: string[],
 ): Promise<PackedArtifact> {
   if (project.version === undefined) {
-    throw new Error(`pnpm未返回原生SDK坐标：${project.name}`);
+    throw new Error(
+      `pnpm did not return a native SDK coordinate: ${project.name}`,
+    );
   }
   await mkdir(destination, { recursive: true });
   const stdout = await runPnpm(
@@ -652,7 +662,9 @@ async function packNativeProject(
   );
   const tarball = parsePackOutput(stdout);
   if (tarball.length === 0) {
-    throw new Error(`SDK包 ${project.name} 的原生 pnpm pack 未返回制品路径`);
+    throw new Error(
+      `pnpm pack did not return an archive path for SDK package ${project.name}`,
+    );
   }
   return packedArtifact(
     project.name,
@@ -694,7 +706,9 @@ async function packPreparedRoot(
   );
   const tarball = parsePackOutput(stdout);
   if (tarball.length === 0) {
-    throw new Error(`原生 pnpm pack 未返回制品路径：${manifest.name}`);
+    throw new Error(
+      `pnpm pack did not return an archive path: ${manifest.name}`,
+    );
   }
   return packedArtifact(
     manifest.name,
@@ -978,12 +992,14 @@ async function createContentProviderRoot(options: {
   for (const member of options.members) {
     const owner = options.owners.get(contentIdentityKey(member.identity));
     if (owner === undefined) {
-      throw new Error(`来源入口缺少所属制品：${member.identity.packageName}`);
+      throw new Error(
+        `Content provider entry is missing owning artifact: ${member.identity.packageName}`,
+      );
     }
     const previous = packageRoots.get(owner.artifact.coordinate.name);
     if (previous !== undefined && previous !== owner.installRoot) {
       throw new Error(
-        `同一来源命名空间含多个同名原生包，无法形成公开解析入口：${owner.artifact.coordinate.name}`,
+        `Origin namespace contains multiple native packages with the same name and cannot form a public resolution entry: ${owner.artifact.coordinate.name}`,
       );
     }
     packageRoots.set(owner.artifact.coordinate.name, owner.installRoot);
@@ -993,7 +1009,9 @@ async function createContentProviderRoot(options: {
   for (const name of ["@ykdz/template-generator"]) {
     const version = options.sdkVersions.get(name);
     if (version === undefined)
-      throw new Error(`公开准备入口未由原生依赖解析：${name}`);
+      throw new Error(
+        `Public preparation entry was not resolved from native dependencies: ${name}`,
+      );
     dependencies[name] = version;
   }
   const installRoot = await createModulePackageRoot({
@@ -1035,7 +1053,9 @@ async function createCollectionInstallRoot(options: {
     const packageRoot = options.sdkPackageRoots.get(name);
     const version = options.sdkVersions.get(name);
     if (packageRoot === undefined || version === undefined) {
-      throw new Error(`集合运行依赖未由pnpm工作区解析：${name}`);
+      throw new Error(
+        `Collection runtime dependency was not resolved by the pnpm workspace: ${name}`,
+      );
     }
     dependencies[name] = version;
   }
@@ -1043,7 +1063,9 @@ async function createCollectionInstallRoot(options: {
     const packageRoot = options.sdkPackageRoots.get(name);
     const version = options.sdkVersions.get(name);
     if (packageRoot === undefined || version === undefined) {
-      throw new Error(`集合额外SDK根未由pnpm工作区解析：${name}`);
+      throw new Error(
+        `Additional collection SDK root was not resolved by the pnpm workspace: ${name}`,
+      );
     }
     dependencies[name] = version;
   }
@@ -1062,7 +1084,7 @@ async function createCollectionInstallRoot(options: {
   });
 }
 
-/** 按显式装配和所属资源执行用途派生制品集合，再由pnpm原生pack。 */
+/** Builds, packs, and bundles a content collection and its transitive native dependencies and SDK closure using pnpm. Writes temporary build artifacts under `options.root` (or `/tmp`) until `cleanup()` is called. */
 export async function prepareContentCollection(
   options: PrepareContentCollectionOptions,
 ): Promise<PreparedContentCollection> {
@@ -1087,7 +1109,7 @@ export async function prepareContentCollection(
     const artifact = ownerDefinition(member).prepareArtifact?.();
     if (artifact === undefined) {
       throw new Error(
-        `所属包 ${member.identity.packageName} 未公开 prepareArtifact 接口`,
+        `Owning package ${member.identity.packageName} does not expose prepareArtifact`,
       );
     }
     return {
@@ -1229,7 +1251,9 @@ export async function prepareContentCollection(
   const collectionVersion =
     workspace.get(collectionName)?.version ?? options.collectionVersion;
   if (collectionVersion === undefined) {
-    throw new Error(`pnpm未返回原生集合制品坐标：${collectionName}`);
+    throw new Error(
+      `pnpm did not return a native collection artifact coordinate: ${collectionName}`,
+    );
   }
 
   const ownerByIdentity = new Map(
@@ -1299,7 +1323,9 @@ export async function prepareContentCollection(
         ? `${artifact.name}@${artifact.version}`
         : `${artifact.name}@${artifact.version}#${contentIdentityKey(artifact.provider.identity)}`;
     if (archives.has(key)) {
-      throw new Error(`内容制品集合存在重复来源键：${key}`);
+      throw new Error(
+        `Duplicate origin key in content artifact collection: ${key}`,
+      );
     }
     archives.set(key, artifact);
   }
@@ -1320,7 +1346,7 @@ export async function prepareContentCollection(
   };
 }
 
-/** 把当次归档坐标交给消费工作区的pnpm原生override解析。 */
+/** Copies packed archives into `<root>/.artifacts` and writes a `pnpm-workspace.yaml` with exact `overrides` entries so the consumer workspace resolves only these archives. Throws if two archives share `name@version` with different SHA-256 digests. */
 export async function writeNativeArchiveOverrides(
   root: string,
   archives: readonly PackedArtifact[],
@@ -1338,7 +1364,7 @@ export async function writeNativeArchiveOverrides(
     if (existing !== undefined) {
       if (existing.archive.sha256 !== archive.sha256) {
         throw new Error(
-          `pnpm原生精确坐标无法区分不同来源制品 ${coordinate}；请为来源发布不同原生版本`,
+          `Exact pnpm coordinate ${coordinate} cannot distinguish artifacts from different origins; publish distinct package versions per origin`,
         );
       }
       continue;
@@ -1369,7 +1395,7 @@ export async function writeNativeArchiveOverrides(
   );
 }
 
-/** 在隔离pnpm工作区中只从本轮原生归档安装集合。 */
+/** Recreates `consumerRoot` as an isolated pnpm workspace and installs `prepared.collection` exclusively from the prepared archives. */
 export async function installContentCollection(
   prepared: PreparedContentCollection,
   consumerRoot: string,
@@ -1392,6 +1418,7 @@ export async function installContentCollection(
   );
 }
 
+/** Writes a Markdown evidence report listing the collection roots, presets, members, packed archive hashes, and executed commands. */
 export async function writeContentCollectionEvidence(
   prepared: PreparedContentCollection,
   destination: string,
@@ -1400,20 +1427,20 @@ export async function writeContentCollectionEvidence(
   await writeFile(
     destination,
     [
-      `# 原生内容制品证据`,
+      `# Native Content Artifact Evidence`,
       "",
-      `入口根：${prepared.roots.map((member) => `${member.identity.packageName}#${member.identity.exportPath}`).join(", ")}`,
-      `预设：${prepared.presets.map((preset) => `${preset.identity.packageName}#${preset.identity.exportPath}`).join(", ") || "无"}`,
-      `成员：${prepared.members.map((member) => `${member.identity.packageName}#${member.identity.exportPath}`).join(", ")}`,
+      `Entry roots: ${prepared.roots.map((member) => `${member.identity.packageName}#${member.identity.exportPath}`).join(", ")}`,
+      `Presets: ${prepared.presets.map((preset) => `${preset.identity.packageName}#${preset.identity.exportPath}`).join(", ") || "none"}`,
+      `Members: ${prepared.members.map((member) => `${member.identity.packageName}#${member.identity.exportPath}`).join(", ")}`,
       "",
-      "## 制品",
+      "## Artifacts",
       "",
       ...[...prepared.archives.values()].map(
         (archive) =>
           `- ${archive.name}@${archive.version}: ${archive.tarball} sha256=${archive.sha256}`,
       ),
       "",
-      "## 原生命令",
+      "## Native Commands",
       "",
       "```text",
       ...prepared.commands,

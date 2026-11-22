@@ -8,28 +8,28 @@ const manifest = {
   private: true,
   bin: { "reference-cli": "./dist/cli.js" },
   files: ["dist"],
-  engines: { node: "^26.13.0" },
+  engines: { node: "^26.13.1" },
 };
 
-void describe("CLI 模板清单转换", () => {
-  void it("按目标命令名和已测 Node 基线转换，并保留其余清单事实", () => {
+void describe("CLI template manifest transformation", () => {
+  void it("rewrites the bin command name and tested Node baseline while preserving other fields", () => {
     assert.deepStrictEqual(
       projectCliPackageManifest({
         manifest,
         commandName: "public-cli",
-        nodeDeclaration: "26.13.0",
+        nodeDeclaration: "26.13.1",
       }),
       {
         ...manifest,
         bin: { "public-cli": "./dist/cli.js" },
-        engines: { node: "^26.13.0" },
+        engines: { node: "^26.13.1" },
       },
     );
     assert.deepStrictEqual(manifest.bin, { "reference-cli": "./dist/cli.js" });
-    assert.deepStrictEqual(manifest.engines, { node: "^26.13.0" });
+    assert.deepStrictEqual(manifest.engines, { node: "^26.13.1" });
   });
 
-  void it("拒绝不能作为目标命令名的名称", () => {
+  void it("rejects invalid target command names", () => {
     for (const commandName of [
       "",
       "tools/release",
@@ -48,12 +48,12 @@ void describe("CLI 模板清单转换", () => {
             commandName,
             nodeDeclaration: "24",
           }),
-        /命令名/u,
+        /command name/u,
       );
     }
   });
 
-  void it("拒绝没有唯一字符串入口的原生清单", () => {
+  void it("rejects manifests without a single string bin entry", () => {
     for (const invalid of [
       null,
       {},
@@ -68,7 +68,7 @@ void describe("CLI 模板清单转换", () => {
             commandName: "public-cli",
             nodeDeclaration: "24",
           }),
-        /CLI 包清单/u,
+        /CLI package manifest/u,
       );
     }
   });

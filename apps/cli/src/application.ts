@@ -170,6 +170,7 @@ export type PackageAdditionCommandResult =
       readonly error: { readonly message: string; readonly suggestion: string };
     };
 
+/** Lists all built-in presets from the bundled content collection in declaration order. */
 export function listPresetCatalog(): PresetCatalogCommandResult {
   return {
     status: "success",
@@ -181,9 +182,7 @@ export function listPresetCatalog(): PresetCatalogCommandResult {
   };
 }
 
-/**
- * 初始化结果如实报告随 CLI 发版的不可变工具链快照：没有在线解析来源，也没有回退诊断。
- */
+/** Reports the immutable release toolchain snapshot shipped with the CLI without online resolution. */
 function toolchainReport() {
   return {
     nodeVersion: releaseToolchainSnapshot.nodeVersion,
@@ -229,6 +228,7 @@ function samePackageIdentityConflict(
   );
 }
 
+/** Reads and validates a project blueprint file relative to `runtime.cwd` without modifying disk state. */
 export async function validateBlueprintFile(
   filePath: string,
   runtime: ApplicationRuntime,
@@ -249,8 +249,9 @@ export async function validateBlueprintFile(
       path: resolvedPath,
       reason: "invalid-json",
       error: {
-        message: "Blueprint JSON 格式无效。",
-        suggestion: "修正 JSON 语法后重新验证；若文件来源不明确，请人工处理。",
+        message: "Invalid blueprint JSON.",
+        suggestion:
+          "Fix the JSON syntax and validate again; if the file origin is unclear, inspect it manually.",
       },
     };
   }
@@ -288,23 +289,27 @@ function readBlueprintFailure(
     string,
   ] =
     errorCode === "ENOENT"
-      ? ["not-found", "找不到 Blueprint 文件。", "检查路径是否正确后重新验证。"]
+      ? [
+          "not-found",
+          "Blueprint file not found.",
+          "Verify the file path and validate again.",
+        ]
       : errorCode === "EACCES" || errorCode === "EPERM"
         ? [
             "permission-denied",
-            "没有读取 Blueprint 文件的权限。",
-            "授予读取权限后重新验证；若权限归属不明确，请人工处理。",
+            "Permission denied when reading the blueprint file.",
+            "Grant read permission and validate again; if ownership is unclear, handle it manually.",
           ]
         : errorCode === "EISDIR" || errorCode === "ENOTDIR"
           ? [
               "not-a-file",
-              "Blueprint 目标不是可读取的文件。",
-              "提供一个可读取的 Blueprint JSON 文件路径后重新验证。",
+              "Blueprint target is not a readable file.",
+              "Provide the path to a readable blueprint JSON file and validate again.",
             ]
           : [
               "unreadable",
-              "无法读取 Blueprint 文件。",
-              "检查路径、文件权限和挂载状态后重试；若需要其他访问权限，请人工处理。",
+              "Unable to read the blueprint file.",
+              "Check the path, file permissions, and mount status, then retry.",
             ];
   return {
     status: "operation-failure",
@@ -318,7 +323,7 @@ function initOperationFailure(options: {
   readonly targetDir: string;
   readonly message?: string;
 }): Extract<InitCommandResult, { readonly status: "operation-failure" }> {
-  const fallbackMessage = "初始化失败。";
+  const fallbackMessage = "Initialization failed.";
   return {
     status: "operation-failure",
     targetDir: options.targetDir,
@@ -329,8 +334,8 @@ function initOperationFailure(options: {
           : safeGeneratorFailureMessage(options.message, fallbackMessage),
       suggestion:
         options.message === undefined
-          ? "检查目标目录与运行环境后重试；若问题持续发生，请人工处理。"
-          : "根据错误信息检查所属内容包及其声明资源、目标目录后重试；若问题持续发生，请人工处理。",
+          ? "Check the target directory and runtime environment, then retry."
+          : "Check the content package, declared resources, and target directory based on the error message, then retry.",
     },
   };
 }
@@ -342,8 +347,8 @@ function safeGeneratorFailureMessage(
   const firstLine = message.split(/\r?\n/u, 1)[0]?.trim();
   if (firstLine === undefined || firstLine.length === 0) return fallback;
   return firstLine
-    .replace(/file:\/\/\S+/gu, "本地模块路径")
-    .replace(/(^|[\s("'`])(?:[A-Za-z]:[\\/]|\/)[^\s"'`)]*/gu, "$1本地路径");
+    .replace(/file:\/\/\S+/gu, "<local module path>")
+    .replace(/(^|[\s("'`])(?:[A-Za-z]:[\\/]|\/)[^\s"'`)]*/gu, "$1<local path>");
 }
 
 function initPackageIdentities(
@@ -352,7 +357,9 @@ function initPackageIdentities(
   blueprint: ProjectBlueprint,
 ): ResolvedInitialization["packages"] {
   const preset = presetByAlias(presetAlias);
-  if (preset === undefined) throw new Error("初始化预设在结果映射时不存在");
+  if (preset === undefined) {
+    throw new Error("Initialization preset missing during result mapping");
+  }
   const selection = generationRecord.selections.find(
     (candidate) =>
       candidate.presetIdentity !== null &&
@@ -360,25 +367,33 @@ function initPackageIdentities(
         contentIdentityKey(preset.identity),
   );
   if (selection === undefined) {
-    throw new Error("生成结果缺少预设选择对应的包实例");
+    throw new Error(
+      "Generation result is missing package instances for the selected preset",
+    );
   }
   return Object.entries(preset.definition.nodes).map(([nodeIdentity]) => {
     const packageDefinitionId = selection.nodes[nodeIdentity];
     if (packageDefinitionId === undefined) {
-      throw new Error("生成结果缺少预设节点对应的包实例：" + nodeIdentity);
+      throw new Error(
+        `Generation result is missing a package instance for preset node: ${nodeIdentity}`,
+      );
     }
     const record = generationRecord.packages.find(
       (candidate) => candidate.packageDefinitionId === packageDefinitionId,
     );
     if (record === undefined) {
-      throw new Error("生成结果缺少预设节点对应的包实例：" + nodeIdentity);
+      throw new Error(
+        `Generation result is missing a package record for preset node: ${nodeIdentity}`,
+      );
     }
     const definition = blueprint.packages.find(
       (candidate) =>
         candidate.packageDefinitionId === record.packageDefinitionId,
     );
     if (definition === undefined) {
-      throw new Error("生成结果蓝图缺少预设节点对应的包定义：" + nodeIdentity);
+      throw new Error(
+        `Generation blueprint is missing a package definition for preset node: ${nodeIdentity}`,
+      );
     }
     return {
       name: definition.name,
@@ -387,6 +402,11 @@ function initPackageIdentities(
   });
 }
 
+/**
+ * Plans and optionally commits repository initialization for a built-in preset.
+ *
+ * Writes nothing when `options.dryRun` is `true` or when validation, planning, or preconditions fail.
+ */
 export async function runInit(
   options: InitCommandOptions,
   runtime: ApplicationRuntime,
@@ -543,7 +563,7 @@ function initializationFailureFromPlanning(options: {
 function packageUpdateOperationFailure(
   diagnostic?: { readonly message: string; readonly suggestion: string },
   message?: string,
-  fallbackMessage = "添加包时发生操作失败。",
+  fallbackMessage = "Package addition operation failed.",
 ): Extract<
   PackageAdditionCommandResult,
   { readonly status: "operation-failure" }
@@ -557,12 +577,17 @@ function packageUpdateOperationFailure(
           : safeGeneratorFailureMessage(message, fallbackMessage),
       suggestion:
         message === undefined
-          ? "检查目标仓库与运行环境后重试；若问题持续发生，请人工处理。"
-          : "检查目标项目的配置与目录内容后重试；若问题持续发生，请人工处理。",
+          ? "Check the target repository and runtime environment, then retry."
+          : "Check the target project configuration and directory contents, then retry.",
     },
   };
 }
 
+/**
+ * Plans and optionally commits non-destructive package addition in the generated repository at `runtime.cwd`.
+ *
+ * Writes nothing when `options.dryRun` is `true` or when validation, conflicts, or operational failures occur.
+ */
 export async function runAddPackage(
   options: AddPackageCommandOptions,
   runtime: ApplicationRuntime,
@@ -593,12 +618,12 @@ export async function runAddPackage(
       return packageUpdateOperationFailure({
         message: safeGeneratorFailureMessage(
           planned.error.message,
-          "加包需要有效的根工具链声明。",
+          "Package addition requires a valid root toolchain declaration.",
         ),
         suggestion:
           rootToolchainIssue.kind === "invalid-node-declaration"
-            ? "请先修改根 package.json 的 engines.node 声明再加包。"
-            : "请先修改根 package.json 的 packageManager 声明再加包。",
+            ? "Fix engines.node in root package.json before adding a package."
+            : "Fix packageManager in root package.json before adding a package.",
       });
     }
     const packageLinkIssue = planned.error.packageLinkIssue;

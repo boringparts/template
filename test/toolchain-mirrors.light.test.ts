@@ -21,7 +21,7 @@ function presetFor(packageName: string) {
   const preset = templatePresets.find(
     (candidate) => candidate.identity.packageName === packageName,
   );
-  assert.ok(preset, `缺少公开预设：${packageName}`);
+  assert.ok(preset, `Missing public preset: ${packageName}`);
   return preset;
 }
 
@@ -100,7 +100,7 @@ async function addTsLibrary(
   });
 }
 
-void it("公开加包规划不写入，并可在同进程提交", async () => {
+void it("plans public package addition without writing and commits in the same process", async () => {
   const { generator, repositoryRoot } = await createWorkspace();
   const before = await snapshotTree(repositoryRoot);
   const planned = await generator.planAdd({
@@ -126,7 +126,7 @@ void it("公开加包规划不写入，并可在同进程提交", async () => {
   assert.notDeepEqual(await snapshotTree(repositoryRoot), before);
 });
 
-void it("公开加包提交会拒绝规划后变化的相关事实", async () => {
+void it("rejects public package addition commit when relevant facts change after planning", async () => {
   const { generator, repositoryRoot } = await createWorkspace();
   const planned = await generator.planAdd({
     repositoryRoot,
@@ -142,7 +142,10 @@ void it("公开加包提交会拒绝规划后变化的相关事实", async () =>
   const committed = await generator.commitPlan(planned.plan);
 
   assert.equal(committed.status, "conflict", JSON.stringify(committed));
-  assert.match(JSON.stringify(committed), /规划后相关目标事实已变化/u);
+  assert.match(
+    JSON.stringify(committed),
+    /Target facts changed after planning/u,
+  );
   assert.match(JSON.stringify(committed), /@ykdz\/reference-ts-lib/u);
   assert.equal(
     await readFile(path.join(packagePath, "package.json"), "utf8"),
@@ -151,7 +154,7 @@ void it("公开加包提交会拒绝规划后变化的相关事实", async () =>
   assert.deepEqual(await readdir(packagePath), ["package.json"]);
 });
 
-void it("加包计划提交会拒绝规划后变化的生成元数据", async () => {
+void it("rejects package addition commit when generation metadata changes after planning", async () => {
   const { generator, repositoryRoot: targetRoot } = await createWorkspace();
   const planned = await generator.planAdd({
     repositoryRoot: targetRoot,
@@ -190,8 +193,8 @@ afterEach(async () => {
   );
 });
 
-void describe("Node 与 Rust 根工具链镜像", () => {
-  void it("新增包按当前根 pnpm 声明协调开发与部署引导镜像，并保留无关内容", async () => {
+void describe("Node and Rust root toolchain mirrors", () => {
+  void it("reconciles dev and deployment bootstrap mirrors from the current root pnpm declaration while preserving unrelated lines", async () => {
     const { generator, repositoryRoot } = await createWorkspace(
       "@ykdz/preset-vike-app",
     );
@@ -208,7 +211,7 @@ void describe("Node 与 Rust 根工具链镜像", () => {
         source.replace(
           /ghcr\.io\/pnpm\/pnpm:[\d.]+/u,
           "ghcr.io/pnpm/pnpm:999.0.0",
-        ) + "\n# 用户保留内容\n",
+        ) + "\n# preserved user content\n",
       );
     }
     const added = await addTsLibrary(generator, repositoryRoot, "utilities");
@@ -217,7 +220,7 @@ void describe("Node 与 Rust 根工具链镜像", () => {
     for (const file of dockerfiles) {
       const source = await readFile(path.join(repositoryRoot, file), "utf8");
       assert.match(source, /COPY --from=ghcr\.io\/pnpm\/pnpm:12\.8\.1 /u);
-      assert.ok(source.endsWith("\n# 用户保留内容\n"));
+      assert.ok(source.endsWith("\n# preserved user content\n"));
       assert.equal(
         added.actions.filter((action) => action.path === file).length,
         1,
@@ -232,7 +235,7 @@ void describe("Node 与 Rust 根工具链镜像", () => {
     );
   });
 
-  void it("M1 初始化取根 Node 原值，漂移后协调一次且语义相等不再写入", async () => {
+  void it("initializes M1 from root Node version, reconciles drift once, and skips writes when semantically equal", async () => {
     const { generator, repositoryRoot } = await createWorkspace();
     const manifestPath = path.join(repositoryRoot, "package.json");
     const devcontainerPath = path.join(
@@ -260,7 +263,8 @@ void describe("Node 与 Rust 根工具链镜像", () => {
 
     const added = await addTsLibrary(generator, repositoryRoot, "utilities");
     assert.strictEqual(added.status, "success", JSON.stringify(added));
-    if (added.status !== "success") throw new Error("加包应成功");
+    if (added.status !== "success")
+      throw new Error("Expected package addition to succeed");
     assert.strictEqual(
       added.actions.filter(
         (action) => action.path === ".devcontainer/devcontainer.json",
@@ -276,7 +280,8 @@ void describe("Node 与 Rust 根工具链镜像", () => {
 
     const next = await addTsLibrary(generator, repositoryRoot, "helpers");
     assert.strictEqual(next.status, "success", JSON.stringify(next));
-    if (next.status !== "success") throw new Error("第二次加包应成功");
+    if (next.status !== "success")
+      throw new Error("Expected second package addition to succeed");
     assert.strictEqual(
       next.actions.some(
         (action) => action.path === ".devcontainer/devcontainer.json",
@@ -285,7 +290,7 @@ void describe("Node 与 Rust 根工具链镜像", () => {
     );
   });
 
-  void it("协调时保留缺席的配置文件和 M1 键", async () => {
+  void it("preserves absent config files and omitted M1 keys during reconciliation", async () => {
     const missingFile = await createWorkspace();
     const devcontainerPath = path.join(
       missingFile.repositoryRoot,
@@ -333,7 +338,7 @@ void describe("Node 与 Rust 根工具链镜像", () => {
     );
   });
 
-  void it("M1 值类型错误时加包原子失败", async () => {
+  void it("fails package addition atomically when M1 has an invalid value type", async () => {
     const { generator, repositoryRoot } = await createWorkspace();
     const devcontainerPath = path.join(
       repositoryRoot,
@@ -349,7 +354,9 @@ void describe("Node 与 Rust 根工具链镜像", () => {
     const rejected = await addTsLibrary(generator, repositoryRoot, "utilities");
     assert.strictEqual(rejected.status, "conflict");
     if (rejected.status !== "conflict")
-      throw new Error("配置类型冲突应阻止加包");
+      throw new Error(
+        "Expected config type conflict to block package addition",
+      );
     assert.ok(
       rejected.conflicts.some((conflict) =>
         conflict.reason.includes("non-string"),
@@ -358,7 +365,7 @@ void describe("Node 与 Rust 根工具链镜像", () => {
     assert.strictEqual(await snapshotTree(repositoryRoot), before);
   });
 
-  void it("Node 仓库首次加 Rust 建立 M5 根声明，后续加包保留用户修改", async () => {
+  void it("establishes M5 root declaration when adding Rust to a Node repo for the first time and preserves user edits afterward", async () => {
     const { generator, repositoryRoot } = await createWorkspace();
     const rustPreset = presetFor("@ykdz/preset-rust-bin");
     const first = await generator.add({

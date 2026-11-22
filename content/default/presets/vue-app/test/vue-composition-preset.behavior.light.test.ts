@@ -41,7 +41,10 @@ function member(
   const found = content.find(
     (item) => item.kind === kind && item.identity.packageName === packageName,
   );
-  assert.ok(found, `显式内容集合缺少 ${kind} ${packageName}`);
+  assert.ok(
+    found,
+    `Explicit content collection is missing ${kind} ${packageName}`,
+  );
   return found;
 }
 
@@ -104,8 +107,8 @@ after(async () => {
   );
 });
 
-void describe("Vue 独立组合预设公开行为", () => {
-  void it("添加应用时保留现有 Editor 推荐顺序定制", async () => {
+void describe("Vue standalone composite preset public behavior", () => {
+  void it("preserves existing editor recommendation order customization when adding an app", async () => {
     const targetRoot = await createTargetRoot("template-vue-editor-order-");
     const initialized = await generator().init({
       targetRoot,
@@ -151,7 +154,7 @@ void describe("Vue 独立组合预设公开行为", () => {
     assert.deepStrictEqual(updated.recommendations, customizedRecommendations);
   });
 
-  void it("连续新增独立应用并保留应用、状态模块、配置和根定制", async () => {
+  void it("adds independent apps repeatedly while preserving app, store, config, and root customizations", async () => {
     const targetRoot = await createTargetRoot("template-vue-composition-");
     const initialized = await generator().init({
       targetRoot,
@@ -202,11 +205,14 @@ void describe("Vue 独立组合预设公开行为", () => {
       "packages/tooling-config/base.json",
     );
     const customizedApp =
-      (await readFile(appSourcePath, "utf8")) + "\n<!-- 保留已有页面定制 -->\n";
+      (await readFile(appSourcePath, "utf8")) +
+      "\n<!-- retained page customization -->\n";
     const customizedStore =
-      (await readFile(storeSourcePath, "utf8")) + "\n// 保留已有应用状态定制\n";
+      (await readFile(storeSourcePath, "utf8")) +
+      "\n// retained store customization\n";
     const customizedConfiguration =
-      (await readFile(configurationPath, "utf8")) + "\n// 保留已有配置定制\n";
+      (await readFile(configurationPath, "utf8")) +
+      "\n// retained configuration customization\n";
     await writeFile(appSourcePath, customizedApp);
     await writeFile(storeSourcePath, customizedStore);
     await writeFile(configurationPath, customizedConfiguration);
@@ -366,7 +372,7 @@ void describe("Vue 独立组合预设公开行为", () => {
     }
   });
 
-  void it("共享绑定失效时拒绝加包并保持目标树不变", async () => {
+  void it("rejects add and keeps the target tree unchanged when a shared binding is broken", async () => {
     const targetRoot = await createTargetRoot("template-vue-missing-binding-");
     const initialized = await generator().init({
       targetRoot,
@@ -410,12 +416,12 @@ void describe("Vue 独立组合预设公开行为", () => {
       JSON.stringify(result),
     );
     if (result.status === "operation-failure") {
-      assert.match(result.error.message, /依赖绑定/u);
+      assert.match(result.error.message, /dependency binding/iu);
     }
     assert.deepStrictEqual(await snapshotTree(targetRoot), beforeAddition);
   });
 
-  void it("新增应用路径被用户占用时拒绝操作并保留整棵目标树", async () => {
+  void it("rejects add and preserves the entire target tree when the new app path is occupied", async () => {
     const targetRoot = await createTargetRoot("template-vue-path-conflict-");
     const initialized = await generator().init({
       targetRoot,
@@ -454,7 +460,7 @@ void describe("Vue 独立组合预设公开行为", () => {
     assert.strictEqual(await readFile(userFile, "utf8"), "user file\n");
   });
 
-  void it("布局与创建输入贯穿初始化和连续加包", async () => {
+  void it("propagates layout and creation inputs across init and repeated adds", async () => {
     const vueDefinition = vueApp.definition as {
       readonly alias: string;
       readonly instance: "shared" | "independent";
@@ -462,8 +468,9 @@ void describe("Vue 独立组合预设公开行为", () => {
     const layoutPresetDefinition = definePreset({
       metadata: {
         alias: "vue-layout-test",
-        title: "Vue 布局测试",
-        description: "使用 Vue 参考包验证单节点布局输入。",
+        title: "Vue Layout Test",
+        description:
+          "Verifies single-node layout input with the Vue reference package.",
       },
       operations: ["init", "add"],
       nodes: {

@@ -27,7 +27,7 @@ export type PreparedProjectGithubTemplates = {
   readonly nextSteps: string;
 };
 
-/** 根检查作业的默认值与显式声明共用同一规范化规则。 */
+/** Normalizes root check workflow job options with the shared default name and timeout. */
 export function normalizeProjectCheckWorkflowJob(
   options?: ProjectCheckWorkflowJobOptions,
 ): ProjectCheckWorkflowJob {
@@ -37,7 +37,7 @@ export function normalizeProjectCheckWorkflowJob(
   };
 }
 
-/** GitHub 与后续步骤模板由根参考包在准备阶段从自有资源读取。 */
+/** Reads the GitHub workflow, Dependabot, and next-steps templates owned by workspace-root during preparation. */
 export function prepareProjectGithubTemplates(): PreparedProjectGithubTemplates {
   const read = (file: string): string => {
     try {
@@ -47,7 +47,7 @@ export function prepareProjectGithubTemplates(): PreparedProjectGithubTemplates 
       );
     } catch (cause) {
       throw new Error(
-        `根资源 @ykdz/reference-workspace-root#./project-github prepare 阶段无法读取 ${file}`,
+        `Failed to read ${file} while preparing @ykdz/reference-workspace-root#./project-github`,
         { cause },
       );
     }
@@ -59,7 +59,7 @@ export function prepareProjectGithubTemplates(): PreparedProjectGithubTemplates 
   };
 }
 
-/** 完整原生工作流拥有任务和工具设置；投影只选择已声明的能力。 */
+/** Projects the check workflow YAML by configuring job settings and keeping diagnostic steps only when declared. */
 export function projectCheckWorkflow(
   options: ProjectCheckWorkflowDiagnosticOptions,
   template: string,
@@ -154,7 +154,7 @@ function parseDependabotUpdates(value: unknown): readonly DependabotUpdate[] {
   });
 }
 
-/** 版本维护政策保留在原生 YAML，描述只提供生态、目录与频率。 */
+/** Projects the Dependabot YAML by selecting declared ecosystems and applying policy directories and schedule interval. */
 export function projectDependabotConfig(
   policy: DependencyMaintenancePolicy,
   template: string,
@@ -167,7 +167,9 @@ export function projectDependabotConfig(
     );
     const defaultUpdate = candidates[0];
     if (defaultUpdate === undefined)
-      throw new Error(`原生 Dependabot 配置未声明生态：${ecosystem}`);
+      throw new Error(
+        `Native Dependabot configuration does not declare ecosystem: ${ecosystem}`,
+      );
     return [
       policy.directories?.[ecosystem] ?? defaultUpdate.directory,
       ...(policy.extraDirectories?.[ecosystem] ?? []),
@@ -187,7 +189,7 @@ export function projectDependabotConfig(
   return document.toString({ lineWidth: 0 });
 }
 
-/** 文档正文是自然 Markdown，动态命令由已有正式计划提供。 */
+/** Appends numbered next-step commands to the Markdown introduction template. */
 export function projectNextStepsDocument(
   instructions: readonly { readonly display: string }[],
   template: string,

@@ -72,20 +72,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function failStructure(): never {
-  throw new Error("生成记录不符合 schema6 结构");
+  throw new Error("Generation record does not match the schema6 structure");
 }
 
 function isPackageDefinitionId(value: string): value is PackageDefinitionId {
   return /^package-[a-f0-9]{64}$/u.test(value);
 }
 
-/** 严格解析 schema6 的通用结构；内容拥有者继续验证自己的持久事实。 */
+/** Strictly parses the shared schema6 structure; content owners validate their own persisted facts separately. */
 export function parseGenerationRecordStructure(
   value: unknown,
 ): GenerationRecord<JsonValue, JsonValue> {
   if (isRecord(value) && value.schemaVersion !== 6) {
     throw new Error(
-      `不支持的生成记录 schema ${String(value.schemaVersion)}；当前只支持 schema6`,
+      `Unsupported generation record schema ${String(value.schemaVersion)}; only schema6 is supported`,
     );
   }
   const parsed = generationRecordSchema.safeParse(value);
@@ -93,18 +93,24 @@ export function parseGenerationRecordStructure(
 
   const record = parsed.data;
   assertContentIdentity(record.composition.identity);
-  assertJsonValue(record.composition.conventions, "生成记录组合约定");
+  assertJsonValue(
+    record.composition.conventions,
+    "Generation record composition conventions",
+  );
   const packages: GenerationRecordPackage<JsonValue>[] = [];
   for (const item of record.packages) {
     if (!isPackageDefinitionId(item.packageDefinitionId)) failStructure();
     assertContentIdentity(item.contentIdentity);
     if (item.creationInput !== null) {
-      assertJsonValue(item.creationInput, "生成记录包创建输入");
+      assertJsonValue(
+        item.creationInput,
+        "Generation record package creationInput",
+      );
     }
     const dependencyBindings: Record<string, PackageDefinitionId> = {};
     for (const [key, packageId] of Object.entries(item.dependencyBindings)) {
       if (key.trim().length === 0 || !isPackageDefinitionId(packageId)) {
-        throw new Error("生成记录 dependencyBindings 无效");
+        throw new Error("Generation record has invalid dependencyBindings");
       }
       dependencyBindings[key] = packageId;
     }
@@ -120,19 +126,23 @@ export function parseGenerationRecordStructure(
   const selections: GenerationRecordSelection[] = [];
   for (const selection of record.selections) {
     if (seenSelections.has(selection.selectionId)) {
-      throw new Error("生成记录 selectionId 必须唯一");
+      throw new Error("Generation record selectionId values must be unique");
     }
     seenSelections.add(selection.selectionId);
     if (selection.presetIdentity !== null) {
       assertContentIdentity(selection.presetIdentity);
     }
     if (Object.keys(selection.nodes).length === 0) {
-      throw new Error("生成记录 selection 至少包含一个节点");
+      throw new Error(
+        "Generation record selection must contain at least one node",
+      );
     }
     const nodes: Record<string, PackageDefinitionId> = {};
     for (const [node, packageId] of Object.entries(selection.nodes)) {
       if (node.trim().length === 0 || !isPackageDefinitionId(packageId)) {
-        throw new Error("生成记录 selection 节点映射无效");
+        throw new Error(
+          "Generation record selection has an invalid node mapping",
+        );
       }
       nodes[node] = packageId;
     }
@@ -153,7 +163,7 @@ export function parseGenerationRecordStructure(
   };
 }
 
-/** 验证记录与蓝图通过持续包实例身份一一对应。 */
+/** Validates that the generation record and project blueprint match one-to-one by packageDefinitionId. */
 export function assertGenerationRecordMatchesBlueprint(
   recordValue: unknown,
   blueprint: ProjectBlueprint,
@@ -169,15 +179,19 @@ export function assertGenerationRecordMatchesBlueprint(
     record.packages.map((item) => [item.packageDefinitionId, item]),
   );
   if (recordsById.size !== record.packages.length) {
-    throw new Error("生成记录包含重复包实例");
+    throw new Error("Generation record contains duplicate package instances");
   }
   if (blueprintPackages.size !== recordsById.size) {
-    throw new Error("生成记录与项目蓝图的包实例集合不一致");
+    throw new Error(
+      "Generation record and project blueprint have mismatched package instances",
+    );
   }
   for (const [id, packageRecord] of recordsById) {
     const definition = blueprintPackages.get(id);
     if (definition === undefined) {
-      throw new Error(`项目蓝图缺少生成记录中的包实例：${id}`);
+      throw new Error(
+        `Project blueprint is missing package instance from generation record: ${id}`,
+      );
     }
     if (
       Object.entries(packageRecord.dependencyBindings).some(
@@ -185,18 +199,24 @@ export function assertGenerationRecordMatchesBlueprint(
           key.trim().length === 0 || !recordsById.has(providerId),
       )
     ) {
-      throw new Error(`生成记录包含无效依赖绑定：${id}`);
+      throw new Error(
+        `Generation record contains invalid dependency bindings for package instance: ${id}`,
+      );
     }
   }
   for (const id of blueprintPackages.keys()) {
     if (!recordsById.has(id)) {
-      throw new Error(`生成记录缺少项目蓝图中的包实例：${id}`);
+      throw new Error(
+        `Generation record is missing package instance from project blueprint: ${id}`,
+      );
     }
   }
   for (const selection of record.selections) {
     for (const id of Object.values(selection.nodes)) {
       if (!recordsById.has(id)) {
-        throw new Error(`生成记录选择引用了未知包实例：${id}`);
+        throw new Error(
+          `Generation record selection references unknown package instance: ${id}`,
+        );
       }
     }
   }

@@ -117,7 +117,7 @@ void describe("generation record parsing", () => {
             validRecord.packages[1],
           ],
         }),
-      /有效 JSON 数据/u,
+      /valid JSON data/u,
     );
 
     assert.throws(
@@ -145,7 +145,7 @@ void describe("generation record parsing", () => {
           ...matchingBlueprint,
           packages: [matchingBlueprint.packages[0]!],
         }),
-      /实例集合不一致/u,
+      /mismatched package instances/u,
     );
   });
 });

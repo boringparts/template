@@ -8,7 +8,7 @@ import { pathToFileURL } from "node:url";
 import { createTemplateSourceHandle } from "@ykdz/template-core/template-source";
 import { defineNativeContentArtifact } from "@ykdz/template-workspace-authoring/content-artifact";
 
-void it("公开制品句柄保留编译文件、资源字节和依赖用途", async () => {
+void it("public artifact handle preserves compiled files, resource bytes, and dependency purposes", async () => {
   const root = await mkdtemp(
     path.join(tmpdir(), "workspace-authoring-artifact-"),
   );
@@ -25,7 +25,7 @@ void it("公开制品句柄保留编译文件、资源字节和依赖用途", as
       path.join(compiledRoot, "index.d.ts"),
       'export declare const version: "v1";\n',
     );
-    await writeFile(resourcePath, "作者资源\n");
+    await writeFile(resourcePath, "author resource\n");
 
     const artifact = defineNativeContentArtifact(
       { alias: "artifact-fixture" },
@@ -79,7 +79,7 @@ void it("公开制品句柄保留编译文件、资源字节和依赖用途", as
         data.toString(),
         mode,
       ]),
-      [["resources/guide.md", "作者资源\n", 0o640]],
+      [["resources/guide.md", "author resource\n", 0o640]],
     );
     assert.deepEqual(prepared.dependencies, [
       {
@@ -98,7 +98,7 @@ void it("公开制品句柄保留编译文件、资源字节和依赖用途", as
   }
 });
 
-void it("拒绝清单中没有声明的模板执行依赖", () => {
+void it("rejects template execution dependencies not declared in the manifest", () => {
   assert.throws(
     () =>
       defineNativeContentArtifact(
@@ -116,6 +116,6 @@ void it("拒绝清单中没有声明的模板执行依赖", () => {
           executionDependencies: ["@fixture/undeclared"],
         },
       ),
-    /预设模板执行依赖未在所属清单声明：@fixture\/native-content\/@fixture\/undeclared/,
+    /Template execution dependency is not declared in the owning manifest: @fixture\/native-content\/@fixture\/undeclared/,
   );
 });

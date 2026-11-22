@@ -3,7 +3,7 @@ import { defineReferencePackage } from "@ykdz/default-content-authoring/referenc
 
 import referenceManifest from "../package.json" with { type: "json" };
 
-/** Hono API 与 web 之间保持稳定的原生依赖绑定键。 */
+/** Stable native dependency binding key shared between Hono API and web packages. */
 export const honoApiDependencyKey = "hono-api";
 
 export const referencePackage = defineReferencePackage({

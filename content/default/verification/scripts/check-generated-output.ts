@@ -32,7 +32,7 @@ async function outputFiles(root: string, relative = ""): Promise<string[]> {
   return files.sort();
 }
 
-/** 检查生成器实际写入的文件与有限owner事实。 */
+/** Validates files written by the generator against the receipt metadata, formatter policy, and task-gate config. */
 export async function validateGeneratedOutput(
   receipt: GeneratedScenarioReceipt,
 ): Promise<void> {
@@ -50,18 +50,18 @@ export async function validateGeneratedOutput(
       (entry) => entry.path === metadataPath,
     );
     if (expectedEntry?.kind !== "file")
-      throw new Error(`${metadataPath} 不在正式投影文件中`);
+      throw new Error(`${metadataPath} is missing from the projected files`);
     const actualBytes = await readFile(path.join(projectDir, metadataPath));
     if (!Buffer.from(expectedEntry.content).equals(actualBytes))
-      throw new Error(`${metadataPath} 与正式 SDK 投影字节不一致`);
+      throw new Error(`${metadataPath} bytes do not match the SDK projection`);
     let actualValue: unknown;
     try {
       actualValue = JSON.parse(actualBytes.toString("utf8")) as unknown;
     } catch (error) {
-      throw new Error(`${metadataPath} 不是有效 JSON`, { cause: error });
+      throw new Error(`${metadataPath} is not valid JSON`, { cause: error });
     }
     if (!isDeepStrictEqual(actualValue, expectedValue))
-      throw new Error(`${metadataPath} 与正式 SDK 结果不一致`);
+      throw new Error(`${metadataPath} does not match the SDK result`);
   }
   for (const file of await outputFiles(projectDir)) {
     if (expectedMetadata.has(file)) continue;
@@ -78,10 +78,12 @@ export async function validateGeneratedOutput(
     const formatted = await format(file, source, formatterConfig);
     if (formatted.errors.length > 0)
       throw new Error(
-        `${file} 最终生成内容无法解析：${JSON.stringify(formatted.errors)}`,
+        `${file} generated content could not be parsed: ${JSON.stringify(formatted.errors)}`,
       );
     if (formatted.code !== source)
-      throw new Error(`${file} 最终生成格式不符合所属原生政策`);
+      throw new Error(
+        `${file} generated formatting does not match its native formatting policy`,
+      );
   }
   const turboCommand = [
     process.execPath,
@@ -91,7 +93,7 @@ export async function validateGeneratedOutput(
     const analysis = inspectTaskGate(gate, projectDir, undefined, turboCommand);
     if (analysis.diagnostics.length > 0)
       throw new Error(
-        `${gate} 最终生成任务配置无效：\n${analysis.diagnostics.join("\n")}`,
+        `${gate} generated task configuration is invalid:\n${analysis.diagnostics.join("\n")}`,
       );
   }
 }
@@ -131,9 +133,11 @@ export async function checkGeneratedOutputs(): Promise<void> {
       try {
         await validateGeneratedOutput(receipt);
       } catch (error) {
-        throw new Error(`${scenario.id} 最终生成检查失败`, { cause: error });
+        throw new Error(`${scenario.id} generated output check failed`, {
+          cause: error,
+        });
       }
-      console.log(`${scenario.id} 最终生成检查通过`);
+      console.log(`${scenario.id} generated output check passed`);
     }
   } finally {
     await rm(workspace, { recursive: true, force: true });

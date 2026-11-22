@@ -1,4 +1,4 @@
-/** Vue 工具链的 peer 依赖覆盖属于工作区策略。 */
+/** Workspace-level peer dependency overrides for the Vue toolchain. */
 export const vuePnpmDependencyOverrides = {
   "pinia>typescript": "-",
   "vue>typescript": "-",

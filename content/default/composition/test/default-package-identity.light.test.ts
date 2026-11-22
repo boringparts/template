@@ -23,8 +23,8 @@ function blueprintWithPackage(
   } as const;
 }
 
-void describe("默认策略包名合同", () => {
-  void it("保留 npm 包名长度边界和 Node 内置模块保留规则", () => {
+void describe("default policy package name contract", () => {
+  void it("enforces npm package name length limits and Node built-in module reservations", () => {
     assert.strictEqual(isValidDefaultNpmPackageName("a".repeat(214)), true);
     assert.strictEqual(isValidDefaultNpmPackageName("a".repeat(215)), false);
     assert.strictEqual(
@@ -49,7 +49,7 @@ void describe("默认策略包名合同", () => {
     "@scope/_hidden",
     "@scope/-hidden",
   ]) {
-    void it(`接受默认策略 npm 名称 ${name}`, () => {
+    void it(`accepts default policy npm name ${name}`, () => {
       assert.deepStrictEqual(
         validateDefaultProjectBlueprint(blueprintWithPackage(name)),
         {
@@ -79,7 +79,7 @@ void describe("默认策略包名合同", () => {
     "@scope/name/extra",
     `@scope/${"a".repeat(208)}`,
   ]) {
-    void it(`拒绝默认策略 npm 名称 ${name}`, () => {
+    void it(`rejects default policy npm name ${name}`, () => {
       assert.deepStrictEqual(
         validateDefaultProjectBlueprint(blueprintWithPackage(name)),
         {
@@ -98,14 +98,14 @@ void describe("默认策略包名合同", () => {
   }
 });
 
-void describe("默认策略包角色与目录合同", () => {
+void describe("default policy package role and path contract", () => {
   for (const role of [
     "cli-tool",
     "runtime-service",
     "shared-library",
     "native-package",
   ]) {
-    void it(`接受默认角色 ${role}`, () => {
+    void it(`accepts default role ${role}`, () => {
       assert.deepStrictEqual(
         validateDefaultProjectBlueprint(
           blueprintWithPackage("@demo/tool", "packages/tool", role),
@@ -118,7 +118,7 @@ void describe("默认策略包角色与目录合同", () => {
     });
   }
 
-  void it("拒绝默认策略不支持的角色", () => {
+  void it("rejects unsupported roles under default policy", () => {
     assert.deepStrictEqual(
       validateDefaultProjectBlueprint(
         blueprintWithPackage("@demo/tool", "packages/tool", "documentation"),
@@ -136,7 +136,7 @@ void describe("默认策略包角色与目录合同", () => {
     );
   });
 
-  void it("保留默认两段包路径并单独报告保留工作区目录", () => {
+  void it("enforces two-segment package paths and reports reserved workspace collections separately", () => {
     assert.deepStrictEqual(validateDefaultPackagePath("packages/tool"), {
       hasValidShape: true,
     });
@@ -158,7 +158,7 @@ void describe("默认策略包角色与目录合同", () => {
     "dist",
     "target",
   ]) {
-    void it(`拒绝默认策略保留目录 ${workspaceCollection}`, () => {
+    void it(`rejects reserved workspace collection ${workspaceCollection}`, () => {
       const packagePath = `${workspaceCollection}/evil`;
       assert.deepStrictEqual(
         validateDefaultProjectBlueprint(
@@ -178,7 +178,7 @@ void describe("默认策略包角色与目录合同", () => {
     });
   }
 
-  void it("在默认策略初始化前拒绝保留工作区目录", () => {
+  void it("rejects reserved workspace collections before default policy initialization", () => {
     assert.throws(
       () =>
         assertDefaultProjectBlueprintDraft({

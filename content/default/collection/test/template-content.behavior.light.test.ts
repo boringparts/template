@@ -93,7 +93,10 @@ function requireReferenceMember(packageName: string): TemplateReferencePackage {
       candidate.kind === "reference" &&
       candidate.identity.packageName === packageName,
   );
-  assert.ok(member, `内容集合缺少参考包：${packageName}`);
+  assert.ok(
+    member,
+    `Content collection is missing reference package: ${packageName}`,
+  );
   return member;
 }
 
@@ -103,7 +106,7 @@ function requirePresetMember(packageName: string): TemplatePreset {
       candidate.kind === "preset" &&
       candidate.identity.packageName === packageName,
   );
-  assert.ok(member, `内容集合缺少预设：${packageName}`);
+  assert.ok(member, `Content collection is missing preset: ${packageName}`);
   return member;
 }
 
@@ -156,8 +159,8 @@ after(async () => {
   );
 });
 
-void describe("公开模板内容集合", () => {
-  void it("按路径顺序聚合诊断制品并原子拒绝用户覆盖", async () => {
+void describe("public template content collection", () => {
+  void it("aggregates diagnostic artifacts in path order and atomically rejects user overwrites", async () => {
     const generator = createDefaultGenerator({ content: templateContent });
     const rendered: string[] = [];
 
@@ -180,7 +183,10 @@ void describe("公开模板内容集合", () => {
       );
       const workflowPath = path.join(targetRoot, ".github/workflows/check.yml");
       const originalWorkflow = await readFile(workflowPath, "utf8");
-      await writeFile(workflowPath, `# 用户工作流策略\n${originalWorkflow}`);
+      await writeFile(
+        workflowPath,
+        `# user workflow policy\n${originalWorkflow}`,
+      );
 
       if (rendered.length === 0) {
         const userStep =
@@ -222,7 +228,7 @@ void describe("公开模板内容集合", () => {
 
       const workflow = await readFile(workflowPath, "utf8");
       rendered.push(workflow);
-      assert.match(workflow, /^# 用户工作流策略\n/u);
+      assert.match(workflow, /^# user workflow policy\n/u);
       assert.ok(
         workflow.includes(
           "PLAYWRIGHT_DIAGNOSTIC_OWNER_PATHS: |-\n            apps/admin\n            apps/web",
@@ -241,7 +247,7 @@ void describe("公开模板内容集合", () => {
     assert.strictEqual(rendered[0], rendered[1]);
   });
 
-  void it("非诊断加包不读取未变化的工作流目标", async () => {
+  void it("does not read unchanged workflow targets when adding non-diagnostic packages", async () => {
     const targetRoot = await createTargetRoot(
       "template-content-no-diagnostics-",
     );
@@ -270,7 +276,7 @@ void describe("公开模板内容集合", () => {
     assert.ok((await stat(workflowPath)).isDirectory());
   });
 
-  void it("只用集合成员完成库初始化及其公开共享依赖展开", async () => {
+  void it("initializes a library and expands its public shared dependencies using only collection members", async () => {
     const targetRoot = await createTargetRoot("template-content-ts-lib-");
     const generator = createDefaultGenerator({ content: templateContent });
 
@@ -284,7 +290,9 @@ void describe("公开模板内容集合", () => {
     });
 
     assert.strictEqual(result.status, "success", JSON.stringify(result));
-    if (result.status !== "success") throw new Error("初始化应成功");
+    if (result.status !== "success") {
+      throw new Error("Initialization should succeed");
+    }
     assert.strictEqual(
       result.actions.some(({ path: outputPath }) => outputPath === "TODO.md"),
       false,
@@ -298,7 +306,7 @@ void describe("公开模板内容集合", () => {
     );
   });
 
-  void it("同次正式投影生成 TODO 并让 add 沿用该选择", async () => {
+  void it("projects TODO.md during initialization and preserves that choice on add", async () => {
     const targetRoot = await createTargetRoot("template-content-todo-");
     const generator = createDefaultGenerator({ content: templateContent });
     const initialized = await generator.init({
@@ -316,7 +324,9 @@ void describe("公开模板内容集合", () => {
       "success",
       JSON.stringify(initialized),
     );
-    if (initialized.status !== "success") throw new Error("初始化应成功");
+    if (initialized.status !== "success") {
+      throw new Error("Initialization should succeed");
+    }
     const todoText = await readFile(path.join(targetRoot, "TODO.md"), "utf8");
     assert.match(todoText, /pnpm install/u);
     assert.match(todoText, /pnpm run fix/u);
@@ -336,7 +346,9 @@ void describe("公开模板内容集合", () => {
       creationInput: { packagePath: "packages/provider" },
     });
     assert.strictEqual(added.status, "success", JSON.stringify(added));
-    if (added.status !== "success") throw new Error("加包应成功");
+    if (added.status !== "success") {
+      throw new Error("Package addition should succeed");
+    }
     assert.equal(added.generationRecord.composition.conventions.todo, true);
     assert.strictEqual(
       added.actions.some(({ path: outputPath }) => outputPath === "TODO.md"),
@@ -348,7 +360,7 @@ void describe("公开模板内容集合", () => {
     );
   });
 
-  void it("正式加包保留消费者定制的编辑器设置", async () => {
+  void it("preserves consumer-customized editor settings during package addition", async () => {
     const targetRoot = await createTargetRoot(
       "template-content-editor-customization-",
     );
@@ -391,7 +403,7 @@ void describe("公开模板内容集合", () => {
     );
   });
 
-  void it("linkFrom 让现有 consumer 在正式加包事务中依赖新 provider", async () => {
+  void it("links an existing consumer to a newly added provider via linkFrom", async () => {
     const targetRoot = await createTargetRoot("template-content-link-from-");
     const generator = createDefaultGenerator({ content: templateContent });
     const initialized = await generator.init({
@@ -417,7 +429,9 @@ void describe("公开模板内容集合", () => {
     });
 
     assert.strictEqual(result.status, "success", JSON.stringify(result));
-    if (result.status !== "success") throw new Error("加包应成功");
+    if (result.status !== "success") {
+      throw new Error("Package addition should succeed");
+    }
     const consumerRecord = result.generationRecord.packages.find(
       ({ contentIdentity }) =>
         contentIdentity.packageName === "@ykdz/reference-ts-cli",
@@ -455,7 +469,7 @@ void describe("公开模板内容集合", () => {
     );
   });
 
-  void it("重复已存在的 provider 时拒绝补交缺失的 linkFrom", async () => {
+  void it("rejects backfilling a missing linkFrom when repeating an existing provider", async () => {
     const targetRoot = await createTargetRoot(
       "template-content-link-from-repeat-",
     );
@@ -547,7 +561,9 @@ void describe("公开模板内容集合", () => {
       JSON.stringify(identityRetry),
     );
     if (identityRetry.status !== "operation-failure") {
-      throw new Error("包身份占用应返回冲突");
+      throw new Error(
+        "Occupied package identity should return an operation failure",
+      );
     }
     assert.deepStrictEqual(packageIdentityIssueKinds(identityRetry), [
       { kind: "duplicate", field: "path" },
@@ -556,7 +572,7 @@ void describe("公开模板内容集合", () => {
     assert.strictEqual(await readFile(blueprintPath, "utf8"), before.blueprint);
   });
 
-  void it("linkFrom 引用未知 consumer 时保留领域原因且不写入", async () => {
+  void it("preserves the domain issue without writing when linkFrom references an unknown consumer", async () => {
     const targetRoot = await createTargetRoot(
       "template-content-link-from-unknown-",
     );
@@ -592,18 +608,18 @@ void describe("公开模板内容集合", () => {
     assert.strictEqual(await snapshotTree(targetRoot), before);
   });
 
-  void it("加包返回默认 owner 的版本声明诊断并保持目标不变", async () => {
+  void it("returns default owner version declaration diagnostics on add and leaves target unchanged", async () => {
     const cases = [
       {
         field: "engines.node" as const,
         actual: ">=22",
-        message: /根package\.json的engines\.node/u,
+        message: /root package\.json engines\.node/u,
         issue: "invalid-node-declaration",
       },
       {
         field: "packageManager" as const,
         actual: "null",
-        message: /根package\.json的packageManager/u,
+        message: /root package\.json packageManager/u,
         issue: "invalid-package-manager-pin",
       },
     ];
@@ -650,7 +666,9 @@ void describe("公开模板内容集合", () => {
 
       assert.strictEqual(result.status, "operation-failure");
       if (result.status !== "operation-failure") {
-        throw new Error("无效的根版本声明应返回操作失败");
+        throw new Error(
+          "Invalid root version declaration should return an operation failure",
+        );
       }
       assert.strictEqual(result.phase, "preparation");
       assert.match(result.error.message, testCase.message);
@@ -660,7 +678,7 @@ void describe("公开模板内容集合", () => {
     }
   });
 
-  void it("linkFrom 保留失去 Node package-name import 能力的当前 consumer 原因", async () => {
+  void it("preserves the domain issue when a current linkFrom consumer has lost Node package-name import support", async () => {
     const targetRoot = await createTargetRoot(
       "template-content-link-from-current-",
     );
@@ -719,7 +737,7 @@ void describe("公开模板内容集合", () => {
     );
   });
 
-  void it("从同一集合初始化 Rust 二进制程序", async () => {
+  void it("initializes a Rust binary from the same collection", async () => {
     const generator = createDefaultGenerator({ content: templateContent });
     const rustRoot = await createTargetRoot("template-content-rust-bin-");
     const result = await generator.init({
@@ -738,7 +756,7 @@ void describe("公开模板内容集合", () => {
     );
   });
 
-  void it("从同一集合初始化 Vike 应用并投影数据库与部署准备", async () => {
+  void it("initializes a Vike app from the same collection and projects database and deployment setup", async () => {
     const targetRoot = await createTargetRoot("template-content-vike-app-");
     const generator = createDefaultGenerator({ content: templateContent });
 
@@ -751,7 +769,7 @@ void describe("公开模板内容集合", () => {
     assert.strictEqual(result.status, "success", JSON.stringify(result));
     const collisionPath = path.join(targetRoot, "packages/lib");
     await mkdir(collisionPath, { recursive: true });
-    await writeFile(path.join(collisionPath, "unowned.txt"), "用户内容\n");
+    await writeFile(path.join(collisionPath, "unowned.txt"), "user content\n");
     const beforeConflict = await snapshotTree(targetRoot);
     const conflict = await generator.add({
       repositoryRoot: targetRoot,
@@ -769,7 +787,8 @@ void describe("公开模板内容集合", () => {
       path.join(targetRoot, "package.json"),
       JSON.stringify(customizedRootManifest, null, 2) + "\n",
     );
-    const customizedServer = "// 初始化后的用户修改\nexport default {};\n";
+    const customizedServer =
+      "// user modification after initialization\nexport default {};\n";
     await writeFile(
       path.join(targetRoot, "apps/web/+server.ts"),
       customizedServer,
@@ -822,8 +841,8 @@ void describe("公开模板内容集合", () => {
       packageManager: string;
       scripts: Record<string, string>;
     };
-    assert.strictEqual(rootPackageManifest.engines.node, "26.13.0");
-    assert.strictEqual(rootPackageManifest.packageManager, "pnpm@12.9.1");
+    assert.strictEqual(rootPackageManifest.engines.node, "26.13.1");
+    assert.strictEqual(rootPackageManifest.packageManager, "pnpm@12.21.0");
     assert.strictEqual(
       rootPackageManifest.scripts["user:check"],
       "echo retained",

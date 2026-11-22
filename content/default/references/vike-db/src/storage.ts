@@ -7,12 +7,14 @@ export type DatabaseProfile = "dev" | "test" | "e2e";
 function localProfile(): DatabaseProfile {
   const profile = process.env.DATABASE_PROFILE;
   if (process.env.DATABASE_FILE !== undefined) {
-    throw new Error("DATABASE_FILE 不能与本地 DATABASE_PROFILE 同时设置");
+    throw new Error(
+      "DATABASE_FILE cannot be set together with local DATABASE_PROFILE",
+    );
   }
   if (profile === "dev" || profile === "test" || profile === "e2e") {
     return profile;
   }
-  throw new Error("DATABASE_PROFILE 必须为 dev、test 或 e2e");
+  throw new Error("DATABASE_PROFILE must be dev, test, or e2e");
 }
 
 function localDatabaseStorageTarget(profile: DatabaseProfile): string {
@@ -26,6 +28,13 @@ function localDatabaseStorageTarget(profile: DatabaseProfile): string {
   }
 }
 
+/**
+ * Resolves the active SQLite file path from either local `DATABASE_PROFILE` or deployment
+ * `DATABASE_FILE`.
+ *
+ * Throws when both variables are set, when `DATABASE_PROFILE` is invalid, or when deployment
+ * `DATABASE_FILE` is missing or relative.
+ */
 export function databaseStorageTarget(): string {
   if (process.env.DATABASE_PROFILE !== undefined) {
     return localDatabaseStorageTarget(localProfile());
@@ -34,9 +43,10 @@ export function databaseStorageTarget(): string {
   if (externalTarget !== undefined && isAbsolute(externalTarget)) {
     return externalTarget;
   }
-  throw new Error("部署必须提供绝对路径 DATABASE_FILE");
+  throw new Error("Deployment requires an absolute DATABASE_FILE path");
 }
 
+/** Removes the local SQLite database file and sidecar WAL/journal files for the active `DATABASE_PROFILE`. */
 export function resetDatabaseStorageTarget(): void {
   switch (localProfile()) {
     case "dev":

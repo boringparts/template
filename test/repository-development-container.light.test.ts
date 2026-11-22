@@ -16,7 +16,7 @@ import { execa } from "execa";
 
 import { checkRepositoryDevelopmentContainer } from "../scripts/check-repository-development-container.ts";
 
-void it("源码容器冻结检查当前工作树，成功后移除快照、失败时保留诊断", async () => {
+void it("runs frozen checks on the current working tree snapshot, removes it on success, and preserves it on failure", async () => {
   const root = await mkdtemp(
     path.join(tmpdir(), "repository-container-behavior-"),
   );
@@ -40,7 +40,7 @@ void it("源码容器冻结检查当前工作树，成功后移除快照、失�
       path.join(root, "pnpm-workspace.yaml"),
       'catalog:\n  "@playwright/test": 1.64.0\n',
     );
-    await writeFile(path.join(root, "pnpm-lock.yaml"), "保持原样的锁文件\n");
+    await writeFile(path.join(root, "pnpm-lock.yaml"), "untouched lockfile\n");
     await writeFile(
       path.join(root, ".devcontainer/devcontainer.json"),
       JSON.stringify({ build: { dockerfile: "Dockerfile" }, mounts: [] }),
@@ -53,18 +53,21 @@ void it("源码容器冻结检查当前工作树，成功后移除快照、失�
       path.join(root, ".gitignore"),
       ".template/\nnode_modules/\n",
     );
-    await writeFile(path.join(root, "tracked.ts"), "旧源码\n");
-    await writeFile(path.join(root, "deleted.ts"), "将删除\n");
+    await writeFile(path.join(root, "tracked.ts"), "old source\n");
+    await writeFile(path.join(root, "deleted.ts"), "to be deleted\n");
     await execa("git", ["init", "--quiet"], { cwd: root });
     await execa("git", ["add", "--all"], { cwd: root });
-    await writeFile(path.join(root, "tracked.ts"), "当前改动\n");
-    await writeFile(path.join(root, "new.ts"), "新增源码\n");
+    await writeFile(path.join(root, "tracked.ts"), "current edit\n");
+    await writeFile(path.join(root, "new.ts"), "new source\n");
     await rm(path.join(root, "deleted.ts"));
     for (const directory of ["node_modules", ".agents", "docs", ".codex"]) {
       await mkdir(path.join(root, directory));
-      await writeFile(path.join(root, directory, "local.txt"), "不得复制\n");
+      await writeFile(
+        path.join(root, directory, "local.txt"),
+        "must not copy\n",
+      );
     }
-    await writeFile(path.join(root, "AGENTS.md"), "不得复制\n");
+    await writeFile(path.join(root, "AGENTS.md"), "must not copy\n");
 
     const run: ContainerCommandRunner = async (command, args, options) => {
       if (command === "git") return await execa(command, [...args], options);
@@ -79,11 +82,11 @@ void it("源码容器冻结检查当前工作树，成功后移除快照、失�
         snapshot = options.cwd;
         assert.strictEqual(
           await readFile(path.join(snapshot, "tracked.ts"), "utf8"),
-          "当前改动\n",
+          "current edit\n",
         );
         assert.strictEqual(
           await readFile(path.join(snapshot, "new.ts"), "utf8"),
-          "新增源码\n",
+          "new source\n",
         );
         for (const file of [
           "deleted.ts",
@@ -110,7 +113,7 @@ void it("源码容器冻结检查当前工作树，成功后移除快照、失�
         const nested = args.slice(index);
         if (nested[0] === "pnpm") executed.push([...nested]);
         if (checkFails && nested.join(" ") === "pnpm run check")
-          throw new Error("正式轻检查失败");
+          throw new Error("formal light check failed");
       }
       return { stdout: "" };
     };
@@ -138,12 +141,12 @@ void it("源码容器冻结检查当前工作树，成功后移除快照、失�
     await assert.rejects(access(snapshot));
     assert.strictEqual(
       await readFile(path.join(root, "pnpm-lock.yaml"), "utf8"),
-      "保持原样的锁文件\n",
+      "untouched lockfile\n",
     );
     checkFails = true;
     await assert.rejects(
       checkRepositoryDevelopmentContainer({ repositoryRoot: root, run }),
-      /正式轻检查失败/u,
+      /formal light check failed/u,
     );
     assert.ok(snapshot !== undefined);
     assert.strictEqual(
@@ -152,7 +155,7 @@ void it("源码容器冻结检查当前工作树，成功后移除快照、失�
     );
     assert.strictEqual(
       await readFile(path.join(snapshot, "tracked.ts"), "utf8"),
-      "当前改动\n",
+      "current edit\n",
     );
   } finally {
     await rm(root, { recursive: true, force: true });

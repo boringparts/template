@@ -48,7 +48,7 @@ function enabledScenarioSets(
       )
     ) {
       throw new Error(
-        "启用场景集必须为 init、package-addition-matrix、focused、deployment 或 capabilities",
+        "Enabled scenario sets must be init, package-addition-matrix, focused, deployment, or capabilities",
       );
     }
   }

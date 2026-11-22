@@ -71,7 +71,7 @@ function nestedDevcontainerCommand(args: readonly string[]): {
 }
 
 void describe("Development Container Fixture Executor", () => {
-  void it("用测试卷与宿主工作区挂载启动，并仅清理本次创建的卷", async () => {
+  void it("starts with test volumes and host workspace mount, and cleans up only volumes created by this session", async () => {
     const projectDir = await mkdtemp(path.join(tmpdir(), "source-mounts-"));
     const calls: Command[] = [];
     let actualConfig: unknown;
@@ -155,7 +155,7 @@ void describe("Development Container Fixture Executor", () => {
     }
   });
 
-  void it("冻结现有源码锁文件并在失败后清理自己的容器", async () => {
+  void it("uses frozen install on existing source lockfile and removes its owned container on failure", async () => {
     const projectDir = "/fixture/source-repository";
     const calls: Command[] = [];
     const session = createDevelopmentContainerSession({
@@ -195,7 +195,7 @@ void describe("Development Container Fixture Executor", () => {
                     "config --global --add safe.directory /workspaces/source-repository"
                 );
               }),
-              "冻结安装前应让容器内 Git 信任宿主属主的精确源码工作区",
+              "Git inside the container should trust the exact host-owned source workspace before frozen install",
             );
             assert.deepStrictEqual(nested.args, [
               "install",
@@ -203,7 +203,7 @@ void describe("Development Container Fixture Executor", () => {
               "--store-dir",
               "/pnpm/store",
             ]);
-            throw new Error("锁文件与 manifest 不一致");
+            throw new Error("lockfile does not match manifest");
           }
         }
         return {};
@@ -214,7 +214,7 @@ void describe("Development Container Fixture Executor", () => {
       session.execute(
         async (run) => await run("pnpm", ["run", "check"], { cwd: projectDir }),
       ),
-      /Dependency preparation failed.*锁文件与 manifest 不一致/u,
+      /Dependency preparation failed.*lockfile does not match manifest/u,
     );
     assert.ok(
       calls.some(
@@ -2238,7 +2238,7 @@ void describe("Development Container Fixture Executor", () => {
     );
   });
 
-  void it("仅向容器命令传递缓存与原生代理开关", async () => {
+  void it("forwards only cache and native proxy flags to container commands", async () => {
     const projectDir = path.resolve("/fixture/turbo-cache");
     const calls: Command[] = [];
     const session = createDevelopmentContainerSession({

@@ -85,7 +85,7 @@ const applicableFocusedScenarioCount = async (): Promise<number> => {
 };
 
 void describe("Fixture Verification Evidence", () => {
-  void it("初始化内容树相同也不能将轻层证据复用为完整验收", async () => {
+  void it("does not reuse light evidence for full verification even when initialized content trees match", async () => {
     const root = await temporaryRepository("fixture-canonical-init-");
     const storage = new FileFixtureEvidenceStorage(path.join(root, "evidence"));
     let matrixExecutions = 0;
@@ -2185,7 +2185,7 @@ void describe("Fixture Verification Evidence", () => {
   });
 
   void it(
-    "五种源码 CLI 场景集命中有效证据后跳过昂贵命令",
+    "skips expensive commands across all five source CLI scenario sets when valid evidence hits",
     { timeout: 180000 },
     async () => {
       const root = await temporaryRepository("fixture-evidence-cli-");

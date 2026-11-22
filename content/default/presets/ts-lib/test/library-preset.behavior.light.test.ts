@@ -119,8 +119,8 @@ after(async () => {
   );
 });
 
-void describe("TypeScript 库公开预设", () => {
-  void it("通过公开声明初始化、连续加包并复用共享配置", async () => {
+void describe("TypeScript library public preset", () => {
+  void it("initializes, adds packages repeatedly, and reuses shared configuration via public declarations", async () => {
     const targetRoot = await createTemporaryRoot("template-ts-lib-preset-");
     const generator = createDefaultGenerator({ content });
     const initialized = await generator.init({
@@ -313,7 +313,7 @@ void describe("TypeScript 库公开预设", () => {
     );
   });
 
-  void it("直接参考与预设选择进入相同初始化图", async () => {
+  void it("produces the same initialization graph for direct reference and preset selections", async () => {
     const roots = await Promise.all([
       mkdtemp(path.join(tmpdir(), "template-ts-lib-preset-graph-")),
       mkdtemp(path.join(tmpdir(), "template-ts-lib-reference-graph-")),
@@ -345,7 +345,9 @@ void describe("TypeScript 库公开预设", () => {
       presetResult.status !== "success" ||
       referenceResult.status !== "success"
     ) {
-      throw new Error("初始化成功后应返回正式生成结果");
+      throw new Error(
+        "Successful initialization should return a generation result",
+      );
     }
     const comparableBlueprint = (blueprint: typeof presetResult.blueprint) => ({
       ...blueprint,
@@ -389,7 +391,7 @@ void describe("TypeScript 库公开预设", () => {
     );
   });
 
-  void it("节点布局和操作输入贯穿初始化、连续加包和真实回放", async () => {
+  void it("propagates node layout and operation inputs across init, repeated adds, and replay", async () => {
     const layoutPreset = definePreset({
       metadata: presetDefinition.metadata,
       operations: presetDefinition.operations,
@@ -486,7 +488,7 @@ void describe("TypeScript 库公开预设", () => {
     await assert.rejects(stat(path.join(targetRoot, "packages/lib")));
   });
 
-  void it("缺少原生共享依赖或新增路径冲突时保持目标不变", async () => {
+  void it("leaves target unchanged when a native shared dependency is missing or an added path conflicts", async () => {
     const missingTarget = await createTemporaryRoot("template-ts-lib-missing-");
     const missingGenerator = createDefaultGenerator({
       content: [root, library, publication, preset],
@@ -533,7 +535,7 @@ void describe("TypeScript 库公开预设", () => {
     );
   });
 
-  void it("加包时不恢复未链接既有库的缺失 manifest", async () => {
+  void it("does not restore a missing manifest of an unlinked existing library during add", async () => {
     const targetRoot = await createTemporaryRoot(
       "template-ts-lib-missing-manifest-",
     );
@@ -559,7 +561,9 @@ void describe("TypeScript 库公开预设", () => {
     });
 
     assert.strictEqual(added.status, "success", JSON.stringify(added));
-    if (added.status !== "success") throw new Error("加包应成功");
+    if (added.status !== "success") {
+      throw new Error("Package addition should succeed");
+    }
     assert.ok(
       !added.actions.some(
         (action) => action.path === "packages/lib/package.json",
@@ -577,7 +581,7 @@ void describe("TypeScript 库公开预设", () => {
     );
   });
 
-  void it("生成记录缺少必要绑定时加包失败且不提交", async () => {
+  void it("fails without committing when the generation record is missing a required binding", async () => {
     const targetRoot = await createTemporaryRoot("template-ts-lib-binding-");
     const generator = createDefaultGenerator({ content });
     const initialized = await generator.init({

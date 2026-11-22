@@ -1,4 +1,4 @@
-name: 发布 npm 包
+name: Publish npm packages
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   verify:
-    name: 检查并验收 CLI 制品
+    name: Check and verify CLI artifacts
     if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     uses: ./.github/workflows/check.yml
     permissions:
@@ -25,7 +25,7 @@ jobs:
       TURBO_REMOTE_CACHE_SIGNATURE_KEY: ${{ secrets.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}
 
   publish:
-    name: 发布到 npm 并创建 GitHub Release
+    name: Publish to npm and create GitHub Release
     if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     needs: verify
     runs-on: ubuntu-latest
@@ -35,22 +35,22 @@ jobs:
       contents: write
       id-token: write
     steps:
-      - name: 检出源码
+      - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: 读取 Node 版本
+      - name: Read Node version
         id: node-runtime
         run: echo "runtime=node@$(jq -er '.engines.node' package.json)" >> "$GITHUB_OUTPUT"
-      - name: 安装 pnpm 与 Node.js
-        uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3.1.2
+      - name: Set up pnpm and Node.js
+        uses: pnpm/setup@731dfb6463bbd11c11fd0ee11fe00ed0e36d48a1 # v3.2.0
         with:
           runtime: ${{ steps.node-runtime.outputs.runtime }}
           install: false
           cache: false
-      - name: 安装依赖
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
-      - name: 发布已验收的制品
+      - name: Publish verified artifacts
         uses: changesets/action/publish@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           pack-dir-artifact-id: ${{ needs.verify.outputs.pack_artifact_id }}

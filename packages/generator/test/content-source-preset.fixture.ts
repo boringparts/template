@@ -2,8 +2,9 @@ export const preset = {
   kind: "preset" as const,
   metadata: {
     alias: "typed-preset",
-    title: "类型化预设",
-    description: "用于验证预设定义类型保真的测试内容。",
+    title: "Typed Preset",
+    description:
+      "Test content for verifying preset definition type preservation.",
   },
   operations: ["init"] as const,
   nodes: {

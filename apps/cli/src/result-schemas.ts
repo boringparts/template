@@ -2,7 +2,7 @@ import { generationRecordSchema } from "@ykdz/template-core/generation-record";
 import { projectBlueprintSchema } from "@ykdz/template-core/project-blueprint";
 import { z } from "zod";
 
-/** 持久数据结构沿用所属模块的声明，CLI 只声明命令额外提供的事实。 */
+/** Persisted schemas are owned by core modules; this schema declares only the CLI-specific fields. */
 export const initializationSchema = z.object({
   dryRun: z.boolean(),
   targetDir: z.string(),

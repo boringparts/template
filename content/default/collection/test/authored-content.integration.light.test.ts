@@ -79,8 +79,8 @@ after(async () => {
   ]);
 });
 
-void describe("外部specifier集合经默认策略走公开生成器", () => {
-  void it("从两个同名来源各自init并add，持久实际身份、绑定和资源正文", async () => {
+void describe("external specifier collection through default composition and public generator", () => {
+  void it("initializes and adds from two same-name sources while persisting canonical identity, bindings, and resource contents", async () => {
     for (const namespace of ["alpha", "beta"]) {
       const fixture = await createFixture({ namespace, marker: namespace });
       const workspace = await createWorkspace();
@@ -146,7 +146,7 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
         featureDefinition.path,
         "owner-note.txt",
       );
-      await writeFile(firstPackageNote, "首包原始事实\n");
+      await writeFile(firstPackageNote, "first package original content\n");
       await chmod(firstPackageNote, 0o600);
       assert.equal(
         await readFile(
@@ -181,7 +181,7 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
       });
       assert.equal(wrongKind.status, "operation-failure");
       if (wrongKind.status === "operation-failure") {
-        assert.match(wrongKind.error.message, /种类不符/u);
+        assert.match(wrongKind.error.message, /Content kind mismatch/u);
       }
       assert.equal(
         await readFile(
@@ -200,7 +200,7 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
         featureDefinition.path,
         "owner-note.txt",
       );
-      await writeFile(movedPackageNote, "首包更新事实\n");
+      await writeFile(movedPackageNote, "first package updated content\n");
       const firstPackageManifestPath = path.join(
         movedRoot,
         featureDefinition.path,
@@ -244,7 +244,10 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
         todo: false,
       });
       assert.equal(addonDefinition.name, `@${namespace}/addon-extra`);
-      assert.equal(await readFile(movedPackageNote, "utf8"), "首包更新事实\n");
+      assert.equal(
+        await readFile(movedPackageNote, "utf8"),
+        "first package updated content\n",
+      );
       assert.deepEqual(
         JSON.parse(await readFile(firstPackageManifestPath, "utf8")),
         changedFirstPackageManifest,
@@ -291,7 +294,7 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
     }
   });
 
-  void it("统一依赖用途并在fresh add回放中保留目标加执行共享依赖", async () => {
+  void it("unifies dependency purposes and preserves target-plus-execution shared dependencies on fresh add replay", async () => {
     const fixture = await createFixture({
       namespace: "dependency-uses",
       marker: "uses",
@@ -408,7 +411,7 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
     await assertTargetDependencies();
   });
 
-  void it("当前内容修订经fresh engine回放时保留旧包与用户定制", async () => {
+  void it("preserves existing packages and user customizations when replaying a newer content revision in a fresh engine", async () => {
     const original = await createFixture({
       namespace: "current-content-revision",
       marker: "original",
@@ -448,7 +451,7 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
       featureDefinition.path,
       "src/content.ts",
     );
-    await writeFile(oldSource, "用户定制的旧源码\n");
+    await writeFile(oldSource, "// user-customized legacy source\n");
     await chmod(oldSource, 0o600);
     const rootManifestPath = path.join(targetRoot, "package.json");
     const rootManifest = JSON.parse(
@@ -467,7 +470,10 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
     });
     assert.equal(addition.status, "success", JSON.stringify(addition));
     if (addition.status !== "success") return;
-    assert.equal(await readFile(oldSource, "utf8"), "用户定制的旧源码\n");
+    assert.equal(
+      await readFile(oldSource, "utf8"),
+      "// user-customized legacy source\n",
+    );
     assert.equal((await stat(oldSource)).mode & 0o777, 0o600);
     await assert.rejects(
       readFile(
@@ -503,7 +509,7 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
     );
   });
 
-  void it("当前内容删除依赖槽后仍保留既有共享实例与绑定", async () => {
+  void it("retains existing shared instances and bindings after the current content removes a dependency slot", async () => {
     const original = await createFixture({
       namespace: "removed-dependency-slot",
       marker: "original",
@@ -555,7 +561,7 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
       themeDefinition.path,
       "src/theme.ts",
     );
-    await writeFile(themeSource, "用户定制的共享源码\n");
+    await writeFile(themeSource, "// user-customized shared source\n");
     await chmod(themeSource, 0o600);
 
     const currentFeatureManifest = JSON.parse(
@@ -623,11 +629,14 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
           definition.path === themeDefinition.path,
       ),
     );
-    assert.equal(await readFile(themeSource, "utf8"), "用户定制的共享源码\n");
+    assert.equal(
+      await readFile(themeSource, "utf8"),
+      "// user-customized shared source\n",
+    );
     assert.equal((await stat(themeSource)).mode & 0o777, 0o600);
   });
 
-  void it("拒绝跨来源别名歧义和同身份未选修订，目标保持未创建", async () => {
+  void it("rejects cross-source alias ambiguity and unselected same-identity revisions without creating the target", async () => {
     const alpha = await createFixture({ namespace: "alpha", marker: "alpha" });
     const beta = await createFixture({ namespace: "beta", marker: "beta" });
     const workspace = await createWorkspace();
@@ -643,7 +652,7 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
     });
     assert.equal(ambiguous.status, "operation-failure");
     if (ambiguous.status === "operation-failure") {
-      assert.match(ambiguous.error.message, /歧义/u);
+      assert.match(ambiguous.error.message, /Ambiguous content alias/u);
     }
     await assert.rejects(readFile(targetRoot));
 
@@ -661,11 +670,11 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
           ...firstRevision.members,
           ...secondRevision.members,
         ]),
-      /未明确选择的来源修订/u,
+      /Multiple unselected source revisions for canonical content identity/u,
     );
   });
 
-  void it("同一实际模块跨命名空间登记时按明确来源装载依赖与预设节点", async () => {
+  void it("loads dependencies and preset nodes from the explicit source when the same module is registered across namespaces", async () => {
     const fixture = await createFixture({
       namespace: "shared-source",
       marker: "shared-source",
@@ -802,7 +811,7 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
     );
   });
 
-  void it("同一生成器按明确来源选择不同正文与各自共享绑定", async () => {
+  void it("selects distinct content and shared bindings per explicit source within one generator", async () => {
     const alpha = await createFixture({
       namespace: "source-alpha",
       marker: "A",
@@ -885,7 +894,7 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
     }
   });
 
-  void it("不自动登记必要依赖，缺失时在规划阶段零写入", async () => {
+  void it("does not auto-register required dependencies and fails during planning with zero writes when missing", async () => {
     const fixture = await createFixture({
       namespace: "incomplete",
       marker: "incomplete",
@@ -910,12 +919,12 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
     if (result.status === "operation-failure") {
       assert.equal(result.phase, "preparation");
       assert.match(result.error.message, /@fixture\/tooling-config\/template/u);
-      assert.match(result.error.message, /同一命名空间公开/u);
+      assert.match(result.error.message, /published in the same namespace/u);
     }
     await assert.rejects(readFile(targetRoot));
   });
 
-  void it("别名和资源路径变化保持身份并实际生成新路径正文", async () => {
+  void it("preserves canonical identity across alias and resource path changes and generates files at the new path", async () => {
     const original = await createFixture({
       namespace: "stable",
       marker: "one",
@@ -997,7 +1006,7 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
     );
   });
 
-  void it("拥有者源码变化传播到本包生成内容而不改共享参考事实", async () => {
+  void it("propagates owner source changes to the package output without altering shared reference facts", async () => {
     const original = await createFixture({
       namespace: "source-propagation",
       marker: "shared-fact",
@@ -1094,7 +1103,7 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
     }
   });
 
-  void it("公开包名变更产生新身份，旧身份不会映射到新成员", async () => {
+  void it("creates a new identity when the public package name changes and does not map the old identity to the new member", async () => {
     const original = await createFixture({
       namespace: "renamed-package",
       marker: "old",
@@ -1153,7 +1162,7 @@ void describe("外部specifier集合经默认策略走公开生成器", () => {
     });
     assert.equal(stale.status, "operation-failure");
     if (stale.status === "operation-failure") {
-      assert.match(stale.error.message, /规范内容不存在/u);
+      assert.match(stale.error.message, /Canonical content not found/u);
     }
     await assert.rejects(readFile(oldTargetRoot));
   });

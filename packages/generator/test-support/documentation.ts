@@ -99,15 +99,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function parseCreationInput(value: unknown): DocumentationCreationInput {
-  if (!isRecord(value)) throw new Error("包创建输入必须是对象");
+  if (!isRecord(value)) {
+    throw new Error("Package creation input must be an object");
+  }
   if (value.leafName !== undefined && typeof value.leafName !== "string") {
-    throw new Error("包创建输入 leafName 必须是字符串");
+    throw new Error("Package creation input leafName must be a string");
   }
   if (
     value.packagePath !== undefined &&
     typeof value.packagePath !== "string"
   ) {
-    throw new Error("包创建输入 packagePath 必须是字符串");
+    throw new Error("Package creation input packagePath must be a string");
   }
   return {
     ...(value.leafName === undefined ? {} : { leafName: value.leafName }),
@@ -194,7 +196,9 @@ function makeReference(options: {
           (item) => item.path === "README.md",
         );
         if (resource === undefined)
-          throw new Error(`文档内容缺少 README 资源：${options.alias}`);
+          throw new Error(
+            `Documentation content is missing README resource: ${options.alias}`,
+          );
         const provider = bindings.get("glossary");
         const body =
           options.alias === "guide"
@@ -421,7 +425,9 @@ export function createDocumentationEngine(options: {
         typeof value.collection !== "string" ||
         typeof value.edition !== "string"
       ) {
-        throw new Error("文档组合缺少 collection 或 edition 约定");
+        throw new Error(
+          "Documentation composition is missing collection or edition conventions",
+        );
       }
       return { collection: value.collection, edition: value.edition };
     },
@@ -441,7 +447,11 @@ export function createDocumentationEngine(options: {
       const root = blueprint.packages.find(
         (definition) => definition.path === ".",
       );
-      if (root === undefined) throw new Error("文档组合需要根目录索引包");
+      if (root === undefined) {
+        throw new Error(
+          "Documentation composition requires a root index package",
+        );
+      }
       const indexText = [
         `${blueprint.packages.length} packages`,
         ...blueprint.packages

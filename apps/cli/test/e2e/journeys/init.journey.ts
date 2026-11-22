@@ -41,7 +41,9 @@ const addablePresetName = addablePreset.definition.metadata.alias;
 const addablePackages = (await planPreset(addablePreset)).packages;
 const defaultPackage = addablePackages[0];
 if (defaultPackage === undefined) {
-  throw new Error("可加包预设的正式规划没有生成所选包");
+  throw new Error(
+    "Formal planning for the addable preset produced no selected packages",
+  );
 }
 const fixedTopologyPresetName = requireFixedTopologyPreset().metadata.alias;
 
@@ -110,7 +112,7 @@ const journey: CliJourney = {
         args: ["init", "project", "--preset", addablePresetName],
       },
       ...initializationPresets.map(({ definition }) => ({
-        name: `通过 CLI 进程初始化 ${definition.metadata.alias} 预设`,
+        name: `initialize ${definition.metadata.alias} preset through CLI process`,
         args: [
           "init",
           `matrix-${definition.metadata.alias}`,
@@ -146,7 +148,7 @@ const journey: CliJourney = {
 
     assert.equal(results[1]?.exitCode, 2);
     assert.partialDeepStrictEqual(JSON.parse(results[1]?.stderr ?? ""), {
-      schemaVersion: "2",
+      schemaVersion: "3",
       helpArgv: ["template", "init", "--help"],
       issues: [{ code: "conditionalConstraintViolation" }],
     });
@@ -160,7 +162,7 @@ const journey: CliJourney = {
     assert.equal(results[3]?.exitCode, 2);
     assert.match(
       results[3]?.stderr ?? "",
-      /--scope 必须是不含空白字符的有效 npm scope/u,
+      /--scope must be a valid npm scope without whitespace/u,
     );
     await assert.rejects(stat(path.join(context.workDir, "invalid-scope")), {
       code: "ENOENT",
@@ -295,7 +297,7 @@ const journey: CliJourney = {
         const actual = await readFile(actualPath);
         assert.ok(
           actual.equals(Buffer.from(entry.content)),
-          `${entry.path} 与正式规划资源不一致`,
+          `${entry.path} does not match the formally planned resource`,
         );
         const metadata = await stat(actualPath);
         assert.equal(metadata.mode & 0o111, entry.mode, entry.path);
@@ -305,7 +307,9 @@ const journey: CliJourney = {
         ({ path: entryPath }) => entryPath === "package.json",
       );
       if (plannedRootManifestEntry === undefined) {
-        throw new Error("正式规划没有生成目标根 manifest");
+        throw new Error(
+          "Formal planning did not produce a target root manifest",
+        );
       }
       const plannedRootManifest = JSON.parse(
         new TextDecoder().decode(plannedRootManifestEntry.content),

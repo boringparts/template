@@ -1083,7 +1083,7 @@ function parseFixtureEvidenceInvocationEvent(
       typeof rootEvidence.coversDeploymentContractIdentity !== "string" ||
       !/^[0-9a-f]{64}$/u.test(rootEvidence.coversDeploymentContractIdentity)
     ) {
-      throw new Error("Fixture 验证证据派生活动记录无效");
+      throw new Error("invalid Fixture Evidence derivation activity");
     }
     return value as FixtureEvidenceInvocationEvent;
   }
@@ -1812,7 +1812,7 @@ export async function checkFixtureEvidenceHealth(options: {
             gate: derivation.gate,
             identity: derivation.identity,
             detail:
-              "部署证据派生必须发生在本次部署查找未命中之后，并由成功且覆盖相同部署合同的本次 Root 证明支持",
+              "Deployment evidence derivation must follow a current-run deployment lookup miss and be backed by a current-run root proof covering the same deployment contract",
           });
           continue;
         }

@@ -9,13 +9,15 @@ const targetRoot = process.argv[2];
 const mode = process.argv[3];
 const packedBin = process.argv[4];
 if (targetRoot === undefined || mode === undefined) {
-  throw new Error("必须提供直接参考项目目录");
+  throw new Error("Target directory for direct reference project is required");
 }
 
 let packedRequire: NodeJS.Require | undefined;
 if (mode === "packed") {
   if (packedBin === undefined) {
-    throw new Error("packed 直接参考初始化必须使用已安装 CLI 入口");
+    throw new Error(
+      "Packed direct reference initialization requires the installed CLI entry point",
+    );
   }
   packedRequire = createRequire(await realpath(packedBin));
 }
@@ -58,7 +60,9 @@ const configuration = templateContent.find(
   (member) => member.identity.packageName === "@ykdz/reference-tooling-config",
 );
 if (library?.kind !== "reference" || configuration?.kind !== "reference") {
-  throw new Error("唯一内容集合缺少直接参考初始化所需的参考包");
+  throw new Error(
+    "The content collection is missing required reference packages for direct reference initialization",
+  );
 }
 const generator = generationModule.createDefaultGenerator({
   content: templateContent,
@@ -85,7 +89,9 @@ const result = await generator.init({
 });
 
 if (result.status !== "success") {
-  throw new Error(`直接参考初始化失败：${JSON.stringify(result)}`);
+  throw new Error(
+    `Direct reference initialization failed: ${JSON.stringify(result)}`,
+  );
 }
 
 const libraryRecord = result.generationRecord.packages.find(
@@ -116,7 +122,7 @@ for (const { resourcePath, targetPath } of [
     !Buffer.from(projected.content).equals(Buffer.from(resource.data))
   ) {
     throw new Error(
-      `参考资源 ${resourcePath} 没有映射为预期目标文件 ${targetPath}`,
+      `Reference resource ${resourcePath} did not project to expected target file ${targetPath}`,
     );
   }
 }

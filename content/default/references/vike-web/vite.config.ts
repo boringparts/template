@@ -5,7 +5,7 @@ import { defineConfig, type PluginOption } from "vite";
 
 import vueConfig from "./tooling/vite.ts";
 
-// telefunc/vite 暂未为插件工厂提供精确类型。
+// telefunc/vite does not yet export exact types for its Vite plugin factory.
 // oxlint-disable-next-line typescript/no-unsafe-type-assertion
 const telefuncPlugin = telefunc() as PluginOption;
 

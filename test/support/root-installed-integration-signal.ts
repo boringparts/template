@@ -9,7 +9,9 @@ const signalFile = process.env.TEMPLATE_ROOT_INTEGRATION_SIGNAL_FILE;
 function abortForSignal(signal: NodeJS.Signals): void {
   if (!controller.signal.aborted) {
     controller.abort(
-      new Error(`集成验收收到 ${signal}，正在停止当前安装型场景`),
+      new Error(
+        `Integration verification received ${signal}; stopping the current installed scenario`,
+      ),
     );
   }
 }
@@ -53,6 +55,10 @@ if (
   });
 }
 
+/**
+ * Returns an AbortSignal linked to root integration cancellation signals,
+ * optionally combined with a caller-provided signal.
+ */
 export function rootInstalledIntegrationSignal(
   signal?: AbortSignal,
 ): AbortSignal {

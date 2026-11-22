@@ -81,7 +81,10 @@ async function packageFixture(
     path.join(root, "src/index.ts"),
     "export const ownerResource = true;\n",
   );
-  await writeFile(path.join(root, "README.md"), "不属于资源快照\n");
+  await writeFile(
+    path.join(root, "README.md"),
+    "not part of the resource snapshot\n",
+  );
   for (const resource of options.resourceFiles ?? []) {
     const resourcePath = path.join(root, resource.path);
     await mkdir(path.dirname(resourcePath), { recursive: true });
@@ -156,7 +159,7 @@ async function snapshotTree(root: string): Promise<unknown> {
 
 function presetIdentity(alias: string) {
   const preset = templatePresets.find((member) => member.alias === alias);
-  assert.ok(preset, `内容集合缺少预设：${alias}`);
+  assert.ok(preset, `Content collection is missing preset: ${alias}`);
   return preset.identity;
 }
 
@@ -164,11 +167,14 @@ function referenceMember(packageName: string) {
   const member = templateReferencePackages.find(
     (candidate) => candidate.identity.packageName === packageName,
   );
-  assert.ok(member, `内容集合缺少参考包：${packageName}`);
+  assert.ok(
+    member,
+    `Content collection is missing reference package: ${packageName}`,
+  );
   return member;
 }
 
-void it("ts-lib预设通过所属资源快照生成源码并绑定共享配置", async (context) => {
+void it("generates ts-lib sources from its owned resource snapshot and binds shared config", async (context) => {
   const temporaryRoot = await mkdtemp(
     path.join(tmpdir(), "template-reference-prepare-init-"),
   );
@@ -217,7 +223,7 @@ void it("ts-lib预设通过所属资源快照生成源码并绑定共享配置",
   );
 });
 
-void it("Rust预设生成所属Cargo声明和锁文件", async (context) => {
+void it("generates owned Cargo manifest and lockfile for the Rust preset", async (context) => {
   const temporaryRoot = await mkdtemp(
     path.join(tmpdir(), "template-reference-prepare-rust-"),
   );
@@ -245,7 +251,7 @@ void it("Rust预设生成所属Cargo声明和锁文件", async (context) => {
   );
 });
 
-void it("缺少已声明资源时add规划失败且不写入项目", async (context) => {
+void it("fails add planning without writing to the project when a declared resource is missing", async (context) => {
   const temporaryRoot = await mkdtemp(
     path.join(tmpdir(), "template-reference-prepare-missing-add-"),
   );
@@ -284,7 +290,7 @@ void it("缺少已声明资源时add规划失败且不写入项目", async (cont
   assert.deepEqual(await snapshotTree(targetRoot), before);
 });
 
-void it("资源准备只读取显式声明的文件", async (context) => {
+void it("reads only explicitly declared files during resource preparation", async (context) => {
   const fixture = await packageFixture(context, {
     alias: "scoped-resource",
     packageName: "@fixture/scoped-resource",
@@ -301,7 +307,7 @@ void it("资源准备只读取显式声明的文件", async (context) => {
   assert.deepEqual(prepared.facts.ownerFacts, { paths: ["src/index.ts"] });
 });
 
-void it("按映射目标识别原生配置并保留普通JSON资源字节", async (context) => {
+void it("recognizes native config files by mapped target path while preserving plain JSON resource bytes", async (context) => {
   const nativeConfig =
     '{\n  "compilerOptions" : { "target" : "ES2022", },\n}\n';
   const ordinaryJson = '{\n  "value" : null,\n}\n';
@@ -358,7 +364,7 @@ void it("按映射目标识别原生配置并保留普通JSON资源字节", asyn
   );
 });
 
-void it("fresh add解析缺失的owner依赖时不改写项目", async (context) => {
+void it("does not modify the project when fresh add encounters a missing owner dependency", async (context) => {
   const temporaryRoot = await mkdtemp(
     path.join(tmpdir(), "template-reference-prepare-missing-dependency-"),
   );

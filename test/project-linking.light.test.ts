@@ -82,7 +82,7 @@ function summary(result: unknown): string {
   }
   return isRecord(result) && typeof result.status === "string"
     ? result.status
-    : "结果类型无效";
+    : "invalid result shape";
 }
 
 function canonicalProviderExports() {
@@ -398,7 +398,7 @@ async function committedConsumerManifest(
   ) as Record<string, unknown>;
 }
 
-await test("库与CLI连接后仍形成完整发布根和catalog并提交唯一文件树", async (context) => {
+await test("linking a library and CLI still forms a complete publication root and catalog and commits a single file tree", async (context) => {
   for (const scenario of [
     { preset: "ts-lib", consumerPath: "packages/lib" },
     { preset: "ts-cli", consumerPath: "packages/cli" },
@@ -430,7 +430,7 @@ await test("库与CLI连接后仍形成完整发布根和catalog并提交唯一�
     assert.equal(
       (setup.providerEvaluation.stableCommon as { nodeDeclaration?: unknown })
         .nodeDeclaration,
-      "26.13.0",
+      "26.13.1",
     );
     assert.equal(
       (
@@ -438,7 +438,7 @@ await test("库与CLI连接后仍形成完整发布根和catalog并提交唯一�
           packageManagerPin?: unknown;
         }
       ).packageManagerPin,
-      "pnpm@12.9.1",
+      "pnpm@12.21.0",
     );
 
     const projectedPaths = new Set(
@@ -481,7 +481,7 @@ await test("库与CLI连接后仍形成完整发布根和catalog并提交唯一�
   }
 });
 
-await test("根声明冲突在库连接规划中拒绝整树且零写入", async (context) => {
+await test("rejects the entire tree with zero writes when a root declaration conflicts during library link planning", async (context) => {
   const setup = await fixture(context, {
     rootScriptContribution: {
       name: "publication:pack",
@@ -507,7 +507,7 @@ await test("根声明冲突在库连接规划中拒绝整树且零写入", async
   assert.deepEqual(await snapshotTree(targetRoot), before);
 });
 
-await test("按当前provider导出真值决定是否注入并保留显式包连接", async (context) => {
+await test("decides dependency injection from current provider exports while preserving explicit package links", async (context) => {
   const setup = await fixture(context);
   const generator = createDefaultGenerator({ content: setup.content });
   const targetRoot = path.join(setup.root, "project");
@@ -600,7 +600,7 @@ await test("按当前provider导出真值决定是否注入并保留显式包连
   }
 });
 
-await test("同一正式加包计划按新provider的输出manifest校验链接", async (context) => {
+await test("validates links against the new provider's output manifest within the same package addition plan", async (context) => {
   const setup = await fixture(context, { providerExports: {} });
   const generator = createDefaultGenerator({ content: setup.content });
   const targetRoot = path.join(setup.root, "project");
@@ -625,7 +625,7 @@ await test("同一正式加包计划按新provider的输出manifest校验链接"
   assert.deepEqual(await snapshotTree(targetRoot), before);
 });
 
-await test("拒绝native consumer并在规划失败时保持项目未改写", async (context) => {
+await test("rejects a native consumer and leaves the project untouched when planning fails", async (context) => {
   const setup = await fixture(context, { consumerRole: "native-package" });
   const generator = createDefaultGenerator({ content: setup.content });
   const targetRoot = path.join(setup.root, "project");
@@ -667,7 +667,7 @@ await test("拒绝native consumer并在规划失败时保持项目未改写", as
   );
 });
 
-await test("拒绝没有可导入根导出的provider并保留端点诊断", async (context) => {
+await test("rejects a provider without an importable root export and retains endpoint diagnostics", async (context) => {
   const setup = await fixture(context);
   const generator = createDefaultGenerator({ content: setup.content });
   const targetRoot = path.join(setup.root, "project");

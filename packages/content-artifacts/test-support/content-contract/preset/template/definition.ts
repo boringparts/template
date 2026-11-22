@@ -7,8 +7,9 @@ const presetDefinition = {
   ...definePreset({
     metadata: {
       alias: "contract-preset",
-      title: "合同验证预设",
-      description: "用于验证原生内容类型合同的中立测试预设。",
+      title: "Contract Verification Preset",
+      description:
+        "Neutral test preset for verifying the native content type contract.",
     },
     operations: ["init", "add"],
     nodes: {

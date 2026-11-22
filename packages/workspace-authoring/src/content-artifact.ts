@@ -18,17 +18,17 @@ export type NativeContentManifest = Readonly<Record<string, unknown>> & {
 };
 
 export type NativeContentArtifactFile = {
-  /** 所属原生包内的公开相对路径。 */
+  /** Public relative path within the owning native package. */
   readonly path: string;
-  /** 在所属包边界内读取出的字节；collection无需再访问作者文件系统。 */
+  /** File bytes read within the owning package boundary so collections do not need author filesystem access. */
   readonly data: Uint8Array;
   readonly mode: number;
 };
 
 export type NativeContentArtifactResource = {
-  /** owner原生包内的资源坐标，随完整制品分发。 */
+  /** Resource path within the owning native package, distributed with the complete artifact. */
   readonly path: string;
-  /** 资源在当前模板包目标目录内的实际位置；用于排除嵌套owner作用域。 */
+  /** Target path within the generated template package, used to exclude nested owner package scopes. */
   readonly targetPath?: string;
   readonly source: TemplateSourceHandle;
   readonly mode: number;
@@ -64,9 +64,9 @@ export type PrepareNativeContentArtifactOptions = {
   readonly manifest: NativeContentManifest;
   readonly resourceRoot: URL;
   readonly exportPath: string;
-  /** 参考包模板定义在作者包内执行时使用的显式公开子路径。 */
+  /** Explicit public export subpaths used by the reference package template definition when executing inside the author package. */
   readonly templateExports?: readonly string[];
-  /** 仅原生清单没有version时由所属包显式提供。 */
+  /** Explicit artifact version used only when the native package manifest has no version field. */
   readonly artifactVersion?: string;
   readonly resources?: readonly NativeContentArtifactResource[];
   readonly dependencyPurposes?: ReadonlyMap<
@@ -77,7 +77,7 @@ export type PrepareNativeContentArtifactOptions = {
 
 export type DefineNativeContentArtifactOptions =
   PrepareNativeContentArtifactOptions & {
-    /** 仅列出package.json devDependencies中真正由模板入口执行的名称。 */
+    /** Package names from `package.json` `devDependencies` that are actually executed by the template entry point. */
     readonly executionDependencies?: readonly string[];
   };
 
@@ -116,17 +116,19 @@ function exportEntry(
   const value = manifest.exports?.[exportPath];
   if (typeof value === "string") return { default: value };
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error(`所属包 ${manifest.name} 未公开内容入口 ${exportPath}`);
+    throw new Error(
+      `Owning package ${manifest.name} does not export content entry ${exportPath}`,
+    );
   }
   const entry = value as Record<string, unknown>;
   if (typeof entry.default !== "string") {
     throw new Error(
-      `所属包 ${manifest.name} 的内容入口 ${exportPath} 缺少 default 条件`,
+      `Content entry ${exportPath} in owning package ${manifest.name} is missing the default condition`,
     );
   }
   if (entry.types !== undefined && typeof entry.types !== "string") {
     throw new Error(
-      `所属包 ${manifest.name} 的内容入口 ${exportPath} types 条件无效`,
+      `Content entry ${exportPath} in owning package ${manifest.name} has an invalid types condition`,
     );
   }
   return {
@@ -141,7 +143,9 @@ function packagePath(value: string, label: string): string {
     path.posix.isAbsolute(value) ||
     value.split("/").some((part) => part === "..")
   ) {
-    throw new Error(`所属内容${label}必须是包内相对路径：${value}`);
+    throw new Error(
+      `Owned content ${label} must be a package-relative path: ${value}`,
+    );
   }
   return path.posix.normalize(value.slice(2));
 }
@@ -182,7 +186,7 @@ function dependencyFacts(
   );
 }
 
-/** 把所属包可见的原生编译与资源事实制成collection可消费的句柄。 */
+/** Packages an owning package's compiled outputs, declared resources, and manifest dependencies into a snapshot artifact consumable by content collections. Throws if the version is missing, declared exports are absent or uncompiled, or compiled outputs contain symbolic links. */
 export function prepareNativeContentArtifact(
   options: PrepareNativeContentArtifactOptions,
 ): PreparedNativeContentArtifact {
@@ -196,7 +200,7 @@ export function prepareNativeContentArtifact(
     coordinateVersion.trim().length === 0
   ) {
     throw new Error(
-      `所属包 ${options.manifest.name} 缺少制品版本；无原生version时必须显式声明artifactVersion`,
+      `Owning package ${options.manifest.name} is missing an artifact version; declare artifactVersion explicitly when the manifest has no version`,
     );
   }
   const resourceRoot = path.resolve(fileURLToPath(options.resourceRoot));
@@ -205,7 +209,7 @@ export function prepareNativeContentArtifact(
     exportPath: string,
     entry: ReturnType<typeof exportEntry>,
   ): void => {
-    const entryPath = packagePath(entry.default, "default入口");
+    const entryPath = packagePath(entry.default, "default entry");
     const compiledRoot = path.resolve(
       resourceRoot,
       path.posix.dirname(entryPath),
@@ -217,7 +221,7 @@ export function prepareNativeContentArtifact(
       path.isAbsolute(rootRelative)
     ) {
       throw new Error(
-        `所属包 ${options.manifest.name} 的内容编译入口超出包根目录`,
+        `Compiled content entry in owning package ${options.manifest.name} escapes the package root`,
       );
     }
 
@@ -228,7 +232,7 @@ export function prepareNativeContentArtifact(
         const absolutePath = path.join(directory, child.name);
         if (child.isSymbolicLink()) {
           throw new Error(
-            `所属包 ${options.manifest.name} 的编译产物包含符号链接：${path.relative(resourceRoot, absolutePath)}`,
+            `Compiled output in owning package ${options.manifest.name} contains a symbolic link: ${path.relative(resourceRoot, absolutePath)}`,
           );
         }
         if (child.isDirectory()) {
@@ -250,20 +254,20 @@ export function prepareNativeContentArtifact(
       visit(compiledRoot);
     } catch (error) {
       throw new Error(
-        `所属包 ${options.manifest.name} 的编译入口尚未准备：${entry.default}`,
+        `Compiled entry in owning package ${options.manifest.name} is not built yet: ${entry.default}`,
         { cause: error },
       );
     }
     const typesPath =
       entry.types === undefined
         ? undefined
-        : packagePath(entry.types, "types入口");
+        : packagePath(entry.types, "types entry");
     if (
       !compiledFiles.has(entryPath) ||
       (typesPath !== undefined && !compiledFiles.has(typesPath))
     ) {
       throw new Error(
-        `所属包 ${options.manifest.name} 的编译制品未包含公开入口 ${exportPath}`,
+        `Compiled artifact in owning package ${options.manifest.name} does not contain public entry ${exportPath}`,
       );
     }
   };
@@ -308,7 +312,7 @@ export function prepareNativeContentArtifact(
   });
 }
 
-/** 让预设owner公开与参考owner相同的准备句柄，而不改变core定义合同。 */
+/** Attaches a `prepareArtifact` handle to a content definition (such as a preset) without changing its core definition contract, validating declared dependency purposes against the manifest. */
 export function defineNativeContentArtifact<Definition extends object>(
   definition: Definition,
   options: DefineNativeContentArtifactOptions,
@@ -339,7 +343,7 @@ export function defineNativeContentArtifact<Definition extends object>(
   for (const [name, purposes] of options.dependencyPurposes ?? []) {
     if (!dependencyPurposes.has(name)) {
       throw new Error(
-        `所属依赖用途未在原生清单声明：${options.manifest.name}/${name}`,
+        `Declared dependency purpose is not listed in the package manifest: ${options.manifest.name}/${name}`,
       );
     }
     dependencyPurposes.set(name, purposes);
@@ -348,7 +352,7 @@ export function defineNativeContentArtifact<Definition extends object>(
     const declared = dependencyPurposes.get(name);
     if (declared === undefined) {
       throw new Error(
-        `预设模板执行依赖未在所属清单声明：${options.manifest.name}/${name}`,
+        `Template execution dependency is not declared in the owning manifest: ${options.manifest.name}/${name}`,
       );
     }
     if (
@@ -356,7 +360,7 @@ export function defineNativeContentArtifact<Definition extends object>(
       !declared.includes("template-execution")
     ) {
       throw new Error(
-        `预设模板执行依赖与显式依赖用途不一致：${options.manifest.name}/${name}`,
+        `Template execution dependency conflicts with explicit dependency purposes: ${options.manifest.name}/${name}`,
       );
     }
     if (!options.dependencyPurposes?.has(name)) {
@@ -375,7 +379,7 @@ export function defineNativeContentArtifact<Definition extends object>(
   });
 }
 
-/** 让同一所属资源声明驱动参考包快照与正式内容制品。 */
+/** Wraps a reference package definition so a single resource declaration drives both runtime `prepare()` snapshots (excluding nested package paths) and `prepareArtifact()` packaging. */
 export function defineNativeReferenceContentArtifact<
   Definition extends NativeReferenceContentDefinition,
   Facts,
