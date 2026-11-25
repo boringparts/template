@@ -177,8 +177,8 @@ catalogs:
       specifier: 3.0.3
       version: 3.0.3
     '@devcontainers/cli':
-      specifier: 0.89.0
-      version: 0.89.0
+      specifier: 0.91.0
+      version: 0.91.0
     '@hono/node-server':
       specifier: ^2.1.11
       version: 2.1.11
@@ -341,7 +341,7 @@ importers:
         version: 3.0.3
       '@devcontainers/cli':
         specifier: 'catalog:'
-        version: 0.89.0
+        version: 0.91.0
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.6
@@ -1631,7 +1631,7 @@ importers:
     devDependencies:
       '@devcontainers/cli':
         specifier: 'catalog:'
-        version: 0.89.0
+        version: 0.91.0
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.6
@@ -2033,8 +2033,8 @@ packages:
     resolution: {integrity: sha512-dlT1m5e/0yUL0kRNcQn7yGLVThkgbB0Ga/1AmfDDC/8ik6AIiSf2QLQO2zPYvefsHP0aFgxO93cVLCCfDp7kzQ==}
     engines: {node: '>= 20.12.0'}
 
-  '@devcontainers/cli@0.89.0':
-    resolution: {integrity: sha512-LzaoOGKQ/Zql6PsiZ4hVIYVZagzWkD65aG/1ou5/Kly5Y1PtjLg1yn7qu+LZCzVoAl6DZZ/pbz8qOO4RLNlqMg==}
+  '@devcontainers/cli@0.91.0':
+    resolution: {integrity: sha512-KrrvqwpODvEakJhoXweaAkoMG3+NZilboT4e4SQTf6dxVXLeiyLDKupnEtUMaVe1FJXHO4Yme7TTjqxskSOucg==}
     engines: {node: '>=20.0.0'}
     hasBin: true
 
@@ -4631,7 +4631,7 @@ snapshots:
       fast-wrap-ansi: 0.2.2
       sisteransi: 1.0.5
 
-  '@devcontainers/cli@0.89.0': {}
+  '@devcontainers/cli@0.91.0': {}
 
   '@emnapi/core@2.0.0-beta.2':
     dependencies:
