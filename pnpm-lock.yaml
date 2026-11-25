@@ -258,8 +258,8 @@ catalogs:
       specifier: ^4.0.2
       version: 4.1.0
     playwright:
-      specifier: 1.64.0
-      version: 1.64.0
+      specifier: 1.65.1
+      version: 1.65.1
     proc-log:
       specifier: ^7.0.0
       version: 7.0.0
@@ -1346,7 +1346,7 @@ importers:
         version: 6.0.11(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(vue@3.5.46)
       '@vitest/browser-playwright':
         specifier: 'catalog:'
-        version: 5.1.1(playwright@1.64.0)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(vitest@5.1.1)
+        version: 5.1.1(playwright@1.65.1)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(vitest@5.1.1)
       '@vue/tsconfig':
         specifier: 'catalog:'
         version: 0.9.1(@typescript/typescript6@6.0.2)(vue@3.5.46)
@@ -1373,7 +1373,7 @@ importers:
         version: 1.94.0
       playwright:
         specifier: 'catalog:'
-        version: 1.64.0
+        version: 1.65.1
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.5
@@ -1434,7 +1434,7 @@ importers:
         version: 6.0.11(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(vue@3.5.46)
       '@vitest/browser-playwright':
         specifier: 'catalog:'
-        version: 5.1.1(playwright@1.64.0)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(vitest@5.1.1)
+        version: 5.1.1(playwright@1.65.1)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(vitest@5.1.1)
       '@vue/tsconfig':
         specifier: 'catalog:'
         version: 0.9.1(@typescript/typescript6@6.0.2)(vue@3.5.46)
@@ -1458,7 +1458,7 @@ importers:
         version: 1.94.0
       playwright:
         specifier: 'catalog:'
-        version: 1.64.0
+        version: 1.65.1
       tsrs:
         specifier: 'catalog:'
         version: 7.1.0-beta.tsrs4
@@ -1507,7 +1507,7 @@ importers:
         version: 6.0.11(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(vue@3.5.46)
       '@vitest/browser-playwright':
         specifier: 'catalog:'
-        version: 5.1.1(playwright@1.64.0)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(vitest@5.1.1)
+        version: 5.1.1(playwright@1.65.1)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(vitest@5.1.1)
       '@vue/tsconfig':
         specifier: 'catalog:'
         version: 0.9.1(@typescript/typescript6@6.0.2)(vue@3.5.46)
@@ -1531,7 +1531,7 @@ importers:
         version: 1.94.0
       playwright:
         specifier: 'catalog:'
-        version: 1.64.0
+        version: 1.65.1
       tsrs:
         specifier: 'catalog:'
         version: 7.1.0-beta.tsrs4
@@ -3960,8 +3960,18 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
+  playwright-core@1.65.1:
+    resolution: {integrity: sha512-hqPpz7blSMPxWVdoeE1yiBSzXsKiVOd2k+kjCvmUywD2GPO2Dd9HfcWnq9NN0GHbNZDFgZ9JfBFr+X5/BLo0qw==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   playwright@1.64.0:
     resolution: {integrity: sha512-kVzTnYFYEyQ9RGzBjNCd2+yEqWmVbxl3AHPynv3qQ6JTjv4a+kwRcnqQwIpuP3NnrnIrE/Q6wWAIAvMfIE2/Yg==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.65.1:
+    resolution: {integrity: sha512-vJ1FuoOrNwOKHUIVEvSt3jT1L+wjjDpwhwIstKtfvTh8XIG4FG4bIFuvNdMxi81LGfAhUgUZleVFaOLY4RIUUw==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -5329,11 +5339,11 @@ snapshots:
       vite: 8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1)
       vue: 3.5.46
 
-  '@vitest/browser-playwright@5.1.1(playwright@1.64.0)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(vitest@5.1.1)':
+  '@vitest/browser-playwright@5.1.1(playwright@1.65.1)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(vitest@5.1.1)':
     dependencies:
       '@vitest/browser': 5.1.1(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(vitest@5.1.1)
       '@vitest/mocker': 5.1.1(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
-      playwright: 1.64.0
+      playwright: 1.65.1
       tinyrainbow: 3.2.0
       vitest: 5.1.1(@types/node@26.6.6)(@vitest/browser-playwright@5.1.1)(@vitest/ui@5.1.1)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
     transitivePeerDependencies:
@@ -6007,9 +6017,15 @@ snapshots:
 
   playwright-core@1.64.0: {}
 
+  playwright-core@1.65.1: {}
+
   playwright@1.64.0:
     dependencies:
       playwright-core: 1.64.0
+
+  playwright@1.65.1:
+    dependencies:
+      playwright-core: 1.65.1
 
   pngjs@7.0.0: {}
 
@@ -6345,7 +6361,7 @@ snapshots:
       why-is-node-running: 3.2.1
     optionalDependencies:
       '@types/node': 26.6.6
-      '@vitest/browser-playwright': 5.1.1(playwright@1.64.0)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(vitest@5.1.1)
+      '@vitest/browser-playwright': 5.1.1(playwright@1.65.1)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))(vitest@5.1.1)
       '@vitest/ui': 5.1.1(vitest@5.1.1)
     transitivePeerDependencies:
       - msw

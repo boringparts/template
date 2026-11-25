@@ -44,7 +44,7 @@ catalog:
   smol-toml: ^1.8.0
   toml-eslint-parser: ^1.0.3
   pinia: ^4.0.2
-  playwright: 1.64.0
+  playwright: 1.65.1
   srvx: ^1.0.8
   tailwindcss: ^4.3.5
   telefunc: ^0.3.1
