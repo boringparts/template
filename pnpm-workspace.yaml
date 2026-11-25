@@ -64,7 +64,7 @@ catalog:
   jsonc-parser: ^3.3.1
   npm-package-arg: ^14.0.0
   picomatch: ^4.0.7
-  unbash: 5.0.0
+  unbash: 6.0.4
   "@types/npm-package-arg": ^6.1.4
   "@types/picomatch": ^4.0.3
   hosted-git-info: ^10.0.0
