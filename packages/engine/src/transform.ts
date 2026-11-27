@@ -208,7 +208,11 @@ export function rewriteCargoToml(options: {
     }
   } else if (Array.isArray(parsed.package)) {
     for (const pkg of parsed.package) {
-      if (isRecord(pkg) && pkg.name === options.fromPackageName) {
+      if (
+        isRecord(pkg) &&
+        pkg.name === options.fromPackageName &&
+        pkg.source === undefined
+      ) {
         pkg.name = options.toPackageName;
       }
     }

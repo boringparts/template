@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@boringparts/reference-npm-publication": "workspace:*",
+    "@boringparts/reference-rust-bin": "workspace:*",
     "@boringparts/reference-ts-lib": "workspace:*",
     "@boringparts/reference-workspace-root": "workspace:*",
     "@boringparts/template-engine": "workspace:*",

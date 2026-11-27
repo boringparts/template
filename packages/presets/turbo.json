@@ -34,7 +34,7 @@
       "tags": ["work:repair"]
     },
     "typecheck": {
-      "dependsOn": ["^typecheck"],
+      "dependsOn": ["@boringparts/template-engine#typecheck"],
       "inputs": [],
       "outputs": [],
       "tags": ["quality:light"]

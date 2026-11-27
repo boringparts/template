@@ -1,0 +1,19 @@
+{
+  "name": "@boringparts/reference-rust-bin",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "cargo build --workspace",
+    "format:check": "cargo fmt --all -- --check && oxfmt --list-different package.json turbo.json",
+    "format:write": "cargo fmt --all && oxfmt --write package.json turbo.json",
+    "lint": "cargo clippy --workspace --all-targets -- -D warnings",
+    "test": "cargo test --workspace"
+  },
+  "devDependencies": {
+    "oxfmt": "catalog:"
+  }
+}

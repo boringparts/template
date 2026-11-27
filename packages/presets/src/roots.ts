@@ -51,6 +51,11 @@ export function resolveTemplateWorkspaceRoots(
     import.meta.url,
     templatesRoot,
   );
+  const rustBinRefDir = resolvePackageDir(
+    "@boringparts/reference-rust-bin",
+    import.meta.url,
+    templatesRoot,
+  );
 
   const rootBaseDir =
     templatesRoot !== undefined &&
@@ -67,5 +72,11 @@ export function resolveTemplateWorkspaceRoots(
     rootRustToolchainPath: path.join(rootBaseDir, "rust-toolchain.toml"),
     rootOxfmtConfigPath: path.join(rootBaseDir, "oxfmt.config.ts"),
     rootOxlintConfigPath: path.join(rootBaseDir, "oxlint.config.ts"),
+    rustLayerDockerfilePath: path.join(
+      rustBinRefDir,
+      "resources",
+      "devcontainer",
+      "rust.Dockerfile",
+    ),
   };
 }

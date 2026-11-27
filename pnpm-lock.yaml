@@ -282,6 +282,9 @@ importers:
       '@boringparts/reference-npm-publication':
         specifier: workspace:*
         version: link:../../references/npm-publication
+      '@boringparts/reference-rust-bin':
+        specifier: workspace:*
+        version: link:../../references/rust-bin
       '@boringparts/reference-ts-lib':
         specifier: workspace:*
         version: link:../../references/ts-lib
@@ -338,6 +341,9 @@ importers:
       oxlint:
         specifier: 'catalog:'
         version: 1.94.0
+      smol-toml:
+        specifier: 'catalog:'
+        version: 1.9.1
       tsrs:
         specifier: 'catalog:'
         version: 7.1.0-beta.tsrs4
@@ -389,6 +395,12 @@ importers:
       typescript-7:
         specifier: 'catalog:'
         version: typescript@7.0.2
+
+  references/rust-bin:
+    devDependencies:
+      oxfmt:
+        specifier: 'catalog:'
+        version: 0.79.0
 
   references/ts-lib:
     dependencies:
