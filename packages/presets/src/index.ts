@@ -1,6 +1,7 @@
 import type { PresetDefinition } from "@boringparts/template-engine";
 
 import { createTsLibPreset } from "./presets/ts-lib.ts";
+import { createVikeAppPreset } from "./presets/vike-app.ts";
 
 export { resolvePackageDir, resolveTemplateWorkspaceRoots } from "./roots.ts";
 
@@ -8,5 +9,5 @@ export { resolvePackageDir, resolveTemplateWorkspaceRoots } from "./roots.ts";
 export function loadBuiltInPresets(
   templatesRoot?: string,
 ): readonly PresetDefinition[] {
-  return [createTsLibPreset(templatesRoot)];
+  return [createTsLibPreset(templatesRoot), createVikeAppPreset(templatesRoot)];
 }

@@ -1,0 +1,15 @@
+.git
+.template
+node_modules
+**/node_modules
+**/.turbo
+**/dist
+**/template-dist
+**/playwright-report
+**/test-results
+**/.vitest
+**/data
+*.sqlite
+*.sqlite-*
+**/*.sqlite
+**/*.sqlite-*

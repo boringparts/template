@@ -80,7 +80,7 @@
       },
       "cli": {
         "dependencies": {
-          "allow": ["engine", "presets", "library"]
+          "allow": ["engine", "presets", "library", "app"]
         }
       }
     }

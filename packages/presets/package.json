@@ -22,6 +22,10 @@
   "dependencies": {
     "@boringparts/reference-npm-publication": "workspace:*",
     "@boringparts/reference-ts-lib": "workspace:*",
+    "@boringparts/reference-vike-db": "workspace:*",
+    "@boringparts/reference-vike-deployment": "workspace:*",
+    "@boringparts/reference-vike-migrations": "workspace:*",
+    "@boringparts/reference-vike-web": "workspace:*",
     "@boringparts/reference-workspace-root": "workspace:*",
     "@boringparts/template-engine": "workspace:*",
     "@boringparts/tooling-config": "workspace:*"

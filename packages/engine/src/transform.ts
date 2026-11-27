@@ -85,8 +85,10 @@ export function rewriteSubpackageManifest(options: {
   readonly scope: string;
   readonly leafName: string;
   readonly packageName: string;
+  readonly preservePackageJsonExport?: boolean;
   readonly rewriteBinName?: boolean;
   readonly packageBindings: ReadonlyMap<string, string>;
+  readonly pathReplacements?: ReadonlyMap<string, string>;
   readonly linkedProviders: readonly string[];
   readonly defaultCatalogDeps: Set<string>;
   readonly namedCatalogDeps: Map<string, Set<string>>;
@@ -102,10 +104,29 @@ export function rewriteSubpackageManifest(options: {
   }
 
   if (
+    !options.preservePackageJsonExport &&
     isRecord(manifest.exports) &&
     Object.hasOwn(manifest.exports, "./package.json")
   ) {
     delete manifest.exports["./package.json"];
+  }
+
+  if (isRecord(manifest.scripts)) {
+    const rewrittenScripts: Record<string, unknown> = {};
+    const pathReplacements =
+      options.pathReplacements ?? new Map<string, string>();
+    for (const [scriptName, scriptCmd] of Object.entries(manifest.scripts)) {
+      rewrittenScripts[scriptName] =
+        typeof scriptCmd === "string"
+          ? rewriteTextSpecifiers({
+              text: scriptCmd,
+              scope: options.scope,
+              packageBindings: options.packageBindings,
+              pathReplacements,
+            })
+          : scriptCmd;
+    }
+    manifest.scripts = rewrittenScripts;
   }
 
   const toolingReplacement = `@${options.scope}/tooling-config`;

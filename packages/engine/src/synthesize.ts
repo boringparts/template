@@ -211,7 +211,10 @@ function synthesizeDevcontainer(options: {
   };
 }
 
-function synthesizeDependabotYaml(blueprint: ProjectBlueprint): string {
+function synthesizeDependabotYaml(
+  blueprint: ProjectBlueprint,
+  hasDrizzle: boolean,
+): string {
   const updates: Record<string, unknown>[] = [
     {
       "package-ecosystem": "devcontainers",
@@ -222,6 +225,15 @@ function synthesizeDependabotYaml(blueprint: ProjectBlueprint): string {
       "package-ecosystem": "npm",
       directory: "/",
       schedule: { interval: "weekly" },
+      ...(hasDrizzle
+        ? {
+            groups: {
+              drizzle: {
+                patterns: ["drizzle-*", "drizzle-orm"],
+              },
+            },
+          }
+        : {}),
       ignore: [
         {
           "dependency-name": "@types/node",
@@ -648,10 +660,17 @@ export function buildProjectProjection(
             scope: blueprint.scope,
             leafName: instance.leafName,
             packageName: instance.packageName,
+            ...(instance.reference.preservePackageJsonExport === undefined
+              ? {}
+              : {
+                  preservePackageJsonExport:
+                    instance.reference.preservePackageJsonExport,
+                }),
             ...(instance.reference.rewriteBinName === undefined
               ? {}
               : { rewriteBinName: instance.reference.rewriteBinName }),
             packageBindings: instance.packageBindings,
+            pathReplacements: instance.pathReplacements,
             linkedProviders: instance.linkedProviders,
             defaultCatalogDeps,
             namedCatalogDeps,
@@ -814,7 +833,14 @@ export function buildProjectProjection(
     });
   addText("package.json", rootPackageJson);
   addText("turbo.json", synthesizeRootTurboJson(blueprint));
-  addText(".github/dependabot.yml", synthesizeDependabotYaml(blueprint));
+  addText(
+    ".github/dependabot.yml",
+    synthesizeDependabotYaml(
+      blueprint,
+      defaultCatalogDeps.has("drizzle-orm") ||
+        defaultCatalogDeps.has("drizzle-kit"),
+    ),
+  );
 
   const editor = synthesizeEditorFiles({
     capabilitiesJsonPath: path.join(

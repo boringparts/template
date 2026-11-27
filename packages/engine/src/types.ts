@@ -48,6 +48,7 @@ export type ReferencePackage = {
   readonly packageDir: string;
   readonly role: PackageRole;
   readonly publishable: boolean;
+  readonly preservePackageJsonExport?: boolean;
   readonly rewriteBinName?: boolean;
   readonly rustPackageName?: string;
   readonly files: readonly ReferenceFileHandle[];
