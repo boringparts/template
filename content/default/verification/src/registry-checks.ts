@@ -461,13 +461,21 @@ export async function validatePlanMirrorSlotProjections(options: {
       "utf8",
     ),
   ) as unknown;
+  const rootRuntime =
+    isRecord(rootManifest) &&
+    isRecord(rootManifest.devEngines) &&
+    isRecord(rootManifest.devEngines.runtime)
+      ? rootManifest.devEngines.runtime
+      : undefined;
   const rootNode =
-    isRecord(rootManifest) && isRecord(rootManifest.engines)
-      ? rootManifest.engines.node
+    rootRuntime?.name === "node" &&
+    rootRuntime.onFail === "download" &&
+    typeof rootRuntime.version === "string"
+      ? rootRuntime.version
       : undefined;
   if (typeof rootNode !== "string") {
     throw new Error(
-      `${owner}: mirror slots require actual root package.json engines.node`,
+      `${owner}: mirror slots require actual root package.json devEngines.runtime`,
     );
   }
   let rustChannel: string | undefined;
@@ -521,7 +529,7 @@ export async function validatePlanMirrorSlotProjections(options: {
         : rootNode;
     if (projected !== expected) {
       throw new Error(
-        `${owner} ${filePath}#${slot.id}: actual value ${JSON.stringify(projected)} differs from ${pnpmBootstrap ? "root packageManager" : isRustSlot ? "root Rust channel" : "root engines.node"} ${JSON.stringify(expected)}`,
+        `${owner} ${filePath}#${slot.id}: actual value ${JSON.stringify(projected)} differs from ${pnpmBootstrap ? "root packageManager" : isRustSlot ? "root Rust channel" : "root devEngines.runtime"} ${JSON.stringify(expected)}`,
       );
     }
   }

@@ -110,7 +110,10 @@ await it("generates a native workspace root directly from references and sequent
     assert.equal(rootManifest.private, true);
     assert.equal(rootManifest.name, "native-demo");
     assert.equal(rootManifest.version, undefined);
-    assert.equal(rootManifest.engines.node, "26.13.1");
+    assert.equal(rootManifest.engines, undefined);
+    assert.deepEqual(rootManifest.devEngines, {
+      runtime: { name: "node", version: "26.13.1", onFail: "download" },
+    });
     assert.equal(rootManifest.packageManager, "pnpm@12.21.0");
     assert.match(
       await readFile(path.join(targetRoot, "AGENTS.md"), "utf8"),

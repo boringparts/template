@@ -103,7 +103,9 @@ async function repositoryFixture(): Promise<string> {
   await writeFile(
     path.join(root, "package.json"),
     `${JSON.stringify({
-      engines: { node: "26.1.2" },
+      devEngines: {
+        runtime: { name: "node", version: "26.1.2", onFail: "download" },
+      },
       packageManager: "pnpm@13.2.1",
       devDependencies: {
         "@boringparts/template": "workspace:*",
@@ -348,14 +350,33 @@ void it("reports already-updated files on write failure and allows the direct No
   }
 });
 
-for (const failure of ["node", "pnpm", "rust", "invalid-toml"]) {
+for (const failure of [
+  "node",
+  "node-name",
+  "node-on-fail",
+  "legacy-engines",
+  "pnpm",
+  "rust",
+  "invalid-toml",
+]) {
   void it(`writes nothing to other drifted targets when preflight fails for ${failure}`, async () => {
     const root = await repositoryFixture();
     try {
       const rootManifest = JSON.parse(
         await readFile(path.join(root, "package.json"), "utf8"),
       );
-      rootManifest.engines.node = failure === "node" ? ">=26" : "26.1.2";
+      if (failure === "legacy-engines") {
+        delete rootManifest.devEngines;
+        rootManifest.engines = { node: "26.1.2" };
+      } else {
+        rootManifest.devEngines = {
+          runtime: {
+            name: failure === "node-name" ? "bun" : "node",
+            version: failure === "node" ? ">=26" : "26.1.2",
+            onFail: failure === "node-on-fail" ? "error" : "download",
+          },
+        };
+      }
       rootManifest.packageManager =
         failure === "pnpm" ? "pnpm@^13" : "pnpm@13.2.1";
       await writeFile(

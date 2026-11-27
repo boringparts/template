@@ -120,15 +120,13 @@ export const referencePackage = defineReferencePackage({
       readonly packageManagerPin?: unknown;
     };
     if (typeof stableFacts.nodeDeclaration === "string") {
-      const engines =
-        typeof rootManifest.engines === "object" &&
-        rootManifest.engines !== null &&
-        !Array.isArray(rootManifest.engines)
-          ? (rootManifest.engines as Record<string, unknown>)
-          : {};
-      rootManifest.engines = {
-        ...engines,
-        node: stableFacts.nodeDeclaration,
+      delete rootManifest.engines;
+      rootManifest.devEngines = {
+        runtime: {
+          name: "node",
+          version: stableFacts.nodeDeclaration,
+          onFail: "download",
+        },
       };
     }
     if (typeof stableFacts.packageManagerPin === "string") {

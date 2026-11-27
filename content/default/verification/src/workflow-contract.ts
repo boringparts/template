@@ -150,7 +150,7 @@ const workflowPolicy = {
       name: "Set up pnpm and Node.js",
       action: "pnpm/setup",
       with: {
-        runtime: "${{ steps.node-runtime.outputs.runtime }}",
+        "node-version-file": false,
         install: false,
         cache: true,
       },
@@ -181,7 +181,7 @@ const workflowPolicy = {
 
 const rootActionSteps: readonly (readonly [number, WorkflowActionKey])[] = [
   [0, "checkout"],
-  [2, "pnpm"],
+  [1, "pnpm"],
 ];
 
 function matchesAction(value: unknown, action: string): boolean {
@@ -377,7 +377,7 @@ function assertGeneratedCheckWorkflowContract(
     throw new Error(`${receipt.scenario.id}: Check job has unexpected fields`);
   }
   const diagnostic = diagnosticStepContracts(oracle, deployment);
-  const diagnosticStart = deployment ? 7 : 6;
+  const diagnosticStart = deployment ? 6 : 5;
   if (
     !Array.isArray(job.steps) ||
     job.steps.length !== diagnosticStart + (diagnostic === undefined ? 0 : 2)
@@ -408,21 +408,9 @@ function assertGeneratedCheckWorkflowContract(
       );
     }
   }
-  const nodeRead = job.steps[1];
-  if (
-    !isParsedObject(nodeRead) ||
-    !hasExactKeys(nodeRead, ["name", "id", "run"]) ||
-    nodeRead.id !== "node-runtime" ||
-    nodeRead.run !==
-      'echo "runtime=node@$(jq -er \'.engines.node\' package.json)" >> "$GITHUB_OUTPUT"'
-  ) {
-    throw new Error(
-      `${receipt.scenario.id}: Check workflow must read the Node version from the root declaration`,
-    );
-  }
   const runSteps = [
-    [job.steps[3], workflowPolicy.installStep],
-    [job.steps[4], workflowPolicy.lightCheckStep],
+    [job.steps[2], workflowPolicy.installStep],
+    [job.steps[3], workflowPolicy.lightCheckStep],
   ] as const;
   for (const [step, contract] of runSteps) {
     if (
@@ -436,7 +424,7 @@ function assertGeneratedCheckWorkflowContract(
       );
     }
   }
-  let heavyCheckIndex = 5;
+  let heavyCheckIndex = 4;
   if (deployment) {
     const buildx = job.steps[heavyCheckIndex];
     const contract = workflowPolicy.actions.buildx;

@@ -186,7 +186,10 @@ void describe("pnpm workspace policy", () => {
       );
       const generatedRootManifest = JSON.parse(generatedRootManifestText) as {
         packageManager?: string;
-        engines?: { node?: string };
+        devEngines?: {
+          runtime?: { name?: string; version?: string; onFail?: string };
+        };
+        engines?: unknown;
       };
       const generatedPackageManager = generatedRootManifest.packageManager;
       if (generatedPackageManager === undefined) {
@@ -200,11 +203,18 @@ void describe("pnpm workspace policy", () => {
         cwd: projectDir,
         env: { ...process.env, CI: "1" },
       });
-      // Root engines.node is the source of truth for the Node version; the container's runtime node --version must match it.
-      const enginesNode = generatedRootManifest.engines?.node;
-      if (enginesNode === undefined) {
-        throw new Error("generated root manifest is missing engines.node");
+      // Root devEngines.runtime is the source of truth for the Node version; the container's runtime node --version must match it.
+      const runtimeVersion = generatedRootManifest.devEngines?.runtime?.version;
+      if (
+        generatedRootManifest.devEngines?.runtime?.name !== "node" ||
+        generatedRootManifest.devEngines?.runtime?.onFail !== "download" ||
+        runtimeVersion === undefined
+      ) {
+        throw new Error(
+          "generated root manifest is missing valid devEngines.runtime",
+        );
       }
+      assert.strictEqual(generatedRootManifest.engines, undefined);
       const devcontainerConfig = JSON.parse(
         await readFile(
           path.join(projectDir, ".devcontainer/devcontainer.json"),
@@ -217,8 +227,8 @@ void describe("pnpm workspace policy", () => {
           "generated devcontainer is missing build.args.NODE_VERSION",
         );
       }
-      // The M1 build arg must also match root engines.node so potential drift is never treated as the expected source of truth.
-      assert.strictEqual(nodeBuildArg, enginesNode);
+      // The M1 build arg must also match root devEngines.runtime so potential drift is never treated as the expected source of truth.
+      assert.strictEqual(nodeBuildArg, runtimeVersion);
 
       // Use exclusively owned, uniquely named resources for this test; never force-remove shared image IDs or run prune.
       const stamp = `${process.pid}-${Date.now()}`;
@@ -317,7 +327,7 @@ void describe("pnpm workspace policy", () => {
         ]);
 
         // Observe the actual node --version inside the container; the runtime version must match
-        // root engines.node rather than relying only on the build arg text.
+        // root devEngines.runtime rather than relying only on the build arg text.
         const nodeRuntime = await execa(
           "docker",
           [
@@ -333,7 +343,7 @@ void describe("pnpm workspace policy", () => {
         );
         assert.strictEqual(
           nodeRuntime.stdout.trim().replace(/^v/u, ""),
-          enginesNode,
+          runtimeVersion,
         );
 
         // Run the non-root cold path first so the node user exercises its own writable native version cache

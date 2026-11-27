@@ -6,6 +6,8 @@ import { parse as parseYaml } from "yaml";
 
 export type TemplateToolchainDeclarations = {
   readonly rootNodeEngine: string;
+  readonly rootNodeRuntimeName: string;
+  readonly rootNodeRuntimeOnFail: string;
   readonly packageManagerDeclaration: string;
   readonly rustToolchainChannel: string;
   readonly playwrightTestVersion: string;
@@ -28,9 +30,17 @@ export function deriveTemplateToolchain(
     declarations.packageManagerDeclaration.trim(),
   )?.[1];
   const diagnostics: string[] = [];
+  if (declarations.rootNodeRuntimeName.trim() !== "node")
+    diagnostics.push(
+      `Root devEngines.runtime.name must be "node", got ${declarations.rootNodeRuntimeName}`,
+    );
   if (!/^\d+\.\d+\.\d+$/u.test(node))
     diagnostics.push(
-      `Root engines.node must declare an exact tested Node patch version (e.g. 24.16.0), got ${declarations.rootNodeEngine}`,
+      `Root devEngines.runtime.version must declare an exact tested Node patch version (e.g. 26.13.1), got ${declarations.rootNodeEngine}`,
+    );
+  if (declarations.rootNodeRuntimeOnFail.trim() !== "download")
+    diagnostics.push(
+      `Root devEngines.runtime.onFail must be "download", got ${declarations.rootNodeRuntimeOnFail}`,
     );
   if (pnpmVersion === undefined)
     diagnostics.push(
@@ -58,18 +68,39 @@ export function deriveTemplateToolchain(
 }
 
 /**
- * Extracts `engines.node` from a manifest or returns a missing-field
- * placeholder for validation diagnostics.
+ * Extracts `devEngines.runtime` fields from a root manifest or returns
+ * missing-field placeholders for validation diagnostics.
  */
-export function readNodeEngine(manifest: {
-  readonly engines?: unknown;
-}): string {
-  const engines = manifest.engines;
-  const node =
-    typeof engines === "object" && engines !== null
-      ? (engines as { readonly node?: unknown }).node
-      : undefined;
-  return typeof node === "string" ? node : "(missing engines.node)";
+export function readNodeDevEngine(manifest: {
+  readonly devEngines?: unknown;
+}): {
+  readonly name: string;
+  readonly version: string;
+  readonly onFail: string;
+} {
+  const devEngines = manifest.devEngines;
+  const runtime = isRecord(devEngines) ? devEngines.runtime : undefined;
+  if (!isRecord(runtime)) {
+    return {
+      name: "(missing devEngines.runtime.name)",
+      version: "(missing devEngines.runtime.version)",
+      onFail: "(missing devEngines.runtime.onFail)",
+    };
+  }
+  return {
+    name:
+      typeof runtime.name === "string"
+        ? runtime.name
+        : "(missing devEngines.runtime.name)",
+    version:
+      typeof runtime.version === "string"
+        ? runtime.version
+        : "(missing devEngines.runtime.version)",
+    onFail:
+      typeof runtime.onFail === "string"
+        ? runtime.onFail
+        : "(missing devEngines.runtime.onFail)",
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -96,7 +127,7 @@ export async function readTemplateToolchainDeclarations(
     ],
   );
   const manifest = JSON.parse(manifestContents) as {
-    readonly engines?: unknown;
+    readonly devEngines?: unknown;
     readonly packageManager?: unknown;
   };
   const rustDeclaration = parseToml(rustContents);
@@ -115,8 +146,11 @@ export async function readTemplateToolchainDeclarations(
     "channel" in toolchain
       ? toolchain.channel
       : undefined;
+  const nodeDevEngine = readNodeDevEngine(manifest);
   return {
-    rootNodeEngine: readNodeEngine(manifest),
+    rootNodeEngine: nodeDevEngine.version,
+    rootNodeRuntimeName: nodeDevEngine.name,
+    rootNodeRuntimeOnFail: nodeDevEngine.onFail,
     packageManagerDeclaration:
       typeof manifest.packageManager === "string"
         ? manifest.packageManager

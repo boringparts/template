@@ -28,7 +28,9 @@ void it("runs frozen checks on the current working tree snapshot, removes it on 
     await writeFile(
       path.join(root, "package.json"),
       JSON.stringify({
-        engines: { node: "26.13.0" },
+        devEngines: {
+          runtime: { name: "node", version: "26.13.0", onFail: "download" },
+        },
         packageManager: "pnpm@12.9.1",
       }),
     );

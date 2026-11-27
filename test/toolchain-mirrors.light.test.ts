@@ -245,20 +245,22 @@ void describe("Node and Rust root toolchain mirrors", () => {
       repositoryRoot,
       ".devcontainer/devcontainer.json",
     );
-    const manifest = await readJson<{ engines: { node: string } }>(
-      manifestPath,
-    );
+    const manifest = await readJson<{
+      devEngines: {
+        runtime: { name: string; version: string; onFail: string };
+      };
+    }>(manifestPath);
     const devcontainer = await readJson<{
       build: { args: Record<string, unknown> };
       runArgs?: unknown[];
     }>(devcontainerPath);
     assert.strictEqual(
       devcontainer.build.args.NODE_VERSION,
-      manifest.engines.node,
+      manifest.devEngines.runtime.version,
     );
 
     const rootNode = "24.18.0";
-    manifest.engines.node = rootNode;
+    manifest.devEngines.runtime.version = rootNode;
     await writeJson(manifestPath, manifest);
     devcontainer.build.args.NODE_VERSION = "user-edited";
     devcontainer.runArgs = ["--init"];

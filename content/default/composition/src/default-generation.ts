@@ -37,7 +37,7 @@ import {
 } from "./project-requirements.ts";
 import { prepareRootRustToolchainTarget } from "./rust-toolchain-facts.ts";
 
-const nodeDeclarationPattern = /^([0-9]+)(?:\.([0-9]+)\.([0-9]+))?$/u;
+const nodeDeclarationPattern = /^[0-9]+\.[0-9]+\.[0-9]+$/u;
 const pnpmPinPattern = /^pnpm@[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$/u;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -518,18 +518,24 @@ async function additionFacts(
       }
     }
   }
-  const engines =
-    isRecord(manifest) && isRecord(manifest.engines)
-      ? manifest.engines
+  const devEngines =
+    isRecord(manifest) && isRecord(manifest.devEngines)
+      ? manifest.devEngines
       : undefined;
-  const nodeDeclaration = engines?.node;
+  const runtime = isRecord(devEngines?.runtime)
+    ? devEngines.runtime
+    : undefined;
+  const nodeDeclaration = runtime?.version;
   if (
+    runtime === undefined ||
+    runtime.name !== "node" ||
+    runtime.onFail !== "download" ||
     typeof nodeDeclaration !== "string" ||
     !nodeDeclarationPattern.test(nodeDeclaration)
   ) {
     throw new RootToolchainDeclarationError(
       { kind: "invalid-node-declaration" },
-      `Adding a package requires root package.json engines.node to be a single Node major or exact version, got ${JSON.stringify(nodeDeclaration ?? null)}`,
+      `Expected root package.json devEngines.runtime to pin an exact Node.js version with onFail: "download", got ${JSON.stringify(runtime ?? null)}`,
     );
   }
   const packageManagerPin = isRecord(manifest)

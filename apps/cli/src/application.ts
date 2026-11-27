@@ -622,7 +622,7 @@ export async function runAddPackage(
         ),
         suggestion:
           rootToolchainIssue.kind === "invalid-node-declaration"
-            ? "Fix engines.node in root package.json before adding a package."
+            ? "Fix devEngines.runtime in root package.json before adding a package."
             : "Fix packageManager in root package.json before adding a package.",
       });
     }

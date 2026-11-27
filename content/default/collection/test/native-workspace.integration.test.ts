@@ -236,14 +236,24 @@ await it(
         readonly private: boolean;
         readonly name: string;
         readonly version?: string;
-        readonly engines: { readonly node: string };
+        readonly devEngines: {
+          readonly runtime: {
+            readonly name: string;
+            readonly version: string;
+            readonly onFail: string;
+          };
+        };
+        readonly engines?: unknown;
         readonly packageManager: string;
         readonly devDependencies: Readonly<Record<string, string>>;
         readonly scripts: Readonly<Record<string, string>>;
       };
       assert.equal(rootManifest.name, "packed-native-demo");
       assert.equal(rootManifest.version, undefined);
-      assert.equal(rootManifest.engines.node, "26.13.1");
+      assert.equal(rootManifest.engines, undefined);
+      assert.deepEqual(rootManifest.devEngines, {
+        runtime: { name: "node", version: "26.13.1", onFail: "download" },
+      });
       assert.equal(rootManifest.packageManager, "pnpm@12.21.0");
       assert.match(
         await readFile(path.join(targetRoot, "AGENTS.md"), "utf8"),

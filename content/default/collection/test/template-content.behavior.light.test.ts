@@ -611,9 +611,21 @@ void describe("public template content collection", () => {
   void it("returns default owner version declaration diagnostics on add and leaves target unchanged", async () => {
     const cases = [
       {
-        field: "engines.node" as const,
-        actual: ">=22",
-        message: /root package\.json engines\.node/u,
+        field: "devEngines.runtime" as const,
+        actual: '">=22"',
+        message: /root package\.json devEngines\.runtime/u,
+        issue: "invalid-node-declaration",
+      },
+      {
+        field: "legacy-engines" as const,
+        actual: "null",
+        message: /root package\.json devEngines\.runtime/u,
+        issue: "invalid-node-declaration",
+      },
+      {
+        field: "devEngines.runtime-onFail" as const,
+        actual: '"error"',
+        message: /root package\.json devEngines\.runtime/u,
         issue: "invalid-node-declaration",
       },
       {
@@ -647,8 +659,17 @@ void describe("public template content collection", () => {
       const rootManifest = JSON.parse(
         await readFile(rootManifestPath, "utf8"),
       ) as Record<string, unknown>;
-      if (testCase.field === "engines.node") {
-        rootManifest.engines = { node: ">=22" };
+      if (testCase.field === "devEngines.runtime") {
+        rootManifest.devEngines = {
+          runtime: { name: "node", version: ">=22", onFail: "download" },
+        };
+      } else if (testCase.field === "legacy-engines") {
+        delete rootManifest.devEngines;
+        rootManifest.engines = { node: "26.13.1" };
+      } else if (testCase.field === "devEngines.runtime-onFail") {
+        rootManifest.devEngines = {
+          runtime: { name: "node", version: "26.13.1", onFail: "error" },
+        };
       } else {
         delete rootManifest.packageManager;
       }
@@ -837,11 +858,17 @@ void describe("public template content collection", () => {
     const rootPackageManifest = JSON.parse(
       await readFile(path.join(targetRoot, "package.json"), "utf8"),
     ) as {
-      engines: { node: string };
+      devEngines: {
+        runtime: { name: string; version: string; onFail: string };
+      };
+      engines?: unknown;
       packageManager: string;
       scripts: Record<string, string>;
     };
-    assert.strictEqual(rootPackageManifest.engines.node, "26.13.1");
+    assert.strictEqual(rootPackageManifest.engines, undefined);
+    assert.deepStrictEqual(rootPackageManifest.devEngines, {
+      runtime: { name: "node", version: "26.13.1", onFail: "download" },
+    });
     assert.strictEqual(rootPackageManifest.packageManager, "pnpm@12.21.0");
     assert.strictEqual(
       rootPackageManifest.scripts["user:check"],
