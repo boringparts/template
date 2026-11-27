@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { greet } from "../src/index.ts";
+import { greet } from "@boringparts/reference-ts-lib";
 
 void describe("greet", () => {
   void it("returns a greeting for a valid name", () => {

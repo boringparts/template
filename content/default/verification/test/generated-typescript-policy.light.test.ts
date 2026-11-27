@@ -184,16 +184,23 @@ void describe("Generated Repository TypeScript policy", () => {
                 .filter((entry) => path.isAbsolute(entry))
                 .map(readTsconfig),
             );
+            const isPureEs2024Build =
+              Array.isArray(config.compilerOptions?.types) &&
+              config.compilerOptions.types.length === 0 &&
+              Array.isArray(config.compilerOptions?.lib) &&
+              config.compilerOptions.lib.length === 1 &&
+              config.compilerOptions.lib[0] === "es2024";
             const allowedOverrides = [
               ...(config.compilerOptions?.exactOptionalPropertyTypes ===
                 false && inherited.includes("@vue/tsconfig/tsconfig.dom.json")
                 ? ["exactOptionalPropertyTypes"]
                 : []),
               ...(config.compilerOptions?.skipLibCheck === true &&
-              inheritedConfigs.some(
+              (inheritedConfigs.some(
                 (candidate) =>
                   candidate.compilerOptions?.moduleResolution === "bundler",
-              )
+              ) ||
+                isPureEs2024Build)
                 ? ["skipLibCheck"]
                 : []),
             ];
