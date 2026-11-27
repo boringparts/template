@@ -21,14 +21,9 @@ export async function withUnreadableAuthorDirectories<Result>(
   let executableDirectory: string | undefined;
   let nodeExecutable = process.execPath;
   if (
-    process.geteuid?.() === 0 &&
     orderedDirectories.some(({ path: directory }) => {
       const relative = path.relative(directory, process.execPath);
-      return (
-        relative !== "" &&
-        !relative.startsWith("..") &&
-        !path.isAbsolute(relative)
-      );
+      return !relative.startsWith("..") && !path.isAbsolute(relative);
     })
   ) {
     executableDirectory = await mkdtemp(
