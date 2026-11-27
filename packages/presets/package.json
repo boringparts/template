@@ -21,7 +21,9 @@
   },
   "dependencies": {
     "@boringparts/reference-hono-api": "workspace:*",
+    "@boringparts/reference-node-lib": "workspace:*",
     "@boringparts/reference-npm-publication": "workspace:*",
+    "@boringparts/reference-ts-cli": "workspace:*",
     "@boringparts/reference-ts-lib": "workspace:*",
     "@boringparts/reference-vue-app": "workspace:*",
     "@boringparts/reference-vue-hono-e2e": "workspace:*",

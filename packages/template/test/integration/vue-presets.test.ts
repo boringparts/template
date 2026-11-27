@@ -5,11 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-import {
-  type PackageRole,
-  type PresetDefinition,
-} from "@boringparts/template-engine";
-import { loadBuiltInPresets } from "@boringparts/template-presets";
+import { type PresetDefinition } from "@boringparts/template-engine";
 import { parse as parseYaml } from "yaml";
 
 import { cliCommandIdentity } from "../../src/cli-command-identity.ts";
@@ -46,39 +42,6 @@ function withTempDir(fn: (dir: string) => Promise<void>): Promise<void> {
   return fn(dir).finally(() => {
     rmSync(dir, { recursive: true, force: true });
   });
-}
-
-function syntheticRolePreset(
-  alias: string,
-  role: PackageRole,
-  defaultName: string,
-): PresetDefinition {
-  const tsLib = loadBuiltInPresets().find(
-    (preset) => preset.alias === "ts-lib",
-  )!;
-  const baseRef = tsLib.nodes[0]!.reference;
-  return {
-    alias,
-    title: `Synthetic ${role}`,
-    description: `Synthetic preset for ${role}`,
-    topology: "configurable-primary-package",
-    nodes: [
-      {
-        nodeId: "main",
-        defaultName,
-        defaultCollection: "packages",
-        defaultPath: `packages/${defaultName}`,
-        reference: {
-          ...baseRef,
-          role,
-        },
-      },
-    ],
-    capabilities: {
-      devcontainerLayers: ["github-cli"],
-      editorCapabilities: ["oxc-format-lint"],
-    },
-  };
 }
 
 void describe("vue-app and vue-hono-app presets via runCli", () => {
@@ -523,24 +486,16 @@ void describe("vue-app and vue-hono-app presets via runCli", () => {
 
       // browser-app (apps/web) cannot link to node-library
       const rejectedDir = path.join(workspaceDir, "bad-link-repo");
-      const rejectedRun = testRuntime(
-        [
-          "init",
-          rejectedDir,
-          "--preset",
-          "vue-hono-app",
-          "--preset",
-          "node-lib",
-          "--link",
-          "apps/web:packages/node-lib",
-        ],
-        {
-          presets: [
-            ...loadBuiltInPresets(),
-            syntheticRolePreset("node-lib", "node-library", "node-lib"),
-          ],
-        },
-      );
+      const rejectedRun = testRuntime([
+        "init",
+        rejectedDir,
+        "--preset",
+        "vue-hono-app",
+        "--preset",
+        "node-lib",
+        "--link",
+        "apps/web:packages/node-lib",
+      ]);
       assert.equal(await runCli(rejectedRun.runtime), 2);
       assert.equal(rejectedRun.stdout(), "");
       const failure = JSON.parse(rejectedRun.stderr()) as {

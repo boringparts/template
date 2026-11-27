@@ -1,5 +1,7 @@
 import type { PresetDefinition } from "@boringparts/template-engine";
 
+import { createNodeLibPreset } from "./presets/node-lib.ts";
+import { createTsCliPreset } from "./presets/ts-cli.ts";
 import { createTsLibPreset } from "./presets/ts-lib.ts";
 import { createVueAppPreset } from "./presets/vue-app.ts";
 import { createVueHonoAppPreset } from "./presets/vue-hono-app.ts";
@@ -12,6 +14,8 @@ export function loadBuiltInPresets(
 ): readonly PresetDefinition[] {
   return [
     createTsLibPreset(templatesRoot),
+    createNodeLibPreset(templatesRoot),
+    createTsCliPreset(templatesRoot),
     createVueAppPreset(templatesRoot),
     createVueHonoAppPreset(templatesRoot),
   ];
