@@ -79,9 +79,10 @@ import {
 import { composeCiDiagnosticArtifacts } from "./ci-diagnostic-artifact.ts";
 import { assertDefaultProjectBlueprint } from "./default-package-identity.ts";
 import {
-  collectGeneratedManifestCatalogReferences,
+  collectGeneratedManifestCatalogSelections,
   selectMinimumReleaseAgeExclusions,
   selectTemplateDependencyCatalogEntries,
+  selectTemplateNamedDependencyCatalogEntries,
 } from "./dependency-catalog.ts";
 import { PackageLinkValidationError } from "./project-requirements.ts";
 import { releaseToolchainSnapshot } from "./release-toolchain-snapshot.ts";
@@ -92,6 +93,7 @@ import {
 import { vuePnpmDependencyOverrides } from "./vue-policy.ts";
 import {
   dependencyCatalogSnapshot,
+  namedDependencyCatalogsSnapshot,
   workspaceInstallPolicySnapshot,
 } from "./workspace-policy-snapshot.ts";
 
@@ -907,11 +909,14 @@ function linkedPackageOverrides(options: {
         `Package link consumer cannot use Node package imports: ${consumer.package.definition.path}`,
       );
     }
-    if (
-      !isDefaultPackageRole(providerRole) ||
-      providerRole === "native-package" ||
-      (consumerRole === "shared-library" && providerRole !== "shared-library")
-    ) {
+    const providerAllowed =
+      providerRole === "shared-library" ||
+      (providerRole === "node-library" &&
+        (consumerRole === "cli-tool" ||
+          consumerRole === "runtime-service" ||
+          consumerRole === "node-library")) ||
+      (providerRole === "runtime-service" && consumerRole !== "shared-library");
+    if (!isDefaultPackageRole(providerRole) || !providerAllowed) {
       throw new PackageLinkValidationError(
         {
           kind: "unsupported-link",
@@ -1138,16 +1143,25 @@ function packageRoles(blueprint: ProjectBlueprint): readonly string[] {
 function boundariesFor(blueprint: ProjectBlueprint) {
   const roles = packageRoles(blueprint);
   const tags: Record<string, unknown> = {};
-  if (roles.some((role) => role === "cli-tool" || role === "runtime-service")) {
+  if (
+    roles.some(
+      (role) =>
+        role === "cli-tool" ||
+        role === "runtime-service" ||
+        role === "browser-app",
+    )
+  ) {
     tags.app = { dependencies: { allow: ["app", "library"] } };
   }
   if (
     roles.some(
       (role) =>
         role === "shared-library" ||
+        role === "node-library" ||
         role === "native-package" ||
         role === "cli-tool" ||
-        role === "runtime-service",
+        role === "runtime-service" ||
+        role === "browser-app",
     )
   ) {
     tags.library = { dependencies: { allow: ["library"] } };
@@ -1355,10 +1369,15 @@ export function createDefaultComposition(options: {
   readonly rootIdentity: ContentIdentity;
   readonly content: readonly DefaultContentMember[];
   readonly catalog?: Readonly<Record<string, string>>;
+  readonly namedCatalogs?: Readonly<
+    Record<string, Readonly<Record<string, string>>>
+  >;
   readonly installPolicy?: Readonly<Record<string, unknown>>;
 }): DefaultComposer {
   const rootKey = contentIdentityKey(options.rootIdentity);
   const catalog = options.catalog ?? dependencyCatalogSnapshot;
+  const namedCatalogs =
+    options.namedCatalogs ?? namedDependencyCatalogsSnapshot;
   const installPolicy = options.installPolicy ?? workspaceInstallPolicySnapshot;
 
   const composition: DefaultComposer = {
@@ -1738,9 +1757,16 @@ export function createDefaultComposition(options: {
         };
       }
       finalManifests.set(rootPackage.package.packageDefinitionId, manifest);
+      const catalogSelections = collectGeneratedManifestCatalogSelections([
+        ...finalManifests.values(),
+      ]);
       const dependencyCatalog = selectTemplateDependencyCatalogEntries(
-        collectGeneratedManifestCatalogReferences([...finalManifests.values()]),
+        catalogSelections.defaultDependencies,
         catalog,
+      );
+      const selectedNamedCatalogs = selectTemplateNamedDependencyCatalogEntries(
+        catalogSelections.namedDependencies,
+        namedCatalogs,
       );
       const packagePaths = combineOptions.blueprint.packages
         .filter(({ path: packagePath }) => packagePath !== ".")
@@ -1780,12 +1806,18 @@ export function createDefaultComposition(options: {
       const configuredExclusions =
         installConfiguration.minimumReleaseAgeExclude;
       delete installConfiguration.minimumReleaseAgeExclude;
+      const selectedCatalogPackageNames = new Set([
+        ...Object.keys(dependencyCatalog),
+        ...Object.values(selectedNamedCatalogs).flatMap((entries) =>
+          Object.keys(entries),
+        ),
+      ]);
       const minimumReleaseAgeExclude =
         configuredExclusions === undefined
           ? []
           : selectMinimumReleaseAgeExclusions(
               configuredExclusions,
-              new Set(Object.keys(dependencyCatalog)),
+              selectedCatalogPackageNames,
             );
       const workspace = stringifyYaml({
         ...installConfiguration,
@@ -1794,6 +1826,9 @@ export function createDefaultComposition(options: {
           : { minimumReleaseAgeExclude }),
         packages,
         catalog: dependencyCatalog,
+        ...(Object.keys(selectedNamedCatalogs).length === 0
+          ? {}
+          : { catalogs: selectedNamedCatalogs }),
         overrides,
       });
 

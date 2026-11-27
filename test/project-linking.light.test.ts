@@ -13,6 +13,7 @@ import path from "node:path";
 import { test, type TestContext } from "node:test";
 import { pathToFileURL } from "node:url";
 
+import type { DefaultPackageRole } from "@boringparts/default-content-authoring/package-role";
 import {
   defineReferencePackage,
   type DefaultRootDeclarationData,
@@ -32,8 +33,11 @@ type PackageLinkIssue =
     };
 
 type FixtureOptions = {
-  readonly providerRole?: "shared-library";
-  readonly consumerRole?: "runtime-service" | "native-package";
+  readonly providerRole?: Extract<
+    DefaultPackageRole,
+    "shared-library" | "node-library" | "runtime-service"
+  >;
+  readonly consumerRole?: DefaultPackageRole;
   readonly providerExports?: Readonly<Record<string, unknown>>;
   readonly rootScriptContribution?: {
     readonly name: string;
@@ -702,4 +706,74 @@ await test("rejects a provider without an importable root export and retains end
     readFile(path.join(targetRoot, "packages/consumer/package.json")),
     { code: "ENOENT" },
   );
+});
+
+await test("allows node-library links only for Node-capable roles and rejects browser-app or shared-library with zero writes", async (context) => {
+  for (const [consumerRole, providerRole, allowed] of [
+    ["cli-tool", "node-library", true],
+    ["runtime-service", "node-library", true],
+    ["node-library", "node-library", true],
+    ["browser-app", "node-library", false],
+    ["shared-library", "node-library", false],
+    ["browser-app", "shared-library", true],
+    ["node-library", "shared-library", true],
+    ["browser-app", "runtime-service", true],
+  ] as const) {
+    const setup = await fixture(context, {
+      consumerRole,
+      providerRole,
+    });
+    const generator = createDefaultGenerator({ content: setup.content });
+    const targetRoot = path.join(
+      setup.root,
+      `${consumerRole}-to-${providerRole}`,
+    );
+    await initialize(generator, targetRoot, "ts-lib");
+    const providerId = await addProvider(
+      generator,
+      targetRoot,
+      setup.providerIdentity,
+    );
+    const before = await snapshotTree(targetRoot);
+
+    const planned = await addConsumer(
+      generator,
+      targetRoot,
+      providerId,
+      setup.consumerIdentity,
+      "packages/consumer",
+    );
+
+    if (allowed) {
+      assert.equal(
+        planned.status,
+        "planned",
+        `${consumerRole} -> ${providerRole}: ${summary(planned)}`,
+      );
+      const manifest = await committedConsumerManifest(
+        generator,
+        planned,
+        targetRoot,
+        "packages/consumer",
+      );
+      assert.equal(
+        (manifest.dependencies as Record<string, unknown> | undefined)?.[
+          setup.providerPackageName
+        ],
+        "workspace:*",
+      );
+    } else {
+      assert.equal(
+        planned.status,
+        "operation-failure",
+        `${consumerRole} -> ${providerRole} should fail`,
+      );
+      assert.deepEqual(packageLinkIssue(planned), {
+        kind: "unsupported-link",
+        consumerPath: "packages/consumer",
+        providerPath: "packages/provider",
+      });
+      assert.deepEqual(await snapshotTree(targetRoot), before);
+    }
+  }
 });

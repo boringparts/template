@@ -330,7 +330,7 @@ void describe("Vue standalone composite preset public behavior", () => {
     assert.ok(
       allVuePackages.every(
         ({ packageDefinitionId }) =>
-          pathFor(packageDefinitionId).role === "runtime-service",
+          pathFor(packageDefinitionId).role === "browser-app",
       ),
     );
     assert.strictEqual(

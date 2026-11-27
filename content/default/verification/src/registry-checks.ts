@@ -15,8 +15,10 @@ import {
 import {
   loadTemplateDependencyCatalog,
   loadTemplateMinimumReleaseAgeExclusions,
+  loadTemplateNamedDependencyCatalogs,
   selectMinimumReleaseAgeExclusions,
   selectTemplateDependencyCatalogEntries,
+  selectTemplateNamedDependencyCatalogEntries,
 } from "@boringparts/template-workspace/dependency-catalog";
 import { readRustToolchainChannelFromToml } from "@boringparts/template-workspace/rust-toolchain-facts";
 import { parse as parseYaml } from "yaml";
@@ -300,7 +302,12 @@ export async function validatePlanDependencyCatalog(
     }),
   );
   const templateCatalog = loadTemplateDependencyCatalog();
+  const templateNamedCatalogs = loadTemplateNamedDependencyCatalogs();
+  const rawActualCatalogs = isRecord(workspaceValue)
+    ? workspaceValue.catalogs
+    : undefined;
   const references = new Set<string>();
+  const namedReferences = new Map<string, Set<string>>();
   for (const [manifestPath, manifest] of manifests) {
     const packagePath =
       manifestPath === "package.json" ? "." : path.posix.dirname(manifestPath);
@@ -353,20 +360,56 @@ export async function validatePlanDependencyCatalog(
             `link:${path.posix.relative(packagePath, provider.path)}`;
         if (internalWorkspace || internalConfiguration) continue;
 
-        const expectedVersion = templateCatalog[dependency];
-        const actualVersion = catalog[dependency];
-        if (
-          specifier !== "catalog:" ||
-          typeof expectedVersion !== "string" ||
-          expectedVersion.trim().length === 0 ||
-          /^(?:catalog|workspace|link):/u.test(expectedVersion) ||
-          actualVersion !== expectedVersion
-        ) {
-          throw new Error(
-            `${scenarioId}: ${manifestPath} ${field} ${dependency} ${JSON.stringify(specifier)} violates the default dependency catalog contract`,
-          );
+        if (specifier === "catalog:" || specifier === "catalog:default") {
+          const expectedVersion = templateCatalog[dependency];
+          const actualVersion = catalog[dependency];
+          if (
+            typeof expectedVersion !== "string" ||
+            expectedVersion.trim().length === 0 ||
+            /^(?:catalog|workspace|link):/u.test(expectedVersion) ||
+            actualVersion !== expectedVersion
+          ) {
+            throw new Error(
+              `${scenarioId}: ${manifestPath} ${field} ${dependency} ${JSON.stringify(specifier)} violates the default dependency catalog contract`,
+            );
+          }
+          references.add(dependency);
+          continue;
         }
-        references.add(dependency);
+
+        if (specifier.startsWith("catalog:")) {
+          const catalogName = specifier.slice("catalog:".length);
+          const expectedCatalog =
+            catalogName.length > 0 && catalogName.trim() === catalogName
+              ? templateNamedCatalogs[catalogName]
+              : undefined;
+          const actualCatalog = isRecord(rawActualCatalogs)
+            ? rawActualCatalogs[catalogName]
+            : undefined;
+          const expectedVersion = expectedCatalog?.[dependency];
+          const actualVersion = isRecord(actualCatalog)
+            ? actualCatalog[dependency]
+            : undefined;
+          if (
+            typeof expectedVersion !== "string" ||
+            expectedVersion.trim().length === 0 ||
+            /^(?:catalog|workspace|link):/u.test(expectedVersion) ||
+            actualVersion !== expectedVersion
+          ) {
+            throw new Error(
+              `${scenarioId}: ${manifestPath} ${field} ${dependency} ${JSON.stringify(specifier)} violates the named dependency catalog contract`,
+            );
+          }
+          const catalogDeps =
+            namedReferences.get(catalogName) ?? new Set<string>();
+          catalogDeps.add(dependency);
+          namedReferences.set(catalogName, catalogDeps);
+          continue;
+        }
+
+        throw new Error(
+          `${scenarioId}: ${manifestPath} ${field} ${dependency} ${JSON.stringify(specifier)} violates the default dependency catalog contract`,
+        );
       }
     }
   }
@@ -383,9 +426,34 @@ export async function validatePlanDependencyCatalog(
       `${scenarioId}: generated dependency catalog does not match actual manifest references`,
     );
   }
+  const expectedNamed = selectTemplateNamedDependencyCatalogEntries(
+    Object.fromEntries(
+      [...namedReferences.entries()].map(([catalogName, deps]) => [
+        catalogName,
+        [...deps],
+      ]),
+    ),
+    templateNamedCatalogs,
+  );
+  if (Object.keys(expectedNamed).length === 0) {
+    if (rawActualCatalogs !== undefined) {
+      throw new Error(
+        `${scenarioId}: generated named dependency catalogs must be omitted when unreferenced`,
+      );
+    }
+  } else if (!isDeepStrictEqual(rawActualCatalogs, expectedNamed)) {
+    throw new Error(
+      `${scenarioId}: generated named dependency catalogs ${JSON.stringify(rawActualCatalogs)} do not match expected ${JSON.stringify(expectedNamed)}`,
+    );
+  }
   const expectedExclusions = selectMinimumReleaseAgeExclusions(
     loadTemplateMinimumReleaseAgeExclusions(),
-    new Set(Object.keys(expected)),
+    new Set([
+      ...Object.keys(expected),
+      ...Object.values(expectedNamed).flatMap((entries) =>
+        Object.keys(entries),
+      ),
+    ]),
   );
   const actualExclusions = isRecord(workspaceValue)
     ? workspaceValue.minimumReleaseAgeExclude

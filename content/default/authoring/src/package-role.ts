@@ -1,7 +1,9 @@
 export const defaultPackageRoles = [
   "cli-tool",
   "runtime-service",
+  "browser-app",
   "shared-library",
+  "node-library",
   "native-package",
 ] as const;
 

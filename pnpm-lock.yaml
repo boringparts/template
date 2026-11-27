@@ -323,6 +323,10 @@ catalogs:
     zod:
       specifier: ^4.6.7
       version: 4.6.7
+  node-24:
+    '@types/node':
+      specifier: ~24.0.0
+      version: 24.0.15
   public-cli-runtime:
     typescript:
       specifier: npm:typescript@^6.0.3
@@ -535,6 +539,9 @@ importers:
 
   content/default/collection:
     dependencies:
+      '@boringparts/preset-node-lib':
+        specifier: workspace:*
+        version: link:../presets/node-lib
       '@boringparts/preset-rust-bin':
         specifier: workspace:*
         version: link:../presets/rust-bin
@@ -556,6 +563,9 @@ importers:
       '@boringparts/reference-hono-api':
         specifier: workspace:*
         version: link:../references/hono-api
+      '@boringparts/reference-node-lib':
+        specifier: workspace:*
+        version: link:../references/node-lib
       '@boringparts/reference-npm-publication':
         specifier: workspace:*
         version: link:../references/npm-publication
@@ -678,6 +688,58 @@ importers:
       typescript-7:
         specifier: 'catalog:'
         version: typescript@7.0.2
+
+  content/default/presets/node-lib:
+    dependencies:
+      '@boringparts/reference-node-lib':
+        specifier: workspace:*
+        version: link:../../references/node-lib
+      '@boringparts/template-core':
+        specifier: workspace:*
+        version: link:../../../../packages/core
+    devDependencies:
+      '@boringparts/reference-npm-publication':
+        specifier: workspace:*
+        version: link:../../references/npm-publication
+      '@boringparts/reference-tooling-config':
+        specifier: workspace:*
+        version: link:../../references/tooling-config
+      '@boringparts/reference-workspace-root':
+        specifier: workspace:*
+        version: link:../../references/workspace-root
+      '@boringparts/template-generator':
+        specifier: workspace:*
+        version: link:../../../../packages/generator
+      '@boringparts/template-workspace':
+        specifier: workspace:*
+        version: link:../../composition
+      '@boringparts/template-workspace-authoring':
+        specifier: workspace:*
+        version: link:../../../../packages/workspace-authoring
+      '@boringparts/tooling-config':
+        specifier: workspace:*
+        version: link:../../../../packages/tooling-config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.6
+      execa:
+        specifier: 'catalog:'
+        version: 10.2.1
+      oxfmt:
+        specifier: 'catalog:'
+        version: 0.79.0
+      oxlint:
+        specifier: 'catalog:'
+        version: 1.94.0
+      tsrs:
+        specifier: 'catalog:'
+        version: 7.1.0-beta.tsrs4
+      typescript-7:
+        specifier: 'catalog:'
+        version: typescript@7.0.2
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.1
 
   content/default/presets/rust-bin:
     dependencies:
@@ -1042,6 +1104,49 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.6
+      oxfmt:
+        specifier: 'catalog:'
+        version: 0.79.0
+      oxlint:
+        specifier: 'catalog:'
+        version: 1.94.0
+      tsrs:
+        specifier: 'catalog:'
+        version: 7.1.0-beta.tsrs4
+      typescript-7:
+        specifier: 'catalog:'
+        version: typescript@7.0.2
+
+  content/default/references/node-lib:
+    dependencies:
+      '@boringparts/template-core':
+        specifier: workspace:*
+        version: link:../../../../packages/core
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+    devDependencies:
+      '@boringparts/default-content-authoring':
+        specifier: workspace:*
+        version: link:../../authoring
+      '@boringparts/reference-npm-publication':
+        specifier: workspace:*
+        version: link:../npm-publication
+      '@boringparts/reference-tooling-config':
+        specifier: workspace:*
+        version: link:../tooling-config
+      '@boringparts/reference-workspace-root':
+        specifier: workspace:*
+        version: link:../workspace-root
+      '@boringparts/tooling-config':
+        specifier: workspace:*
+        version: link:../../../../packages/tooling-config
+      '@types/node':
+        specifier: catalog:node-24
+        version: 24.0.15
+      node:
+        specifier: runtime:24.0.0
+        version: runtime:24.0.0
       oxfmt:
         specifier: 'catalog:'
         version: 0.79.0
@@ -2886,6 +2991,9 @@ packages:
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
+  '@types/node@24.0.15':
+    resolution: {integrity: sha512-oaeTSbCef7U/z7rDeJA138xpG3NuKc64/rZ2qmUFkFJmnMsAPaluIifqyWd8hSSMxyP9oie3dLAqYPblag9KgA==}
+
   '@types/node@26.6.6':
     resolution: {integrity: sha512-MzQj+8Kx3XI40OmUAE6Qoh58ZMNstNNMwn2nfd3qWsfe7nDNSqJNzes4njhz6AHwrSHOffSLwXU6yb474Q4aog==}
 
@@ -3859,6 +3967,116 @@ packages:
     resolution: {integrity: sha512-5qr2okC4ItAI0hG5SaV0HoYMpnM/Y6+Oqr7AmPYy/2uEoGvS+GbSKLeRxSS1uAdu59yz0ouzcuXievSgg///WA==}
     engines: {node: '>=18'}
 
+  node@runtime:24.0.0:
+    resolution:
+      type: variations
+      variants:
+        - resolution:
+            archive: tarball
+            bin:
+              node: bin/node
+            integrity: sha256-C+/MtwZP2EMK3GzHSc8d9b5ZLHBNh27AlkwxDNNikfU=
+            type: binary
+            url: https://nodejs.org/download/release/v24.0.0/node-v24.0.0-aix-ppc64.tar.gz
+          targets:
+            - cpu: ppc64
+              os: aix
+        - resolution:
+            archive: tarball
+            bin:
+              node: bin/node
+            integrity: sha256-GU4vPdPsjCrcqnE+1A9Exco4RniA4WCXTOrBZZvmASE=
+            type: binary
+            url: https://nodejs.org/download/release/v24.0.0/node-v24.0.0-darwin-arm64.tar.gz
+          targets:
+            - cpu: arm64
+              os: darwin
+        - resolution:
+            archive: tarball
+            bin:
+              node: bin/node
+            integrity: sha256-9xazzhSn43psv5fJ3hDURNfaB++DPNjagd2UTREeako=
+            type: binary
+            url: https://nodejs.org/download/release/v24.0.0/node-v24.0.0-darwin-x64.tar.gz
+          targets:
+            - cpu: x64
+              os: darwin
+        - resolution:
+            archive: tarball
+            bin:
+              node: bin/node
+            integrity: sha256-QQQTbd09LxZ9eZ8bIbrHLM9QDYDCS+hJGV+DHfY3G4M=
+            type: binary
+            url: https://nodejs.org/download/release/v24.0.0/node-v24.0.0-linux-arm64.tar.gz
+          targets:
+            - cpu: arm64
+              os: linux
+        - resolution:
+            archive: tarball
+            bin:
+              node: bin/node
+            integrity: sha256-BGVMItj5/DAhon83qVwW+CCHCQiknNNh9M907RRQmhA=
+            type: binary
+            url: https://nodejs.org/download/release/v24.0.0/node-v24.0.0-linux-ppc64le.tar.gz
+          targets:
+            - cpu: ppc64le
+              os: linux
+        - resolution:
+            archive: tarball
+            bin:
+              node: bin/node
+            integrity: sha256-qm+nxdx9aZEWo5p4HrFoWmjjhD0tlbzZhSf9KJIt5jo=
+            type: binary
+            url: https://nodejs.org/download/release/v24.0.0/node-v24.0.0-linux-s390x.tar.gz
+          targets:
+            - cpu: s390x
+              os: linux
+        - resolution:
+            archive: tarball
+            bin:
+              node: bin/node
+            integrity: sha256-t2DtbeQMNaJesBGzz1lD0116dvDIwzHVqAHhCSWCbLM=
+            type: binary
+            url: https://nodejs.org/download/release/v24.0.0/node-v24.0.0-linux-x64.tar.gz
+          targets:
+            - cpu: x64
+              os: linux
+        - resolution:
+            archive: zip
+            bin:
+              node: node.exe
+            integrity: sha256-A7Znb0hy++RkURPejiPag0p8FGQEU2nyt6N0v0gqXhI=
+            prefix: node-v24.0.0-win-arm64
+            type: binary
+            url: https://nodejs.org/download/release/v24.0.0/node-v24.0.0-win-arm64.zip
+          targets:
+            - cpu: arm64
+              os: win32
+        - resolution:
+            archive: zip
+            bin:
+              node: node.exe
+            integrity: sha256-PQ//gMh7uajX9J8vJ4Mqo0oUd9E3r0b1sU31SYvoEwQ=
+            prefix: node-v24.0.0-win-x64
+            type: binary
+            url: https://nodejs.org/download/release/v24.0.0/node-v24.0.0-win-x64.zip
+          targets:
+            - cpu: x64
+              os: win32
+        - resolution:
+            archive: tarball
+            bin:
+              node: bin/node
+            integrity: sha256-mSPS8X9hTazu0wGlw1v+bl8lyhI2kIMY42A1QABtoOI=
+            type: binary
+            url: https://unofficial-builds.nodejs.org/download/release/v24.0.0/node-v24.0.0-linux-x64-musl.tar.gz
+          targets:
+            - cpu: x64
+              os: linux
+              libc: musl
+    version: 24.0.0
+    hasBin: true
+
   node@runtime:26.13.1:
     resolution:
       type: variations
@@ -4318,6 +4536,9 @@ packages:
 
   ufo@1.6.4:
     resolution: {integrity: sha512-JFNbkD1Svwe0KvGi8GOeLcP4kAWQ609twvCdcHxq1oSL8svv39ZuSvajcD8B+5D0eL4+s1Is2D/O6KN3qcTeRA==}
+
+  undici-types@7.8.0:
+    resolution: {integrity: sha512-9UJ2xGDvQ43tYyVMpuHlsgApydB8ZKfVYTsLDhXkFL/6gfkp+U8xTGdh8pMJv1SpZna0zxG1DwsKZsreLbXBxw==}
 
   undici-types@8.9.0:
     resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
@@ -5277,6 +5498,10 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
+  '@types/node@24.0.15':
+    dependencies:
+      undici-types: 7.8.0
+
   '@types/node@26.6.6':
     dependencies:
       undici-types: 8.9.0
@@ -6013,6 +6238,8 @@ snapshots:
 
   node-releases@2.0.59: {}
 
+  node@runtime:24.0.0: {}
+
   node@runtime:26.13.1: {}
 
   nopt@10.0.1:
@@ -6371,6 +6598,8 @@ snapshots:
       '@typescript/typescript-win32-x64': 7.0.2
 
   ufo@1.6.4: {}
+
+  undici-types@7.8.0: {}
 
   undici-types@8.9.0: {}
 

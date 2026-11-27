@@ -10,7 +10,7 @@ export const referencePackage = defineReferencePackage({
   instance: "independent",
   defaultLeafName: "web",
   defaultPath: "apps/web",
-  role: "runtime-service",
+  role: "browser-app",
   dependencies: [
     {
       key: "base-workspace",

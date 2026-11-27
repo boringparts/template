@@ -471,7 +471,7 @@ const journey: CliJourney = {
             "--preset",
             additionAlias,
             "--name",
-            additionAlias,
+            `${initializationAlias}-${additionAlias}`,
             "--path",
             `packages/${initializationAlias}-${additionAlias}`,
           ],
@@ -801,8 +801,10 @@ const journey: CliJourney = {
       switch (role) {
         case "cli-tool":
         case "runtime-service":
+        case "browser-app":
           return ["app"];
         case "shared-library":
+        case "node-library":
           return ["library"];
         case "native-package":
           return ["native"];
@@ -1054,7 +1056,7 @@ const journey: CliJourney = {
       const added = JSON.parse(additionResult.stdout);
       assert.equal(added.variant, "added");
       const addedPath = `packages/${initializationAlias}-${additionAlias}`;
-      const packageName = `@acme/${additionAlias}`;
+      const packageName = `@acme/${initializationAlias}-${additionAlias}`;
       assert.ok(
         added.data.actions.some(
           (action: { readonly path: string }) =>
@@ -1073,6 +1075,8 @@ const journey: CliJourney = {
           packageManifest.engines?.node,
           `^${releaseToolchainSnapshot.nodeVersion}`,
         );
+      } else if (additionAlias === "node-lib") {
+        assert.deepEqual(packageManifest.engines, { node: ">=24.0.0" });
       } else {
         assert.equal(packageManifest.engines, undefined);
       }

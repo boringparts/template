@@ -124,8 +124,8 @@ void describe("real generated check scenarios for the single content collection"
     const additions = scenarios.filter(
       (scenario) => scenario.addition !== undefined,
     );
-    assert.strictEqual(initializations.length, 6);
-    assert.strictEqual(additions.length, 24);
+    assert.strictEqual(initializations.length, 7);
+    assert.strictEqual(additions.length, 35);
 
     const workspace = await mkdtemp(
       path.join(tmpdir(), "template-generated-content-matrix-"),

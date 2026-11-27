@@ -267,13 +267,13 @@ export function composeVueHonoJointE2e(options: {
       "Vue-Hono web and API nodes cannot reuse the base root instance",
     );
   }
-  for (const [label, selectedPackage] of [
-    ["web", web],
-    ["API", api],
+  for (const [label, selectedPackage, expectedRole] of [
+    ["web", web, "browser-app"],
+    ["API", api, "runtime-service"],
   ] as const) {
-    if (selectedPackage.definition.role !== "runtime-service") {
+    if (selectedPackage.definition.role !== expectedRole) {
       throw new Error(
-        `Vue-Hono preset requires ${label} instance ${selectedPackage.definition.name} (${selectedPackage.definition.path}) to have role runtime-service, received ${selectedPackage.definition.role}`,
+        `Vue-Hono preset requires ${label} instance ${selectedPackage.definition.name} (${selectedPackage.definition.path}) to have role ${expectedRole}, received ${selectedPackage.definition.role}`,
       );
     }
   }

@@ -722,13 +722,13 @@ void describe("native content artifact installation chain", () => {
     );
   });
 
-  void it("installs and initializes the remaining five presets from independent minimal native collections", async () => {
+  void it("installs and initializes the remaining six presets from independent minimal native collections", async () => {
     assert.ok(firstPartyPrepared);
     const sdkArchives = firstPartyPrepared.sdkPackages;
     const presets = templateContent.filter(
       (member) => member.kind === "preset" && member.alias !== "ts-lib",
     );
-    assert.equal(presets.length, 5);
+    assert.equal(presets.length, 6);
 
     for (const preset of presets) {
       assert.equal(preset.kind, "preset");

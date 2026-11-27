@@ -74,6 +74,8 @@ catalog:
   proc-log: ^7.0.0
   validate-npm-package-name: ^8.0.0
 catalogs:
+  node-24:
+    "@types/node": ~24.0.0
   public-cli-runtime:
     typescript: npm:typescript@^6.0.3
 overrides:
