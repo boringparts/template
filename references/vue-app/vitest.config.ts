@@ -3,8 +3,8 @@ import { defineConfig, mergeConfig } from "vitest/config";
 
 import viteConfig from "./vite.config.ts";
 
-export default defineConfig((configEnv) =>
-  mergeConfig(viteConfig(configEnv), {
+export default defineConfig(() =>
+  mergeConfig(viteConfig, {
     test: {
       attachmentsDir: ".vitest/attachments",
       exclude: ["test/e2e/**", "node_modules/**", "dist/**"],

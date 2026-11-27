@@ -368,14 +368,14 @@ void describe("vue-app and vue-hono-app presets via runCli", () => {
         "@acme-fs/api#build",
         "^typecheck",
       ]);
+      assert.ok(webTurbo.tasks.dev?.dependsOn?.includes("^build"));
       assert.ok(webTurbo.tasks["test:browser"]?.dependsOn?.includes("^build"));
 
       const webViteConfig = readFileSync(
         path.join(targetDir, "apps/web/vite.config.ts"),
         "utf8",
       );
-      assert.ok(webViteConfig.includes('command === "serve"'));
-      assert.ok(webViteConfig.includes('conditions: ["source"]'));
+      assert.equal(webViteConfig.includes("conditions"), false);
 
       // packages/e2e manifest, turbo.json, and playwright.config.ts rewritten
       const e2ePkg = JSON.parse(
@@ -543,6 +543,7 @@ void describe("vue-app and vue-hono-app presets via runCli", () => {
       ) as {
         readonly tasks: Record<string, { readonly dependsOn?: string[] }>;
       };
+      assert.ok(webTurbo.tasks.dev?.dependsOn?.includes("^build"));
       assert.ok(webTurbo.tasks.build?.dependsOn?.includes("^build"));
       assert.ok(webTurbo.tasks.test?.dependsOn?.includes("^build"));
       assert.ok(webTurbo.tasks["test:browser"]?.dependsOn?.includes("^build"));
@@ -552,14 +553,7 @@ void describe("vue-app and vue-hono-app presets via runCli", () => {
         path.join(targetDir, "apps/web/vite.config.ts"),
         "utf8",
       );
-      assert.ok(viteConfig.includes('command === "serve"'));
-      assert.ok(viteConfig.includes('conditions: ["source"]'));
-
-      const vitestConfig = readFileSync(
-        path.join(targetDir, "apps/web/vitest.config.ts"),
-        "utf8",
-      );
-      assert.ok(vitestConfig.includes("viteConfig(configEnv)"));
+      assert.equal(viteConfig.includes("conditions"), false);
     });
   });
 });

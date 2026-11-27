@@ -277,6 +277,7 @@ void describe("vike-app preset", () => {
       ) as {
         readonly tasks: Record<string, { readonly dependsOn?: string[] }>;
       };
+      assert.ok(webTurbo.tasks.dev?.dependsOn?.includes("^build"));
       assert.ok(webTurbo.tasks.build?.dependsOn?.includes("^build"));
       assert.ok(webTurbo.tasks.test?.dependsOn?.includes("^build"));
       assert.ok(webTurbo.tasks["test:browser"]?.dependsOn?.includes("^build"));
@@ -290,8 +291,7 @@ void describe("vike-app preset", () => {
         path.join(targetDir, "apps/web/vite.config.ts"),
         "utf8",
       );
-      assert.ok(webViteConfig.includes('command === "serve"'));
-      assert.ok(webViteConfig.includes('conditions: ["source"]'));
+      assert.equal(webViteConfig.includes("conditions"), false);
 
       const dbTurbo = JSON.parse(
         readFileSync(path.join(targetDir, "packages/db/turbo.json"), "utf8"),
