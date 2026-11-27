@@ -679,7 +679,7 @@ async function main(): Promise<void> {
       console.log("==> Building @boringparts/template distribution");
       await runStreaming(
         "pnpm",
-        ["exec", "turbo", "run", "build", "--filter=@boringparts/template"],
+        ["--filter", "@boringparts/template", "run", "build"],
         { cwd: workspaceRoot },
       );
       const packOut = runCaptured(

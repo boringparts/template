@@ -44,7 +44,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "node scripts/build-distribution.ts",
+    "build": "node --conditions=source scripts/build-distribution.ts",
     "format:check": "oxfmt --list-different .",
     "format:write": "oxfmt --write .",
     "lint": "oxlint --quiet --format=unix --ignore-pattern node_modules --ignore-pattern dist --ignore-pattern templates .",
