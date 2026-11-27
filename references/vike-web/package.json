@@ -1,0 +1,71 @@
+{
+  "name": "@boringparts/reference-vike-web",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "imports": {
+    "#/assets/*": {
+      "types": "./assets/*",
+      "default": "./assets/*"
+    },
+    "#/components/*": {
+      "types": "./components/*",
+      "default": "./components/*"
+    },
+    "#/server/*": {
+      "types": "./server/*.ts",
+      "default": "./server/*.ts"
+    }
+  },
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "browser:prepare": "playwright install chromium",
+    "build": "vike build",
+    "dev": "DATABASE_PROFILE=dev NODE_OPTIONS=--conditions=source vike dev",
+    "format:check": "oxfmt --list-different .",
+    "format:write": "oxfmt --write .",
+    "lint": "oxlint --quiet --format=unix --type-aware --ignore-pattern dist --ignore-pattern node_modules --ignore-pattern playwright-report --ignore-pattern test-results .",
+    "lint:fix": "oxlint --type-aware --format=unix --ignore-pattern dist --ignore-pattern node_modules --ignore-pattern playwright-report --ignore-pattern test-results . --fix",
+    "preview": "DATABASE_PROFILE=dev vike preview",
+    "start": "node ./dist/server/index.mjs",
+    "test": "vitest run --project=node --reporter=agent --silent=passed-only --passWithNoTests --fsModuleCachePath=node_modules/.vitest-cache/node",
+    "test:browser": "vitest run --project=browser --reporter=agent --silent=passed-only --fsModuleCachePath=node_modules/.vitest-cache/browser",
+    "test:e2e": "DATABASE_PROFILE=e2e playwright test",
+    "typecheck": "vue-tsc --build --noEmit --pretty false"
+  },
+  "dependencies": {
+    "@boringparts/reference-vike-db": "workspace:*",
+    "@vikejs/hono": "catalog:",
+    "hono": "catalog:",
+    "srvx": "catalog:",
+    "telefunc": "catalog:",
+    "vike": "catalog:",
+    "vike-vue": "catalog:",
+    "vue": "catalog:"
+  },
+  "devDependencies": {
+    "@boringparts/tooling-config": "workspace:*",
+    "@playwright/test": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "@types/node": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
+    "@vue/tsconfig": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "playwright": "catalog:",
+    "tailwindcss": "catalog:",
+    "tsrs": "catalog:",
+    "typescript": "catalog:",
+    "typescript-7": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "vitest-browser-vue": "catalog:",
+    "vue-tsc": "catalog:"
+  }
+}

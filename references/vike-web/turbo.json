@@ -1,0 +1,74 @@
+{
+  "extends": ["//"],
+  "tags": ["app"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "tags": ["quality:light"]
+    },
+    "dev": {
+      "dependsOn": [
+        "@boringparts/reference-vike-deployment#database:prepare:dev",
+        "^build"
+      ],
+      "cache": false,
+      "persistent": true,
+      "tags": ["work:development"]
+    },
+    "format:check": {
+      "outputs": [],
+      "tags": ["quality:light"]
+    },
+    "format:write": {
+      "dependsOn": ["lint:fix"],
+      "cache": false,
+      "tags": ["work:repair"]
+    },
+    "lint": {
+      "dependsOn": ["^build", "^lint"],
+      "outputs": [],
+      "tags": ["quality:light"]
+    },
+    "lint:fix": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "tags": ["work:repair"]
+    },
+    "preview": {
+      "cache": false,
+      "tags": ["work:development"]
+    },
+    "start": {
+      "cache": false,
+      "tags": ["work:development"]
+    },
+    "browser:prepare": {
+      "cache": false,
+      "tags": ["work:preparation"]
+    },
+    "test": {
+      "outputs": [],
+      "tags": ["quality:light"]
+    },
+    "test:browser": {
+      "dependsOn": ["browser:prepare"],
+      "tags": ["quality:heavy"]
+    },
+    "test:e2e": {
+      "dependsOn": [
+        "@boringparts/reference-vike-deployment#database:prepare:e2e",
+        "^build",
+        "build",
+        "browser:prepare"
+      ],
+      "cache": false,
+      "tags": ["quality:heavy"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "tags": ["quality:light"]
+    }
+  }
+}

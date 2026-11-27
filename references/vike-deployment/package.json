@@ -1,0 +1,33 @@
+{
+  "name": "@boringparts/reference-vike-deployment",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "check:deployment": "node --conditions=source scripts/check-standalone-deployment.ts",
+    "database:prepare:dev": "DATABASE_PROFILE=dev pnpm --filter @boringparts/reference-vike-migrations run db:push && DATABASE_PROFILE=dev pnpm --filter @boringparts/reference-vike-db run db:seed:example",
+    "database:prepare:e2e": "DATABASE_PROFILE=e2e pnpm --filter @boringparts/reference-vike-db run db:reset && DATABASE_PROFILE=e2e pnpm --filter @boringparts/reference-vike-migrations run db:push && DATABASE_PROFILE=e2e pnpm --filter @boringparts/reference-vike-db run db:seed:example",
+    "database:prepare:test": "DATABASE_PROFILE=test pnpm --filter @boringparts/reference-vike-db run db:reset && DATABASE_PROFILE=test pnpm --filter @boringparts/reference-vike-migrations run db:push && DATABASE_PROFILE=test pnpm --filter @boringparts/reference-vike-db run db:seed:example",
+    "format:check": "oxfmt --list-different .",
+    "format:write": "oxfmt --write .",
+    "lint": "oxlint --quiet --format=unix --ignore-pattern node_modules . && shellcheck resources/deployment/scripts/container-entrypoint.sh",
+    "lint:fix": "oxlint --format=unix --ignore-pattern node_modules . --fix",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
+  },
+  "dependencies": {
+    "@boringparts/reference-vike-db": "workspace:*",
+    "@boringparts/reference-vike-migrations": "workspace:*",
+    "@boringparts/reference-vike-web": "workspace:*"
+  },
+  "devDependencies": {
+    "@boringparts/tooling-config": "workspace:*",
+    "@types/node": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "tsrs": "catalog:",
+    "typescript-7": "catalog:"
+  }
+}
