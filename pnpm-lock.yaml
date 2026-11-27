@@ -188,6 +188,9 @@ catalogs:
     oxlint:
       specifier: 1.94.0
       version: 1.94.0
+    smol-toml:
+      specifier: ^1.8.0
+      version: 1.9.1
     tsrs:
       specifier: 7.1.0-beta.tsrs4
       version: 7.1.0-beta.tsrs4
@@ -197,6 +200,12 @@ catalogs:
     typescript-7:
       specifier: npm:typescript@^7.0.2
       version: 7.0.2
+    validate-npm-package-name:
+      specifier: ^8.0.0
+      version: 8.0.0
+    yaml:
+      specifier: ^2.9.0
+      version: 2.9.1
     zod:
       specifier: ^4.6.7
       version: 4.6.7
@@ -237,11 +246,82 @@ importers:
         specifier: 'catalog:'
         version: typescript@7.0.2
 
+  packages/engine:
+    dependencies:
+      smol-toml:
+        specifier: 'catalog:'
+        version: 1.9.1
+      validate-npm-package-name:
+        specifier: 'catalog:'
+        version: 8.0.0
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.1
+    devDependencies:
+      '@boringparts/tooling-config':
+        specifier: workspace:*
+        version: link:../tooling-config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.11
+      oxfmt:
+        specifier: 'catalog:'
+        version: 0.79.0
+      oxlint:
+        specifier: 'catalog:'
+        version: 1.94.0
+      tsrs:
+        specifier: 'catalog:'
+        version: 7.1.0-beta.tsrs4
+      typescript-7:
+        specifier: 'catalog:'
+        version: typescript@7.0.2
+
+  packages/presets:
+    dependencies:
+      '@boringparts/reference-npm-publication':
+        specifier: workspace:*
+        version: link:../../references/npm-publication
+      '@boringparts/reference-ts-lib':
+        specifier: workspace:*
+        version: link:../../references/ts-lib
+      '@boringparts/reference-workspace-root':
+        specifier: workspace:*
+        version: link:../../references/workspace-root
+      '@boringparts/template-engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@boringparts/tooling-config':
+        specifier: workspace:*
+        version: link:../tooling-config
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.11
+      oxfmt:
+        specifier: 'catalog:'
+        version: 0.79.0
+      oxlint:
+        specifier: 'catalog:'
+        version: 1.94.0
+      tsrs:
+        specifier: 'catalog:'
+        version: 7.1.0-beta.tsrs4
+      typescript-7:
+        specifier: 'catalog:'
+        version: typescript@7.0.2
+
   packages/template:
     dependencies:
       '@boringparts/cli-contract':
         specifier: 'catalog:'
         version: 0.7.0
+      '@boringparts/template-engine':
+        specifier: workspace:*
+        version: link:../engine
+      '@boringparts/template-presets':
+        specifier: workspace:*
+        version: link:../presets
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -264,6 +344,9 @@ importers:
       typescript-7:
         specifier: 'catalog:'
         version: typescript@7.0.2
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.1
 
   packages/tooling-config:
     devDependencies:
@@ -291,6 +374,31 @@ importers:
       '@changesets/cli':
         specifier: 'catalog:'
         version: 3.0.3
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.11
+      oxfmt:
+        specifier: 'catalog:'
+        version: 0.79.0
+      oxlint:
+        specifier: 'catalog:'
+        version: 1.94.0
+      tsrs:
+        specifier: 'catalog:'
+        version: 7.1.0-beta.tsrs4
+      typescript-7:
+        specifier: 'catalog:'
+        version: typescript@7.0.2
+
+  references/ts-lib:
+    dependencies:
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+    devDependencies:
+      '@boringparts/tooling-config':
+        specifier: workspace:*
+        version: link:../../packages/tooling-config
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.11
@@ -1096,6 +1204,10 @@ packages:
     resolution: {integrity: sha512-2WCqLdt12eN6ehLI50S2/ZxoowXU3DD1KVPRyVP0WEsFahrGZZmCdq1K59qjJljMRIDTwx1D9YaRK+hDneBUMg==}
     engines: {node: '>=20'}
 
+  smol-toml@1.9.1:
+    resolution: {integrity: sha512-j7WyPdf0CJoutMzMoPLF/bVXHtKZIT9Rb4eGeEbWw8X2t5oirjPgpL+OpaENZrILYaXqYwnVH+qgUwVbl+pUJQ==}
+    engines: {node: '>= 18'}
+
   tinyexec@1.4.0:
     resolution: {integrity: sha512-PV6lIcJQh57aFeJDwx16JNHmgFRh5xguzallrDW1qe8nAghYgr5MKz2K5k7wEyV/ygZhdnIAP8+HZSarHPBCsg==}
     engines: {node: '>=18'}
@@ -1124,6 +1236,10 @@ packages:
 
   undici-types@8.9.0:
     resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
+
+  validate-npm-package-name@8.0.0:
+    resolution: {integrity: sha512-SCv6OOV6Xj2/3cXy3dGmADluJTNcL3o7hZAglNPTe+WYuEuvxgJzxPrSDLZhF+CwyQOubqgecjMmTJGMVLWjYQ==}
+    engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
 
   yaml@2.9.1:
     resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
@@ -1584,6 +1700,8 @@ snapshots:
 
   sisteransi@2.0.0: {}
 
+  smol-toml@1.9.1: {}
+
   tinyexec@1.4.0: {}
 
   tinyglobby@0.2.17:
@@ -1637,6 +1755,8 @@ snapshots:
       '@typescript/typescript-win32-x64': 7.0.2
 
   undici-types@8.9.0: {}
+
+  validate-npm-package-name@8.0.0: {}
 
   yaml@2.9.1: {}
 

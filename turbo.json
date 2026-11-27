@@ -67,6 +67,21 @@
         "dependencies": {
           "allow": ["library"]
         }
+      },
+      "engine": {
+        "dependencies": {
+          "allow": ["library"]
+        }
+      },
+      "presets": {
+        "dependencies": {
+          "allow": ["engine", "library", "app"]
+        }
+      },
+      "cli": {
+        "dependencies": {
+          "allow": ["engine", "presets", "library"]
+        }
       }
     }
   }
