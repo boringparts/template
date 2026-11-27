@@ -5,9 +5,16 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": [],
-      "outputs": ["dist/**"],
+      "outputs": ["dist/**", "templates/**"],
       "cache": false,
       "tags": ["work:preparation"]
+    },
+    "check:containers": {
+      "dependsOn": ["build"],
+      "inputs": [],
+      "outputs": [],
+      "cache": false,
+      "tags": ["quality:heavy"]
     },
     "format:check": {
       "inputs": [],
@@ -33,16 +40,18 @@
       "cache": false,
       "tags": ["work:repair"]
     },
-    "postbuild": {
-      "inputs": [],
-      "outputs": [],
-      "tags": ["work:lifecycle"]
-    },
     "test": {
       "dependsOn": [],
       "inputs": [],
       "outputs": [],
       "tags": ["quality:light"]
+    },
+    "test:dist": {
+      "dependsOn": ["build"],
+      "inputs": [],
+      "outputs": [],
+      "cache": false,
+      "tags": ["quality:heavy"]
     },
     "typecheck": {
       "dependsOn": ["^typecheck"],

@@ -5,7 +5,6 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-import { type PresetDefinition } from "@boringparts/template-engine";
 import { parse as parseYaml } from "yaml";
 
 import { cliCommandIdentity } from "../../src/cli-command-identity.ts";
@@ -19,7 +18,6 @@ function testRuntime(
   args: readonly string[],
   options: {
     readonly cwd?: string;
-    readonly presets?: readonly PresetDefinition[];
   } = {},
 ) {
   let stdout = "";
@@ -28,7 +26,6 @@ function testRuntime(
     argv: ["node", identity.commandName, ...args],
     identity,
     cwd: options.cwd ?? process.cwd(),
-    ...(options.presets === undefined ? {} : { presets: options.presets }),
     write: ({ destination, chunk }) => {
       if (destination === "stdout") stdout += chunk;
       else stderr += chunk;

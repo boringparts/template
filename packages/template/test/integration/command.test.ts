@@ -20,6 +20,10 @@ import { loadBuiltInPresets } from "@boringparts/template-presets";
 import { parse as parseYaml } from "yaml";
 
 import { cliCommandIdentity } from "../../src/cli-command-identity.ts";
+import {
+  executeCliRuntime,
+  type InternalCliRuntime,
+} from "../../src/cli-runner.ts";
 import { runCli, type CliRuntime } from "../../src/main.ts";
 
 const identity = cliCommandIdentity(
@@ -30,12 +34,32 @@ function testRuntime(
   args: readonly string[],
   options: {
     readonly cwd?: string;
-    readonly presets?: readonly PresetDefinition[];
   } = {},
 ) {
   let stdout = "";
   let stderr = "";
   const runtime: CliRuntime = {
+    argv: ["node", identity.commandName, ...args],
+    identity,
+    cwd: options.cwd ?? process.cwd(),
+    write: ({ destination, chunk }) => {
+      if (destination === "stdout") stdout += chunk;
+      else stderr += chunk;
+    },
+  };
+  return { runtime, stdout: () => stdout, stderr: () => stderr };
+}
+
+function testOverrideRuntime(
+  args: readonly string[],
+  options: {
+    readonly cwd?: string;
+    readonly presets?: readonly PresetDefinition[];
+  } = {},
+) {
+  let stdout = "";
+  let stderr = "";
+  const runtime: InternalCliRuntime = {
     argv: ["node", identity.commandName, ...args],
     identity,
     cwd: options.cwd ?? process.cwd(),
@@ -644,10 +668,10 @@ void describe("CLI contract", () => {
     await withTempDir(async (workspaceDir) => {
       for (const testCase of invalidCases) {
         const targetDir = path.join(workspaceDir, testCase.dirName);
-        const run = testRuntime(["init", targetDir, ...testCase.args], {
+        const run = testOverrideRuntime(["init", targetDir, ...testCase.args], {
           presets: testPresets,
         });
-        assert.equal(await runCli(run.runtime), 2, testCase.label);
+        assert.equal(await executeCliRuntime(run.runtime), 2, testCase.label);
         assert.equal(run.stdout(), "", testCase.label);
         const failure = JSON.parse(run.stderr()) as {
           readonly kind: string;
@@ -668,7 +692,7 @@ void describe("CLI contract", () => {
       }
 
       // Allowed cross-role links succeed in dry-run
-      const allowedRun = testRuntime(
+      const allowedRun = testOverrideRuntime(
         [
           "init",
           path.join(workspaceDir, "allowed-repo"),
@@ -688,7 +712,7 @@ void describe("CLI contract", () => {
         ],
         { presets: testPresets },
       );
-      assert.equal(await runCli(allowedRun.runtime), 0);
+      assert.equal(await executeCliRuntime(allowedRun.runtime), 0);
       assert.equal(allowedRun.stderr(), "");
     });
   });

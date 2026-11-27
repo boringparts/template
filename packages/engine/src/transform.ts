@@ -23,6 +23,82 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function tryFormatInlineJsonArray(
+  items: readonly unknown[],
+  prefixWidth: number,
+  printWidth: number,
+): string | undefined {
+  if (items.length === 0) {
+    return "[]";
+  }
+  const inlineParts: string[] = [];
+  for (const item of items) {
+    if (Array.isArray(item)) {
+      if (item.length === 0) {
+        inlineParts.push("[]");
+        continue;
+      }
+      return undefined;
+    }
+    if (isRecord(item)) {
+      if (Object.keys(item).length === 0) {
+        inlineParts.push("{}");
+        continue;
+      }
+      return undefined;
+    }
+    inlineParts.push(JSON.stringify(item));
+  }
+  const candidate = `[${inlineParts.join(", ")}]`;
+  return prefixWidth + candidate.length <= printWidth ? candidate : undefined;
+}
+
+function formatJsonValue(
+  value: unknown,
+  indent: number,
+  prefixWidth: number,
+  printWidth: number,
+): string {
+  if (Array.isArray(value)) {
+    const inline = tryFormatInlineJsonArray(value, prefixWidth, printWidth);
+    if (inline !== undefined) {
+      return inline;
+    }
+    const childIndent = indent + 2;
+    const pad = " ".repeat(childIndent);
+    const items = value.map(
+      (item) =>
+        `${pad}${formatJsonValue(item, childIndent, childIndent, printWidth)}`,
+    );
+    return `[\n${items.join(",\n")}\n${" ".repeat(indent)}]`;
+  }
+  if (isRecord(value)) {
+    const entries = Object.entries(value);
+    if (entries.length === 0) {
+      return "{}";
+    }
+    const childIndent = indent + 2;
+    const pad = " ".repeat(childIndent);
+    const lines = entries.map(([key, entryValue]) => {
+      const encodedKey = JSON.stringify(key);
+      const entryPrefix = `${pad}${encodedKey}: `;
+      return `${entryPrefix}${formatJsonValue(
+        entryValue,
+        childIndent,
+        entryPrefix.length,
+        printWidth,
+      )}`;
+    });
+    return `{\n${lines.join(",\n")}\n${" ".repeat(indent)}}`;
+  }
+  return JSON.stringify(value);
+}
+
+/** Formats a JSON value using Prettier/oxfmt 80-column single-line array rules. */
+export function formatJson(value: unknown, printWidth = 80): string {
+  return `${formatJsonValue(value, 0, 0, printWidth)}\n`;
+}
+
 /** Detects whether a file should be treated as raw binary rather than UTF-8 text. */
 export function isBinaryContent(filePath: string, bytes: Uint8Array): boolean {
   const dotIndex = filePath.lastIndexOf(".");
@@ -153,7 +229,12 @@ export function rewriteSubpackageManifest(options: {
         rewritten[dep] = spec;
       }
     }
-    manifest[field] = rewritten;
+    const sortedRewritten = Object.fromEntries(
+      Object.entries(rewritten).toSorted(([a], [b]) =>
+        a < b ? -1 : a > b ? 1 : 0,
+      ),
+    );
+    manifest[field] = sortedRewritten;
   }
 
   if (options.linkedProviders.length > 0) {
@@ -164,7 +245,9 @@ export function rewriteSubpackageManifest(options: {
       existingDeps[providerName] = "workspace:*";
     }
     const sortedDeps = Object.fromEntries(
-      Object.entries(existingDeps).toSorted(([a], [b]) => a.localeCompare(b)),
+      Object.entries(existingDeps).toSorted(([a], [b]) =>
+        a < b ? -1 : a > b ? 1 : 0,
+      ),
     );
     manifest.dependencies = sortedDeps;
   }
@@ -186,7 +269,7 @@ export function rewriteSubpackageTurboConfig(options: {
   const config = JSON.parse(options.rawJson) as Record<string, unknown>;
   const tasks = config.tasks;
   if (!isRecord(tasks)) {
-    return `${JSON.stringify(config, null, 2)}\n`;
+    return formatJson(config);
   }
 
   const toolingReplacement = `@${options.scope}/tooling-config`;
@@ -212,7 +295,7 @@ export function rewriteSubpackageTurboConfig(options: {
     });
   }
 
-  return `${JSON.stringify(config, null, 2)}\n`;
+  return formatJson(config);
 }
 
 /** Rewrites the crate package name inside `Cargo.toml` or `Cargo.lock`. */

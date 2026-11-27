@@ -6,6 +6,7 @@ import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 
 import {
   collectManifestCatalogUsage,
+  formatJson,
   isBinaryContent,
   rewriteCargoToml,
   rewriteSubpackageManifest,
@@ -109,8 +110,8 @@ function synthesizeEditorFiles(options: {
 
   return {
     extensions,
-    extensionsJson: `${JSON.stringify({ recommendations: extensions }, null, 2)}\n`,
-    settingsJson: `${JSON.stringify(settings, null, 2)}\n`,
+    extensionsJson: formatJson({ recommendations: extensions }),
+    settingsJson: formatJson(settings),
   };
 }
 
@@ -242,7 +243,7 @@ function synthesizeDevcontainer(options: {
 
   return {
     dockerfile: `${fragments.join("\n\n")}\n`,
-    devcontainerJson: `${JSON.stringify(devcontainerObj, null, 2)}\n`,
+    devcontainerJson: formatJson(devcontainerObj),
   };
 }
 
@@ -440,37 +441,33 @@ function synthesizeRootTurboJson(blueprint: ProjectBlueprint): string {
     };
   }
 
-  return `${JSON.stringify(
-    {
-      ...(blueprint.capabilities.rustWorkspace
-        ? {
-            globalPassThroughEnv: [
-              "CARGO_HOME",
-              "RUSTUP_HOME",
-              "RUSTUP_TOOLCHAIN",
-            ],
-          }
-        : {}),
-      globalDependencies: [
-        "oxfmt.config.ts",
-        "oxlint.config.ts",
-        "packages/tooling-config/oxfmt.config.ts",
-        "packages/tooling-config/oxlint.config.ts",
-      ],
-      tasks,
-      boundaries: {
-        tags: {
-          app: { dependencies: { allow: ["app", "library"] } },
-          library: { dependencies: { allow: ["library"] } },
-          ...(blueprint.capabilities.rustWorkspace
-            ? { native: { dependencies: { allow: ["library"] } } }
-            : {}),
-        },
+  return formatJson({
+    ...(blueprint.capabilities.rustWorkspace
+      ? {
+          globalPassThroughEnv: [
+            "CARGO_HOME",
+            "RUSTUP_HOME",
+            "RUSTUP_TOOLCHAIN",
+          ],
+        }
+      : {}),
+    globalDependencies: [
+      "oxfmt.config.ts",
+      "oxlint.config.ts",
+      "packages/tooling-config/oxfmt.config.ts",
+      "packages/tooling-config/oxlint.config.ts",
+    ],
+    tasks,
+    boundaries: {
+      tags: {
+        app: { dependencies: { allow: ["app", "library"] } },
+        library: { dependencies: { allow: ["library"] } },
+        ...(blueprint.capabilities.rustWorkspace
+          ? { native: { dependencies: { allow: ["library"] } } }
+          : {}),
       },
     },
-    null,
-    2,
-  )}\n`;
+  });
 }
 
 function synthesizePnpmWorkspaceYaml(options: {
@@ -657,6 +654,8 @@ export function buildProjectProjection(
   const namedCatalogDeps = new Map<string, Set<string>>();
 
   // 1. Singleton packages/tooling-config
+  const emptyBindings = new Map<string, string>();
+  const emptyPaths = new Map<string, string>();
   const toolingFiles = listFilesRecursive(roots.toolingConfigDir);
   for (const absPath of toolingFiles) {
     const rel = path.relative(roots.toolingConfigDir, absPath);
@@ -670,7 +669,7 @@ export function buildProjectProjection(
           scope: blueprint.scope,
           leafName: "tooling-config",
           packageName: `@${blueprint.scope}/tooling-config`,
-          packageBindings: new Map(),
+          packageBindings: emptyBindings,
           linkedProviders: [],
           defaultCatalogDeps,
           namedCatalogDeps,
@@ -678,7 +677,20 @@ export function buildProjectProjection(
       );
     } else {
       const { bytes, executable } = readBytes(absPath);
-      addBinary(targetPath, bytes, executable);
+      if (isBinaryContent(normalizedRel, bytes)) {
+        addBinary(targetPath, bytes, executable);
+      } else {
+        addText(
+          targetPath,
+          rewriteTextSpecifiers({
+            text: decoder.decode(bytes),
+            scope: blueprint.scope,
+            packageBindings: emptyBindings,
+            pathReplacements: emptyPaths,
+          }),
+          executable,
+        );
+      }
     }
   }
 
@@ -777,8 +789,6 @@ export function buildProjectProjection(
   }
 
   // 3. Shared workspace-root assets (copied verbatim or rewritten for scope)
-  const emptyBindings = new Map<string, string>();
-  const emptyPaths = new Map<string, string>();
   const rewriteRootText = (textContent: string): string =>
     rewriteTextSpecifiers({
       text: textContent,

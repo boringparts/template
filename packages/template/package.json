@@ -1,11 +1,28 @@
 {
   "name": "@boringparts/template",
-  "private": true,
+  "version": "0.4.0",
+  "private": false,
+  "description": "Project template generator for boringparts starter projects.",
+  "keywords": [
+    "cli",
+    "project-template",
+    "starter"
+  ],
+  "homepage": "https://github.com/boringparts/template#readme",
+  "bugs": {
+    "url": "https://github.com/boringparts/template/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/boringparts/template.git"
+  },
   "bin": {
     "template": "./dist/cli.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "templates"
   ],
   "type": "module",
   "exports": {
@@ -16,31 +33,45 @@
     },
     "./package.json": "./package.json"
   },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/main.d.ts",
+        "default": "./dist/main.js"
+      },
+      "./package.json": "./package.json"
+    },
+    "access": "public"
+  },
   "scripts": {
-    "build": "rm -rf dist && tsc -p tsconfig.build.json --pretty false",
+    "build": "node scripts/build-distribution.ts",
+    "check:containers": "node scripts/verify-containers.ts",
     "format:check": "oxfmt --list-different .",
     "format:write": "oxfmt --write .",
-    "lint": "oxlint --quiet --format=unix --ignore-pattern node_modules .",
-    "lint:fix": "oxlint --format=unix . --fix",
-    "postbuild": "node -e \"if (process.platform !== 'win32') require('node:fs').chmodSync('dist/cli.js', 0o755)\"",
+    "lint": "oxlint --quiet --format=unix --ignore-pattern node_modules --ignore-pattern dist --ignore-pattern templates .",
+    "lint:fix": "oxlint --format=unix --ignore-pattern node_modules --ignore-pattern dist --ignore-pattern templates . --fix",
     "test": "node --conditions=source --test --test-reporter=spec 'test/unit/**/*.test.ts' 'test/integration/**/*.test.ts'",
+    "test:dist": "node --test --test-timeout=180000 --test-reporter=spec 'test/distribution/**/*.test.ts'",
     "typecheck": "tsc -p tsconfig.node.json --noEmit --pretty false"
   },
   "dependencies": {
     "@boringparts/cli-contract": "catalog:",
-    "@boringparts/template-engine": "workspace:*",
-    "@boringparts/template-presets": "workspace:*",
+    "smol-toml": "catalog:",
+    "validate-npm-package-name": "catalog:",
+    "yaml": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@boringparts/template-engine": "workspace:*",
+    "@boringparts/template-presets": "workspace:*",
     "@boringparts/tooling-config": "workspace:*",
+    "@devcontainers/cli": "catalog:",
     "@types/node": "catalog:",
+    "esbuild": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
-    "smol-toml": "catalog:",
     "tsrs": "catalog:",
-    "typescript-7": "catalog:",
-    "yaml": "catalog:"
+    "typescript-7": "catalog:"
   },
   "engines": {
     "node": "^26.13.1"
