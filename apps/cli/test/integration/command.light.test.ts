@@ -14,8 +14,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-import { templatePresets } from "@ykdz/template-content";
-import { releaseToolchainSnapshot } from "@ykdz/template-workspace/release-toolchain-snapshot";
+import { templatePresets } from "@boringparts/template-content";
+import { releaseToolchainSnapshot } from "@boringparts/template-workspace/release-toolchain-snapshot";
 import { execa } from "execa";
 
 import { runCli, type CliRuntime } from "../../src/main.ts";
@@ -182,7 +182,7 @@ void describe("template CLI command control", () => {
       path.join(tmpdir(), "template-cli-generation-record-"),
     );
     const cliPreset = templatePresets.find(
-      (member) => member.identity.packageName === "@ykdz/preset-ts-cli",
+      (member) => member.identity.packageName === "@boringparts/preset-ts-cli",
     );
     assert.ok(cliPreset);
 
@@ -260,7 +260,8 @@ void describe("template CLI command control", () => {
       assert.ok(
         generationRecord.selections.some(
           (selection) =>
-            selection.presetIdentity?.packageName === "@ykdz/preset-ts-cli" &&
+            selection.presetIdentity?.packageName ===
+              "@boringparts/preset-ts-cli" &&
             selection.presetIdentity.exportPath === "./template",
         ),
       );
@@ -344,7 +345,8 @@ void describe("template CLI command control", () => {
       assert.equal(output.stdout(), repeat.stdout());
       assert.match(output.stdout(), /\n  [^:\s]+:/u);
       const cliPreset = templatePresets.find(
-        (member) => member.identity.packageName === "@ykdz/preset-ts-cli",
+        (member) =>
+          member.identity.packageName === "@boringparts/preset-ts-cli",
       )?.definition;
       if (cliPreset === undefined)
         throw new Error("Expected a CLI preset in the content collection");

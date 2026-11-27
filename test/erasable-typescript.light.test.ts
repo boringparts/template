@@ -19,8 +19,8 @@ import {
   templateContent,
   templatePresets,
   templateReferencePackages,
-} from "@ykdz/template-content";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+} from "@boringparts/template-content";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 import { execa } from "execa";
 import ts from "typescript";
 
@@ -192,7 +192,8 @@ void describe("Erasable TypeScript enforcement", () => {
           });
           const sharedConfiguration = templateReferencePackages.find(
             (reference) =>
-              reference.identity.packageName === "@ykdz/reference-vue-app",
+              reference.identity.packageName ===
+              "@boringparts/reference-vue-app",
           );
           assert.ok(sharedConfiguration);
           const vueConfiguration = createRequire(
@@ -287,7 +288,7 @@ void describe("Erasable TypeScript enforcement", () => {
           `${JSON.stringify(
             {
               extends: fileURLToPath(
-                import.meta.resolve("@ykdz/tooling-config/node.json"),
+                import.meta.resolve("@boringparts/tooling-config/node.json"),
               ),
               compilerOptions: { noEmit: true },
               include: ["non-erasable.ts"],
@@ -430,11 +431,11 @@ void describe("Erasable TypeScript enforcement", () => {
         );
       } else if (
         !new Set([
-          "@ykdz/template-repository",
-          "@ykdz/template",
-          "@ykdz/default-content-verification",
-          "@ykdz/template-core",
-          "@ykdz/template-workspace-authoring",
+          "@boringparts/template-repository",
+          "@boringparts/template",
+          "@boringparts/default-content-verification",
+          "@boringparts/template-core",
+          "@boringparts/template-workspace-authoring",
         ]).has(manifest.name ?? "")
       ) {
         assert.ok(
@@ -468,7 +469,7 @@ void describe("Erasable TypeScript enforcement", () => {
       ) {
         continue;
       }
-      if (manifest.name === "@ykdz/template") {
+      if (manifest.name === "@boringparts/template") {
         assert.strictEqual((await compilerApiImports(packageRoot)).length, 0);
         continue;
       }
@@ -476,7 +477,7 @@ void describe("Erasable TypeScript enforcement", () => {
     }
 
     const core = repositoryManifests.find(
-      ({ manifest }) => manifest.name === "@ykdz/template-core",
+      ({ manifest }) => manifest.name === "@boringparts/template-core",
     );
     assert.ok(
       core?.manifest.devDependencies !== undefined &&
@@ -486,7 +487,8 @@ void describe("Erasable TypeScript enforcement", () => {
     assert.strictEqual(coreCompilerApiImports.length, 0);
 
     const authoring = repositoryManifests.find(
-      ({ manifest }) => manifest.name === "@ykdz/template-workspace-authoring",
+      ({ manifest }) =>
+        manifest.name === "@boringparts/template-workspace-authoring",
     );
     assert.ok(
       authoring?.manifest.dependencies !== undefined &&
@@ -502,7 +504,7 @@ void describe("Erasable TypeScript enforcement", () => {
     );
 
     const cliManifest = repositoryManifests.find(
-      ({ manifest }) => manifest.name === "@ykdz/template",
+      ({ manifest }) => manifest.name === "@boringparts/template",
     )?.manifest;
     assert.ok(
       cliManifest?.dependencies !== undefined &&

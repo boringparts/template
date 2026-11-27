@@ -1,21 +1,21 @@
 {
-  "name": "@ykdz/template",
+  "name": "@boringparts/template",
   "version": "0.4.0",
   "private": false,
-  "description": "Project template generator for YKDZ starter projects.",
+  "description": "Project template generator for boringparts starter projects.",
   "keywords": [
     "cli",
     "project-template",
     "starter"
   ],
-  "homepage": "https://github.com/YKDZ/template#readme",
+  "homepage": "https://github.com/boringparts/template#readme",
   "bugs": {
-    "url": "https://github.com/YKDZ/template/issues"
+    "url": "https://github.com/boringparts/template/issues"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YKDZ/template.git"
+    "url": "git+https://github.com/boringparts/template.git"
   },
   "bin": {
     "template": "dist/cli.js"
@@ -70,10 +70,10 @@
     "build:distribution": "pnpm exec turbo run build --filter=. && node --conditions=source scripts/prepare-distribution.ts"
   },
   "dependencies": {
+    "@boringparts/template-content": "workspace:*",
+    "@boringparts/template-core": "workspace:*",
+    "@boringparts/template-workspace": "workspace:*",
     "@ykdz/cli-contract": "catalog:",
-    "@ykdz/template-content": "workspace:*",
-    "@ykdz/template-core": "workspace:*",
-    "@ykdz/template-workspace": "workspace:*",
     "hosted-git-info": "catalog:",
     "ignore": "catalog:",
     "lru-cache": "catalog:",
@@ -88,10 +88,10 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@boringparts/reference-tooling-config": "workspace:*",
+    "@boringparts/template-content-artifacts": "workspace:*",
+    "@boringparts/tooling-config": "workspace:*",
     "@types/node": "catalog:",
-    "@ykdz/reference-tooling-config": "workspace:*",
-    "@ykdz/template-content-artifacts": "workspace:*",
-    "@ykdz/tooling-config": "workspace:*",
     "execa": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",

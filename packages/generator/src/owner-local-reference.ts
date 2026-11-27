@@ -2,8 +2,8 @@ import {
   assertContentIdentity,
   type ContentIdentity,
   type LoadedContentMember,
-} from "@ykdz/template-core/content-identity";
-import type { ReferenceDependency } from "@ykdz/template-core/reference-package";
+} from "@boringparts/template-core/content-identity";
+import type { ReferenceDependency } from "@boringparts/template-core/reference-package";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);

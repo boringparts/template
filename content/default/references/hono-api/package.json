@@ -1,5 +1,5 @@
 {
-  "name": "@ykdz/reference-hono-api",
+  "name": "@boringparts/reference-hono-api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -36,16 +36,16 @@
     "test": "node --conditions=source --test --test-reporter=spec 'test/**/*.test.ts'"
   },
   "dependencies": {
+    "@boringparts/template-core": "workspace:*",
     "@hono/node-server": "catalog:",
-    "@ykdz/template-core": "workspace:*",
     "hono": "catalog:"
   },
   "devDependencies": {
+    "@boringparts/default-content-authoring": "workspace:*",
+    "@boringparts/reference-tooling-config": "workspace:*",
+    "@boringparts/reference-workspace-root": "workspace:*",
+    "@boringparts/tooling-config": "workspace:*",
     "@types/node": "catalog:",
-    "@ykdz/default-content-authoring": "workspace:*",
-    "@ykdz/reference-tooling-config": "workspace:*",
-    "@ykdz/reference-workspace-root": "workspace:*",
-    "@ykdz/tooling-config": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",

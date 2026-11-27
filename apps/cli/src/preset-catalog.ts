@@ -1,6 +1,9 @@
-import { deriveTemplateMembers, templateContent } from "@ykdz/template-content";
-import { createContentIndex } from "@ykdz/template-core/content-identity";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+import {
+  deriveTemplateMembers,
+  templateContent,
+} from "@boringparts/template-content";
+import { createContentIndex } from "@boringparts/template-core/content-identity";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 
 export type CliPreset = Extract<
   (typeof templateContent)[number],

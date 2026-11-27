@@ -106,9 +106,9 @@ async function repositoryFixture(): Promise<string> {
       engines: { node: "26.1.2" },
       packageManager: "pnpm@13.2.1",
       devDependencies: {
-        "@ykdz/template": "workspace:*",
-        "@ykdz/reference-ts-cli": "workspace:*",
-        "@ykdz/reference-rust-bin": "workspace:*",
+        "@boringparts/template": "workspace:*",
+        "@boringparts/reference-ts-cli": "workspace:*",
+        "@boringparts/reference-rust-bin": "workspace:*",
       },
     })}\n`,
   );
@@ -122,27 +122,27 @@ async function repositoryFixture(): Promise<string> {
   );
   await installOwnerFixture(
     root,
-    "@ykdz/template",
+    "@boringparts/template",
     "apps/cli",
-    ownerManifest("@ykdz/template", {
+    ownerManifest("@boringparts/template", {
       engines: { node: "^24.0.0" },
       custom: true,
     }),
   );
   await installOwnerFixture(
     root,
-    "@ykdz/reference-ts-cli",
+    "@boringparts/reference-ts-cli",
     "content/default/references/ts-cli",
-    ownerManifest("@ykdz/reference-ts-cli", {
+    ownerManifest("@boringparts/reference-ts-cli", {
       engines: { node: "^24.0.0" },
       custom: "reference CLI local config",
     }),
   );
   await installOwnerFixture(
     root,
-    "@ykdz/reference-rust-bin",
+    "@boringparts/reference-rust-bin",
     "content/default/references/rust-bin",
-    ownerManifest("@ykdz/reference-rust-bin"),
+    ownerManifest("@boringparts/reference-rust-bin"),
   );
   await mkdir(path.join(root, "content/default/references/rust-bin/template"), {
     recursive: true,
@@ -188,7 +188,7 @@ void it("rebuilds repository config projections from root toolchain declarations
     assert.deepStrictEqual(container.customizations.vscode.settings, settings);
     assert.strictEqual(
       await readFile(path.join(root, "apps/cli/package.json"), "utf8"),
-      ownerManifest("@ykdz/template", {
+      ownerManifest("@boringparts/template", {
         engines: { node: "^26.1.2" },
         custom: true,
       }),
@@ -198,7 +198,7 @@ void it("rebuilds repository config projections from root toolchain declarations
         path.join(root, "content/default/references/ts-cli/package.json"),
         "utf8",
       ),
-      ownerManifest("@ykdz/reference-ts-cli", {
+      ownerManifest("@boringparts/reference-ts-cli", {
         engines: { node: "^26.1.2" },
         custom: "reference CLI local config",
       }),
@@ -253,14 +253,14 @@ void it("read-only check detects drift across all managed outputs and passes aft
       );
     await writeFile(
       path.join(root, cliFile),
-      ownerManifest("@ykdz/template", {
+      ownerManifest("@boringparts/template", {
         engines: { node: "^24.0.0", npm: ">=10" },
         custom: "keep package config",
       }),
     );
     await writeFile(
       path.join(root, referenceCliFile),
-      ownerManifest("@ykdz/reference-ts-cli", {
+      ownerManifest("@boringparts/reference-ts-cli", {
         engines: { node: "^24.0.0" },
       }),
     );
@@ -290,7 +290,7 @@ void it("read-only check detects drift across all managed outputs and passes aft
     assert.strictEqual(settings.custom, undefined);
     assert.strictEqual(
       await readFile(path.join(root, cliFile), "utf8"),
-      ownerManifest("@ykdz/template", {
+      ownerManifest("@boringparts/template", {
         engines: { node: "^26.1.2", npm: ">=10" },
         custom: "keep package config",
       }),
@@ -328,7 +328,7 @@ void it("reports already-updated files on write failure and allows the direct No
     assert.deepStrictEqual(await checkRepositoryConfiguration(root), []);
     assert.strictEqual(
       await readFile(path.join(root, "apps/cli/package.json"), "utf8"),
-      ownerManifest("@ykdz/template", {
+      ownerManifest("@boringparts/template", {
         engines: { node: "^26.1.2" },
         custom: true,
       }),
@@ -373,14 +373,14 @@ for (const failure of ["node", "pnpm", "rust", "invalid-toml"]) {
       const docker = "FROM node:24.0.0-bookworm\nENV CUSTOM=yes\n";
       await writeFile(
         path.join(root, "apps/cli/package.json"),
-        ownerManifest("@ykdz/template", {
+        ownerManifest("@boringparts/template", {
           engines: { node: "^24.0.0" },
           custom: true,
         }),
       );
       await writeFile(
         path.join(root, "content/default/references/ts-cli/package.json"),
-        ownerManifest("@ykdz/reference-ts-cli", {
+        ownerManifest("@boringparts/reference-ts-cli", {
           engines: { node: "^24.0.0" },
         }),
       );
@@ -419,7 +419,7 @@ void it("leaves other drifted targets untouched when a local owner manifest has 
   try {
     await writeFile(
       path.join(root, "apps/cli/package.json"),
-      ownerManifest("@ykdz/template", { engines: ["^24.0.0"] }),
+      ownerManifest("@boringparts/template", { engines: ["^24.0.0"] }),
     );
     await writeFile(
       path.join(root, ".devcontainer/Dockerfile"),

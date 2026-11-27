@@ -1,5 +1,5 @@
 {
-  "name": "@ykdz/reference-npm-publication",
+  "name": "@boringparts/reference-npm-publication",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -22,11 +22,11 @@
     "publication:publish": "changeset publish --from-pack-dir .changeset/packed"
   },
   "devDependencies": {
+    "@boringparts/default-content-authoring": "workspace:*",
+    "@boringparts/template-core": "workspace:*",
+    "@boringparts/tooling-config": "workspace:*",
     "@changesets/cli": "catalog:",
     "@types/node": "catalog:",
-    "@ykdz/default-content-authoring": "workspace:*",
-    "@ykdz/template-core": "workspace:*",
-    "@ykdz/tooling-config": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",

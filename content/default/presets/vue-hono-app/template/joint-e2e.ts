@@ -1,19 +1,19 @@
 import type {
   DefaultCompositionFile,
   DefaultRootDeclarationData,
-} from "@ykdz/default-content-authoring/contracts";
+} from "@boringparts/default-content-authoring/contracts";
 import type {
   DefaultPresetPackageEvaluation,
   DefaultPresetRootContributionResource,
-} from "@ykdz/default-content-authoring/preset-root-contribution";
-import { honoApiDependencyKey } from "@ykdz/reference-vue-hono-web/template";
-import type { CompositionPackage } from "@ykdz/template-core/composition";
+} from "@boringparts/default-content-authoring/preset-root-contribution";
+import { honoApiDependencyKey } from "@boringparts/reference-vue-hono-web/template";
+import type { CompositionPackage } from "@boringparts/template-core/composition";
 import {
   contentIdentityKey,
   contentIdentityLabel,
   type ContentIdentity,
-} from "@ykdz/template-core/content-identity";
-import type { GenerationRecordSelection } from "@ykdz/template-core/generation-record";
+} from "@boringparts/template-core/content-identity";
+import type { GenerationRecordSelection } from "@boringparts/template-core/generation-record";
 
 export const vueHonoJointE2eResourcePaths = Object.freeze({
   configuration: "resources/joint-e2e/playwright.config.ts",

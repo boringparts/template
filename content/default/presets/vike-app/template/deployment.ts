@@ -8,33 +8,33 @@ import type {
   DependencyMaintenancePolicy,
   DefaultCompositionFile,
   DefaultRootDeclarationData,
-} from "@ykdz/default-content-authoring/contracts";
+} from "@boringparts/default-content-authoring/contracts";
 import {
   dockerEngineEnvironmentNeed,
   shellCheckEnvironmentNeed,
-} from "@ykdz/default-content-authoring/environment-needs";
+} from "@boringparts/default-content-authoring/environment-needs";
 import type {
   DefaultPresetPackageEvaluation,
   DefaultPresetRootContributionOwner,
-} from "@ykdz/default-content-authoring/preset-root-contribution";
-import { databaseDependencyKey as migrationsDatabaseDependencyKey } from "@ykdz/reference-vike-migrations/template";
-import { databaseDependencyKey as webDatabaseDependencyKey } from "@ykdz/reference-vike-web/template";
-import { projectPnpmBootstrapDockerfile } from "@ykdz/reference-workspace-root/environment";
-import type { CompositionPackage } from "@ykdz/template-core/composition";
+} from "@boringparts/default-content-authoring/preset-root-contribution";
+import { databaseDependencyKey as migrationsDatabaseDependencyKey } from "@boringparts/reference-vike-migrations/template";
+import { databaseDependencyKey as webDatabaseDependencyKey } from "@boringparts/reference-vike-web/template";
+import { projectPnpmBootstrapDockerfile } from "@boringparts/reference-workspace-root/environment";
+import type { CompositionPackage } from "@boringparts/template-core/composition";
 import {
   contentIdentityKey,
   type ContentIdentity,
-} from "@ykdz/template-core/content-identity";
-import type { GenerationRecordSelection } from "@ykdz/template-core/generation-record";
-import type { PackageDefinition } from "@ykdz/template-core/project-blueprint";
-import type { CurrentProjectProjectionEntry } from "@ykdz/template-core/project-projection";
-import type { PackageBinding } from "@ykdz/template-core/reference-package";
-import type { ResourceFileSnapshot } from "@ykdz/template-core/reference-package";
+} from "@boringparts/template-core/content-identity";
+import type { GenerationRecordSelection } from "@boringparts/template-core/generation-record";
+import type { PackageDefinition } from "@boringparts/template-core/project-blueprint";
+import type { CurrentProjectProjectionEntry } from "@boringparts/template-core/project-projection";
+import type { PackageBinding } from "@boringparts/template-core/reference-package";
+import type { ResourceFileSnapshot } from "@boringparts/template-core/reference-package";
 import {
   resolveTemplateSource,
   createTemplateSourceHandle,
-} from "@ykdz/template-core/template-source";
-import type { NativeContentArtifactResource } from "@ykdz/template-workspace-authoring/content-artifact";
+} from "@boringparts/template-core/template-source";
+import type { NativeContentArtifactResource } from "@boringparts/template-workspace-authoring/content-artifact";
 import { YAMLMap, parseDocument } from "yaml";
 
 const deploymentDirectory = fileURLToPath(
@@ -583,7 +583,7 @@ function transformVikeDeploymentChecker(
 ): string {
   return checkerSource
     .replaceAll(
-      JSON.stringify("@ykdz/reference-vike-web"),
+      JSON.stringify("@boringparts/reference-vike-web"),
       JSON.stringify(names.applicationName),
     )
     .replaceAll(
@@ -591,11 +591,11 @@ function transformVikeDeploymentChecker(
       JSON.stringify(names.applicationPath),
     )
     .replaceAll(
-      JSON.stringify("@ykdz/reference-vike-db"),
+      JSON.stringify("@boringparts/reference-vike-db"),
       JSON.stringify(names.databaseName),
     )
     .replaceAll(
-      JSON.stringify("@ykdz/reference-vike-migrations"),
+      JSON.stringify("@boringparts/reference-vike-migrations"),
       JSON.stringify(names.migrationsName),
     );
 }

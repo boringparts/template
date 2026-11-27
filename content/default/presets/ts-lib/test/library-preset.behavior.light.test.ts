@@ -13,66 +13,66 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, describe, it } from "node:test";
 
-import { preset as presetDefinition } from "@ykdz/preset-ts-lib/template";
-import { referencePackage as libraryDefinition } from "@ykdz/reference-ts-lib/template";
+import { preset as presetDefinition } from "@boringparts/preset-ts-lib/template";
+import { referencePackage as libraryDefinition } from "@boringparts/reference-ts-lib/template";
 import {
   contentIdentityKey,
   type ContentIdentity,
-} from "@ykdz/template-core/content-identity";
-import { definePreset } from "@ykdz/template-core/preset-definition";
-import { loadContentSource } from "@ykdz/template-generator/content-source";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+} from "@boringparts/template-core/content-identity";
+import { definePreset } from "@boringparts/template-core/preset-definition";
+import { loadContentSource } from "@boringparts/template-generator/content-source";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 
 const content = await loadContentSource({
-  namespace: "ykdz",
+  namespace: "boringparts",
   resolve: (specifier) => import.meta.resolve(specifier),
   members: [
     {
-      specifier: "@ykdz/reference-workspace-root/template",
-      load: () => import("@ykdz/reference-workspace-root/template"),
+      specifier: "@boringparts/reference-workspace-root/template",
+      load: () => import("@boringparts/reference-workspace-root/template"),
     },
     {
-      specifier: "@ykdz/reference-ts-lib/template",
-      load: () => import("@ykdz/reference-ts-lib/template"),
+      specifier: "@boringparts/reference-ts-lib/template",
+      load: () => import("@boringparts/reference-ts-lib/template"),
     },
     {
-      specifier: "@ykdz/reference-tooling-config/template",
-      load: () => import("@ykdz/reference-tooling-config/template"),
+      specifier: "@boringparts/reference-tooling-config/template",
+      load: () => import("@boringparts/reference-tooling-config/template"),
     },
     {
-      specifier: "@ykdz/reference-npm-publication/template",
-      load: () => import("@ykdz/reference-npm-publication/template"),
+      specifier: "@boringparts/reference-npm-publication/template",
+      load: () => import("@boringparts/reference-npm-publication/template"),
     },
     {
-      specifier: "@ykdz/preset-ts-lib/template",
-      load: () => import("@ykdz/preset-ts-lib/template"),
+      specifier: "@boringparts/preset-ts-lib/template",
+      load: () => import("@boringparts/preset-ts-lib/template"),
     },
   ],
 });
 const root = content.find(
   (member) =>
     member.kind === "reference" &&
-    member.identity.packageName === "@ykdz/reference-workspace-root",
+    member.identity.packageName === "@boringparts/reference-workspace-root",
 );
 const library = content.find(
   (member) =>
     member.kind === "reference" &&
-    member.identity.packageName === "@ykdz/reference-ts-lib",
+    member.identity.packageName === "@boringparts/reference-ts-lib",
 );
 const configuration = content.find(
   (member) =>
     member.kind === "reference" &&
-    member.identity.packageName === "@ykdz/reference-tooling-config",
+    member.identity.packageName === "@boringparts/reference-tooling-config",
 );
 const publication = content.find(
   (member) =>
     member.kind === "reference" &&
-    member.identity.packageName === "@ykdz/reference-npm-publication",
+    member.identity.packageName === "@boringparts/reference-npm-publication",
 );
 const preset = content.find(
   (member) =>
     member.kind === "preset" &&
-    member.identity.packageName === "@ykdz/preset-ts-lib",
+    member.identity.packageName === "@boringparts/preset-ts-lib",
 );
 assert.ok(root);
 assert.ok(library);
@@ -164,11 +164,11 @@ void describe("TypeScript library public preset", () => {
       "./oxlint",
     ]);
     assert.equal(
-      generatedToolingManifest.devDependencies["@ykdz/tooling-config"],
+      generatedToolingManifest.devDependencies["@boringparts/tooling-config"],
       undefined,
     );
     assert.equal(
-      generatedRootManifest.devDependencies["@ykdz/tooling-config"],
+      generatedRootManifest.devDependencies["@boringparts/tooling-config"],
       undefined,
     );
     assert.match(

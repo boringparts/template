@@ -316,17 +316,17 @@
     "//#database:prepare:dev": {
       "cache": false,
       "tags": ["work:preparation"],
-      "dependsOn": ["@ykdz/reference-vike-db#build"]
+      "dependsOn": ["@boringparts/reference-vike-db#build"]
     },
     "//#database:prepare:e2e": {
       "cache": false,
       "tags": ["work:preparation"],
-      "dependsOn": ["@ykdz/reference-vike-db#build"]
+      "dependsOn": ["@boringparts/reference-vike-db#build"]
     },
     "//#database:prepare:test": {
       "cache": false,
       "tags": ["work:preparation"],
-      "dependsOn": ["@ykdz/reference-vike-db#build"]
+      "dependsOn": ["@boringparts/reference-vike-db#build"]
     },
     "//#toolchain:prepare": {
       "cache": false,

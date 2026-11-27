@@ -6,7 +6,7 @@ import type {
   RustToolchainRequirement,
   RustToolchainTarget,
   SharedRootContribution,
-} from "@ykdz/default-content-authoring/contracts";
+} from "@boringparts/default-content-authoring/contracts";
 
 type DependencyMaintenanceContribution = {
   readonly foundation: {

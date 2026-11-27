@@ -5,8 +5,12 @@ import path from "node:path";
 import type { CliJourney } from "../journey.ts";
 import { requireReferencePresetName } from "../reference-preset.ts";
 
-const libraryPresetName = requireReferencePresetName("@ykdz/reference-ts-lib");
-const cliPresetName = requireReferencePresetName("@ykdz/reference-ts-cli");
+const libraryPresetName = requireReferencePresetName(
+  "@boringparts/reference-ts-lib",
+);
+const cliPresetName = requireReferencePresetName(
+  "@boringparts/reference-ts-cli",
+);
 
 const consumerPath = "services/domain";
 const providerPath = "libraries/utilities";

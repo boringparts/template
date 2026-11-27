@@ -10,7 +10,7 @@ const defaultChecksPackageRoot = path.resolve(
   "..",
 );
 const kernelPublicRuntimeImports = new Set([
-  "@ykdz/template-verification-runtime/development-container-session",
+  "@boringparts/template-verification-runtime/development-container-session",
 ]);
 
 export type FixtureEvidenceArchitectureFinding = {
@@ -208,8 +208,8 @@ function runtimeModuleReferences(
 function isRepositoryInternalSpecifier(specifier: string): boolean {
   return (
     specifier.startsWith("#") ||
-    specifier === "@ykdz/template" ||
-    specifier.startsWith("@ykdz/template-")
+    specifier === "@boringparts/template" ||
+    specifier.startsWith("@boringparts/template-")
   );
 }
 

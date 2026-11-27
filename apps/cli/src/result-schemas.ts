@@ -1,5 +1,5 @@
-import { generationRecordSchema } from "@ykdz/template-core/generation-record";
-import { projectBlueprintSchema } from "@ykdz/template-core/project-blueprint";
+import { generationRecordSchema } from "@boringparts/template-core/generation-record";
+import { projectBlueprintSchema } from "@boringparts/template-core/project-blueprint";
 import { z } from "zod";
 
 /** Persisted schemas are owned by core modules; this schema declares only the CLI-specific fields. */

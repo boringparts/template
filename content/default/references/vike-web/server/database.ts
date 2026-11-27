@@ -1,2 +1,2 @@
-export { createDatabase } from "@ykdz/reference-vike-db";
-export { assertDatabaseReady } from "@ykdz/reference-vike-db/readiness";
+export { createDatabase } from "@boringparts/reference-vike-db";
+export { assertDatabaseReady } from "@boringparts/reference-vike-db/readiness";

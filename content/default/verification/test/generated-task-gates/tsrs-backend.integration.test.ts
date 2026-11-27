@@ -5,8 +5,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-import { templateContent, templatePresets } from "@ykdz/template-content";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+import {
+  templateContent,
+  templatePresets,
+} from "@boringparts/template-content";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 import { execa } from "execa";
 
 import {
@@ -56,7 +59,7 @@ void describe("tsrs type-aware lint backend", () => {
         path.join(tmpdir(), "template-tsrs-backend-"),
       );
       const targetRoot = path.join(workspace, "generated-ts");
-      const preset = presetFor("@ykdz/preset-ts-lib");
+      const preset = presetFor("@boringparts/preset-ts-lib");
 
       try {
         const initialized = await createDefaultGenerator({

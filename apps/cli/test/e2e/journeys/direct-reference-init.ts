@@ -43,21 +43,22 @@ async function loadPublicModule(specifier: string): Promise<{
   };
 }
 
-const contentEntry = await loadPublicModule("@ykdz/template-content");
+const contentEntry = await loadPublicModule("@boringparts/template-content");
 const contentModule =
-  contentEntry.module as typeof import("@ykdz/template-content");
+  contentEntry.module as typeof import("@boringparts/template-content");
 const generationEntry = await loadPublicModule(
-  "@ykdz/template-workspace/default-generation",
+  "@boringparts/template-workspace/default-generation",
 );
 const generationModule =
-  generationEntry.module as typeof import("@ykdz/template-workspace/default-generation");
+  generationEntry.module as typeof import("@boringparts/template-workspace/default-generation");
 const { templateContent } = contentModule;
 const preparedArtifacts = summarizeNativeArtifacts(templateContent);
 const library = templateContent.find(
-  (member) => member.identity.packageName === "@ykdz/reference-ts-lib",
+  (member) => member.identity.packageName === "@boringparts/reference-ts-lib",
 );
 const configuration = templateContent.find(
-  (member) => member.identity.packageName === "@ykdz/reference-tooling-config",
+  (member) =>
+    member.identity.packageName === "@boringparts/reference-tooling-config",
 );
 if (library?.kind !== "reference" || configuration?.kind !== "reference") {
   throw new Error(

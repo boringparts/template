@@ -47,11 +47,11 @@
     },
     "build:template": {
       "dependsOn": [
-        "@ykdz/template-core#build",
-        "@ykdz/default-content-authoring#build",
-        "@ykdz/reference-workspace-root#build:template",
-        "@ykdz/reference-tooling-config#build:template",
-        "@ykdz/reference-npm-publication#build:template"
+        "@boringparts/template-core#build",
+        "@boringparts/default-content-authoring#build",
+        "@boringparts/reference-workspace-root#build:template",
+        "@boringparts/reference-tooling-config#build:template",
+        "@boringparts/reference-npm-publication#build:template"
       ],
       "outputs": ["template-dist/**"],
       "tags": ["work:preparation"]

@@ -34,10 +34,13 @@ async function createOwnerFixture(
     ),
   ]);
 
-  const coreRoot = path.join(packageRoot, "node_modules/@ykdz/template-core");
+  const coreRoot = path.join(
+    packageRoot,
+    "node_modules/@boringparts/template-core",
+  );
   const workspaceRoot = path.join(
     packageRoot,
-    "node_modules/@ykdz/template-workspace",
+    "node_modules/@boringparts/template-workspace",
   );
   await Promise.all([
     mkdir(coreRoot, { recursive: true }),
@@ -62,7 +65,7 @@ async function createOwnerFixture(
     writeFile(
       path.join(coreRoot, "package.json"),
       JSON.stringify({
-        name: "@ykdz/template-core",
+        name: "@boringparts/template-core",
         type: "module",
         exports: {
           "./reference-package": options.sourceTypes
@@ -88,7 +91,7 @@ async function createOwnerFixture(
     writeFile(
       path.join(workspaceRoot, "package.json"),
       JSON.stringify({
-        name: "@ykdz/template-workspace",
+        name: "@boringparts/template-workspace",
         type: "module",
         exports: {
           "./reference-package": {
@@ -154,9 +157,9 @@ void describe("author planning role check", () => {
         writeFile(
           fixture.entryFile,
           `import { readFileSync } from "node:fs";
-import type { ReferencePackageDefinition } from "@ykdz/template-core/reference-package";
-import { defineReferencePackage } from "@ykdz/default-content-authoring/reference-package";
-import type { DefaultPresetRootContributionOwner } from "@ykdz/default-content-authoring/preset-root-contribution";
+import type { ReferencePackageDefinition } from "@boringparts/template-core/reference-package";
+import { defineReferencePackage } from "@boringparts/default-content-authoring/reference-package";
+import type { DefaultPresetRootContributionOwner } from "@boringparts/default-content-authoring/preset-root-contribution";
 import { readOwnerValue } from "./planning-helper.ts";
 
 export const reference: ReferencePackageDefinition = {
@@ -250,7 +253,7 @@ export function readOwnerValue(): string {
       await writeFile(
         fixture.entryFile,
         `import { readFileSync } from "node:fs";
-import { defineReferencePackage } from "@ykdz/default-content-authoring/reference-package";
+import { defineReferencePackage } from "@boringparts/default-content-authoring/reference-package";
 
 export const reference = defineReferencePackage({
   targetName() {
@@ -292,7 +295,7 @@ export const reference = defineReferencePackage({
       await writeFile(
         fixture.entryFile,
         `import { readFileSync } from "node:fs";
-import { defineReferencePackage } from "@ykdz/default-content-authoring/reference-package";
+import { defineReferencePackage } from "@boringparts/default-content-authoring/reference-package";
 
 export const reference = defineReferencePackage({
   parseCreationInput(value) {
@@ -346,7 +349,7 @@ export const reference = defineReferencePackage({
         await writeFile(
           fixture.entryFile,
           `import { readFileSync } from "node:fs";
-import type { ReferencePackageDefinition } from "@ykdz/template-core/reference-package";
+import type { ReferencePackageDefinition } from "@boringparts/template-core/reference-package";
 
 export const reference: ReferencePackageDefinition = {
   parseCreationInput() { return undefined; },
@@ -384,7 +387,7 @@ export const reference: ReferencePackageDefinition = {
       await writeFile(
         fixture.entryFile,
         `import { readFileSync } from "node:fs";
-import * as sdk from "@ykdz/template-core/reference-package";
+import * as sdk from "@boringparts/template-core/reference-package";
 
 export const reference: sdk.ReferencePackageDefinition = {
   parseCreationInput() { return undefined; },
@@ -422,10 +425,10 @@ export const reference: sdk.ReferencePackageDefinition = {
       await writeFile(
         fixture.entryFile,
         `import { readFileSync } from "node:fs";
-import type { Composition } from "@ykdz/template-core/composition";
-import type { ReferencePackageDefinition } from "@ykdz/template-core/reference-package";
-import { defineReferencePackage } from "@ykdz/default-content-authoring/reference-package";
-import type { DefaultPresetRootContributionOwner } from "@ykdz/default-content-authoring/preset-root-contribution";
+import type { Composition } from "@boringparts/template-core/composition";
+import type { ReferencePackageDefinition } from "@boringparts/template-core/reference-package";
+import { defineReferencePackage } from "@boringparts/default-content-authoring/reference-package";
+import type { DefaultPresetRootContributionOwner } from "@boringparts/default-content-authoring/preset-root-contribution";
 
 export const reference: ReferencePackageDefinition = {
   parseCreationInput() {
@@ -539,7 +542,7 @@ export const rootContribution = {
           JSON.stringify({
             name: "@fixture/production-owner",
             type: "module",
-            dependencies: { "@ykdz/template-workspace": "workspace:*" },
+            dependencies: { "@boringparts/template-workspace": "workspace:*" },
             scripts: { "build:template": "tsc -p tsconfig.template.json" },
           }),
         ),
@@ -552,7 +555,7 @@ export const rootContribution = {
         ),
         writeFile(
           fixture.entryFile,
-          `import { defineReferencePackage } from "@ykdz/default-content-authoring/reference-package";
+          `import { defineReferencePackage } from "@boringparts/default-content-authoring/reference-package";
 
 export const reference = defineReferencePackage({
   prepareFacts() { return undefined; },
@@ -564,7 +567,7 @@ export const reference = defineReferencePackage({
         writeFile(
           spareFile,
           `import { readFileSync } from "node:fs";
-import { defineReferencePackage } from "@ykdz/default-content-authoring/reference-package";
+import { defineReferencePackage } from "@boringparts/default-content-authoring/reference-package";
 
 export const reference = defineReferencePackage({
   prepareFacts() { return undefined; },
@@ -605,7 +608,7 @@ export const reference = defineReferencePackage({
       await Promise.all([
         writeFile(
           fixture.entryFile,
-          `import type { ReferencePackageDefinition } from "@ykdz/template-core/reference-package";
+          `import type { ReferencePackageDefinition } from "@boringparts/template-core/reference-package";
 import { inspectOwnerState, loadComputedModule } from "./planning-helper.ts";
 
 export const reference: ReferencePackageDefinition = {
@@ -673,7 +676,7 @@ export function loadComputedModule(): void {
       await writeFile(
         fixture.entryFile,
         `import ownerManifest from "./package.json" with { type: "json" };
-import { defineReferencePackage } from "@ykdz/default-content-authoring/reference-package";
+import { defineReferencePackage } from "@boringparts/default-content-authoring/reference-package";
 
 export const reference = defineReferencePackage({
   prepareFacts() { return undefined; },

@@ -13,42 +13,42 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, describe, it } from "node:test";
 
-import { defineReferencePackage } from "@ykdz/default-content-authoring/reference-package";
-import type { LoadedContentMember } from "@ykdz/template-core/content-identity";
-import { loadContentSource } from "@ykdz/template-generator/content-source";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+import { defineReferencePackage } from "@boringparts/default-content-authoring/reference-package";
+import type { LoadedContentMember } from "@boringparts/template-core/content-identity";
+import { loadContentSource } from "@boringparts/template-generator/content-source";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 
 const content = await loadContentSource({
-  namespace: "ykdz",
+  namespace: "boringparts",
   resolve: (specifier) => import.meta.resolve(specifier),
   members: [
     {
-      specifier: "@ykdz/reference-workspace-root/template",
-      load: () => import("@ykdz/reference-workspace-root/template"),
+      specifier: "@boringparts/reference-workspace-root/template",
+      load: () => import("@boringparts/reference-workspace-root/template"),
     },
     {
-      specifier: "@ykdz/reference-ts-cli/template",
-      load: () => import("@ykdz/reference-ts-cli/template"),
+      specifier: "@boringparts/reference-ts-cli/template",
+      load: () => import("@boringparts/reference-ts-cli/template"),
     },
     {
-      specifier: "@ykdz/reference-ts-lib/template",
-      load: () => import("@ykdz/reference-ts-lib/template"),
+      specifier: "@boringparts/reference-ts-lib/template",
+      load: () => import("@boringparts/reference-ts-lib/template"),
     },
     {
-      specifier: "@ykdz/reference-tooling-config/template",
-      load: () => import("@ykdz/reference-tooling-config/template"),
+      specifier: "@boringparts/reference-tooling-config/template",
+      load: () => import("@boringparts/reference-tooling-config/template"),
     },
     {
-      specifier: "@ykdz/reference-npm-publication/template",
-      load: () => import("@ykdz/reference-npm-publication/template"),
+      specifier: "@boringparts/reference-npm-publication/template",
+      load: () => import("@boringparts/reference-npm-publication/template"),
     },
     {
-      specifier: "@ykdz/preset-ts-cli/template",
-      load: () => import("@ykdz/preset-ts-cli/template"),
+      specifier: "@boringparts/preset-ts-cli/template",
+      load: () => import("@boringparts/preset-ts-cli/template"),
     },
     {
-      specifier: "@ykdz/preset-ts-lib/template",
-      load: () => import("@ykdz/preset-ts-lib/template"),
+      specifier: "@boringparts/preset-ts-lib/template",
+      load: () => import("@boringparts/preset-ts-lib/template"),
     },
   ],
 });
@@ -56,22 +56,22 @@ const content = await loadContentSource({
 const cli = content.find(
   (member) =>
     member.kind === "reference" &&
-    member.identity.packageName === "@ykdz/reference-ts-cli",
+    member.identity.packageName === "@boringparts/reference-ts-cli",
 );
 const root = content.find(
   (member) =>
     member.kind === "reference" &&
-    member.identity.packageName === "@ykdz/reference-workspace-root",
+    member.identity.packageName === "@boringparts/reference-workspace-root",
 );
 const preset = content.find(
   (member) =>
     member.kind === "preset" &&
-    member.identity.packageName === "@ykdz/preset-ts-cli",
+    member.identity.packageName === "@boringparts/preset-ts-cli",
 );
 const libraryPreset = content.find(
   (member) =>
     member.kind === "preset" &&
-    member.identity.packageName === "@ykdz/preset-ts-lib",
+    member.identity.packageName === "@boringparts/preset-ts-lib",
 );
 assert.ok(cli);
 assert.ok(root);

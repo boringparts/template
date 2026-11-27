@@ -2,18 +2,25 @@ import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { templateContent, templatePresets } from "@ykdz/template-content";
+import {
+  templateContent,
+  templatePresets,
+} from "@boringparts/template-content";
 
 import type { CliJourney } from "../journey.ts";
 import { summarizeNativeArtifacts } from "../native-artifact-summary.ts";
 import { requireReferencePresetName } from "../reference-preset.ts";
 
-const cliPresetName = requireReferencePresetName("@ykdz/reference-ts-cli");
-const vuePresetName = requireReferencePresetName("@ykdz/reference-vue-app");
+const cliPresetName = requireReferencePresetName(
+  "@boringparts/reference-ts-cli",
+);
+const vuePresetName = requireReferencePresetName(
+  "@boringparts/reference-vue-app",
+);
 const vuePresetDefinition = templatePresets.find(
   (member) =>
     member.kind === "preset" &&
-    member.identity.packageName === "@ykdz/preset-vue-app",
+    member.identity.packageName === "@boringparts/preset-vue-app",
 );
 if (vuePresetDefinition?.kind !== "preset") {
   throw new Error(
@@ -167,7 +174,10 @@ const journey: CliJourney = {
           const blueprint = await readBlueprint(project);
           await writeFile(initialRecordPath, JSON.stringify(record));
           await writeFile(initialBlueprintPath, JSON.stringify(blueprint));
-          const library = packageRecord(record, "@ykdz/reference-ts-lib");
+          const library = packageRecord(
+            record,
+            "@boringparts/reference-ts-lib",
+          );
           const definition = blueprint.packages.find(
             (candidate) =>
               candidate.packageDefinitionId === library.packageDefinitionId,
@@ -306,20 +316,20 @@ const journey: CliJourney = {
       ),
     ) as Blueprint;
     const finalBlueprint = await readBlueprint(project);
-    const library = packageRecord(finalRecord, "@ykdz/reference-ts-lib");
+    const library = packageRecord(finalRecord, "@boringparts/reference-ts-lib");
     const configuration = packageRecord(
       finalRecord,
-      "@ykdz/reference-tooling-config",
+      "@boringparts/reference-tooling-config",
     );
     const initialLibrary = packageRecord(
       initialRecord,
-      "@ykdz/reference-ts-lib",
+      "@boringparts/reference-ts-lib",
     );
     const initialConfiguration = packageRecord(
       initialRecord,
-      "@ykdz/reference-tooling-config",
+      "@boringparts/reference-tooling-config",
     );
-    const cli = packageRecord(finalRecord, "@ykdz/reference-ts-cli");
+    const cli = packageRecord(finalRecord, "@boringparts/reference-ts-cli");
     assert.equal(initialRecord.schemaVersion, 6);
     assert.equal(finalRecord.schemaVersion, 6);
     assert.deepEqual(finalRecord.composition, initialRecord.composition);
@@ -341,8 +351,8 @@ const journey: CliJourney = {
       cli.dependencyBindings["tooling-config"],
       configuration.packageDefinitionId,
     );
-    assert.ok(presetSelected(finalRecord, "@ykdz/preset-ts-cli"));
-    assert.ok(presetSelected(finalRecord, "@ykdz/preset-vue-app"));
+    assert.ok(presetSelected(finalRecord, "@boringparts/preset-ts-cli"));
+    assert.ok(presetSelected(finalRecord, "@boringparts/preset-vue-app"));
     assert.equal(
       selectedPackageId(finalRecord, "library"),
       library.packageDefinitionId,
@@ -373,7 +383,7 @@ const journey: CliJourney = {
     );
     const vueApplication = packageRecord(
       finalRecord,
-      "@ykdz/reference-vue-app",
+      "@boringparts/reference-vue-app",
     );
     assert.equal(vueApplication.createdBy, "addition");
     assert.ok(
@@ -415,7 +425,7 @@ const journey: CliJourney = {
 async function librarySourcePath(project: string): Promise<string> {
   const record = await readGenerationRecord(project);
   const blueprint = await readBlueprint(project);
-  const library = packageRecord(record, "@ykdz/reference-ts-lib");
+  const library = packageRecord(record, "@boringparts/reference-ts-lib");
   const definition = blueprint.packages.find(
     (candidate) =>
       candidate.packageDefinitionId === library.packageDefinitionId,

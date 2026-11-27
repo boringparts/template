@@ -1,5 +1,5 @@
-import { definePreset } from "@ykdz/template-core/preset-definition";
-import { defineNativeContentArtifact } from "@ykdz/template-workspace-authoring/content-artifact";
+import { definePreset } from "@boringparts/template-core/preset-definition";
+import { defineNativeContentArtifact } from "@boringparts/template-workspace-authoring/content-artifact";
 
 import manifest from "../package.json" with { type: "json" };
 
@@ -38,5 +38,5 @@ export const preset = defineNativeContentArtifact(presetDefinition, {
   resourceRoot: new URL("../", import.meta.url),
   exportPath: "./template",
   resources: [],
-  executionDependencies: ["@ykdz/template-workspace-authoring"],
+  executionDependencies: ["@boringparts/template-workspace-authoring"],
 });

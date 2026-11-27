@@ -1,5 +1,5 @@
 {
-  "name": "@ykdz/reference-ts-cli",
+  "name": "@boringparts/reference-ts-cli",
   "private": true,
   "bin": {
     "reference-cli": "./dist/cli.js"
@@ -38,13 +38,13 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@boringparts/default-content-authoring": "workspace:*",
+    "@boringparts/reference-npm-publication": "workspace:*",
+    "@boringparts/reference-tooling-config": "link:../tooling-config",
+    "@boringparts/reference-workspace-root": "workspace:*",
+    "@boringparts/template-core": "workspace:*",
+    "@boringparts/tooling-config": "workspace:*",
     "@types/node": "catalog:",
-    "@ykdz/default-content-authoring": "workspace:*",
-    "@ykdz/reference-npm-publication": "workspace:*",
-    "@ykdz/reference-tooling-config": "link:../tooling-config",
-    "@ykdz/reference-workspace-root": "workspace:*",
-    "@ykdz/template-core": "workspace:*",
-    "@ykdz/tooling-config": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",

@@ -1,4 +1,4 @@
-import { projectTomlStringValues } from "@ykdz/template-core/toml";
+import { projectTomlStringValues } from "@boringparts/template-core/toml";
 import type { TomlTable } from "smol-toml";
 
 export type CargoFileSnapshot = {

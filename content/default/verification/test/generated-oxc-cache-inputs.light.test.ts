@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-import { templateContent } from "@ykdz/template-content";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+import { templateContent } from "@boringparts/template-content";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 
 void describe("generated Oxc cache inputs", () => {
   void it("includes root Oxc configs and default shared tooling-config paths in globalDependencies", async () => {
@@ -37,7 +37,7 @@ void describe("generated Oxc cache inputs", () => {
 
       const toolingConfiguration = result.ownerFacts.nativeDocuments.find(
         ({ identity, sourcePath }) =>
-          identity.packageName === "@ykdz/reference-tooling-config" &&
+          identity.packageName === "@boringparts/reference-tooling-config" &&
           sourcePath === "package.json",
       );
       assert.ok(toolingConfiguration);
@@ -70,17 +70,19 @@ void describe("generated Oxc cache inputs", () => {
       const workspaceRoot = templateContent.find(
         (member) =>
           member.kind === "reference" &&
-          member.identity.packageName === "@ykdz/reference-workspace-root",
+          member.identity.packageName ===
+            "@boringparts/reference-workspace-root",
       );
       const library = templateContent.find(
         (member) =>
           member.kind === "reference" &&
-          member.identity.packageName === "@ykdz/reference-ts-lib",
+          member.identity.packageName === "@boringparts/reference-ts-lib",
       );
       const configuration = templateContent.find(
         (member) =>
           member.kind === "reference" &&
-          member.identity.packageName === "@ykdz/reference-tooling-config",
+          member.identity.packageName ===
+            "@boringparts/reference-tooling-config",
       );
       assert.ok(workspaceRoot?.kind === "reference");
       assert.ok(library?.kind === "reference");
@@ -126,7 +128,7 @@ void describe("generated Oxc cache inputs", () => {
 
       const toolingConfiguration = result.ownerFacts.nativeDocuments.find(
         ({ identity, sourcePath }) =>
-          identity.packageName === "@ykdz/reference-tooling-config" &&
+          identity.packageName === "@boringparts/reference-tooling-config" &&
           sourcePath === "package.json",
       );
       assert.ok(toolingConfiguration);

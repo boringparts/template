@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { it } from "node:test";
 
-import { createTemplateSourceHandle } from "@ykdz/template-core/template-source";
+import { createTemplateSourceHandle } from "@boringparts/template-core/template-source";
 
 import {
   developmentContainerDockerfileFromText,

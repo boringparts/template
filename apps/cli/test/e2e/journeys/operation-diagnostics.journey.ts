@@ -63,12 +63,13 @@ const journey: CliJourney = {
           };
           const library = generation.packages.find(
             (record) =>
-              record.contentIdentity.packageName === "@ykdz/reference-ts-lib",
+              record.contentIdentity.packageName ===
+              "@boringparts/reference-ts-lib",
           );
           const configuration = generation.packages.find(
             (record) =>
               record.contentIdentity.packageName ===
-              "@ykdz/reference-tooling-config",
+              "@boringparts/reference-tooling-config",
           );
           if (library === undefined || configuration === undefined) {
             throw new Error(

@@ -5,8 +5,8 @@ import {
   type ContentIdentity,
   type ContentKind,
   type LoadedContentMember,
-} from "@ykdz/template-core/content-identity";
-import type { ReferencePackageDefinition } from "@ykdz/template-core/reference-package";
+} from "@boringparts/template-core/content-identity";
+import type { ReferencePackageDefinition } from "@boringparts/template-core/reference-package";
 
 export type ContentSourceOptions = Readonly<{
   readonly namespace: string;

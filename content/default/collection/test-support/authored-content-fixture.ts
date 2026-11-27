@@ -3,18 +3,20 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import type { ReferenceTemplateDependency } from "@ykdz/default-content-authoring/reference-package";
+import type { ReferenceTemplateDependency } from "@boringparts/default-content-authoring/reference-package";
 import {
   loadContentSource,
   type LoadedSourceMember,
-} from "@ykdz/template-generator/content-source";
+} from "@boringparts/template-generator/content-source";
 
 const sdkPackageEntries = {
-  "@ykdz/template-core": "@ykdz/template-core/content-identity",
-  "@ykdz/template-generator": "@ykdz/template-generator/content-source",
-  "@ykdz/template-workspace": "@ykdz/template-workspace/default-generation",
-  "@ykdz/default-content-authoring":
-    "@ykdz/default-content-authoring/reference-package",
+  "@boringparts/template-core": "@boringparts/template-core/content-identity",
+  "@boringparts/template-generator":
+    "@boringparts/template-generator/content-source",
+  "@boringparts/template-workspace":
+    "@boringparts/template-workspace/default-generation",
+  "@boringparts/default-content-authoring":
+    "@boringparts/default-content-authoring/reference-package",
 } as const;
 
 function localSdkPackageRoots(): ReadonlyMap<string, string> {
@@ -70,7 +72,7 @@ function packageManifest(
   version = "1.0.0",
 ): Record<string, unknown> {
   const authoringVersion =
-    sdkVersions.get("@ykdz/default-content-authoring") ?? "workspace:*";
+    sdkVersions.get("@boringparts/default-content-authoring") ?? "workspace:*";
   return {
     name: packageName,
     version,
@@ -92,7 +94,7 @@ function packageManifest(
     dependencies,
     devDependencies: {
       ...devDependencies,
-      "@ykdz/default-content-authoring": authoringVersion,
+      "@boringparts/default-content-authoring": authoringVersion,
     },
   };
 }
@@ -135,13 +137,13 @@ function referenceDefinition(options: {
   const templateDependencies = [
     ...(options.templateDependencies ?? [
       {
-        name: "@ykdz/default-content-authoring",
+        name: "@boringparts/default-content-authoring",
         purpose: "template-execution" as const,
       },
     ]),
   ];
   const referenceDependencies = [
-    '{ key: "base-workspace", contentIdentity: { namespace: "ykdz", packageName: "@ykdz/reference-workspace-root", exportPath: "./template" } }',
+    '{ key: "base-workspace", contentIdentity: { namespace: "boringparts", packageName: "@boringparts/reference-workspace-root", exportPath: "./template" } }',
     ...Object.keys(options.dependencies ?? {}).map((name) => {
       const key = name.slice(name.lastIndexOf("/") + 1);
       return `{ key: ${JSON.stringify(key)}, ownerLocal: { specifier: ${JSON.stringify(`${name}/template`)}, resolve: (specifier) => import.meta.resolve(specifier) } }`;
@@ -150,7 +152,7 @@ function referenceDefinition(options: {
   return [
     ...(options.templatePrelude ?? []),
     "",
-    'import { defineReferencePackage, type DefaultReferencePackageDefinition } from "@ykdz/default-content-authoring/reference-package";',
+    'import { defineReferencePackage, type DefaultReferencePackageDefinition } from "@boringparts/default-content-authoring/reference-package";',
     'import manifest from "../package.json" with { type: "json" };',
     "",
     "export const referencePackage: DefaultReferencePackageDefinition = defineReferencePackage({",
@@ -277,13 +279,15 @@ async function writePresetPackage(options: {
         "@fixture/preset",
         {
           [options.featurePackageName]: "workspace:*",
-          "@ykdz/template-core":
-            options.sdkVersions.get("@ykdz/template-core") ?? "workspace:*",
+          "@boringparts/template-core":
+            options.sdkVersions.get("@boringparts/template-core") ??
+            "workspace:*",
         },
         {
-          "@ykdz/template-workspace-authoring":
-            options.sdkVersions.get("@ykdz/template-workspace-authoring") ??
-            "workspace:*",
+          "@boringparts/template-workspace-authoring":
+            options.sdkVersions.get(
+              "@boringparts/template-workspace-authoring",
+            ) ?? "workspace:*",
         },
         options.sdkVersions,
         options.version,
@@ -295,10 +299,10 @@ async function writePresetPackage(options: {
   await writeFile(
     path.join(packageRoot, "template", "definition.ts"),
     [
-      'import { definePreset, presetOwnerFromManifest } from "@ykdz/template-core/preset-definition";',
+      'import { definePreset, presetOwnerFromManifest } from "@boringparts/template-core/preset-definition";',
       ...(options.nativeWorkspace
         ? [
-            'import { defineNativeContentArtifact } from "@ykdz/template-workspace-authoring/content-artifact";',
+            'import { defineNativeContentArtifact } from "@boringparts/template-workspace-authoring/content-artifact";',
           ]
         : []),
       'import presetManifest from "../package.json" with { type: "json" };',
@@ -316,7 +320,7 @@ async function writePresetPackage(options: {
             "    manifest: presetManifest,",
             '    resourceRoot: new URL("../", import.meta.url),',
             '    exportPath: "./template",',
-            '    executionDependencies: ["@ykdz/template-workspace-authoring"],',
+            '    executionDependencies: ["@boringparts/template-workspace-authoring"],',
             "  },",
             ");",
           ]
@@ -438,10 +442,10 @@ export async function createAuthoredContentFixture(
   const collectionDependencies: Record<string, string> = {
     [featurePackageName]: "workspace:*",
     "@fixture/preset": "workspace:*",
-    "@ykdz/template-generator":
-      sdkVersions.get("@ykdz/template-generator") ?? "workspace:*",
-    "@ykdz/template-workspace":
-      sdkVersions.get("@ykdz/template-workspace") ?? "workspace:*",
+    "@boringparts/template-generator":
+      sdkVersions.get("@boringparts/template-generator") ?? "workspace:*",
+    "@boringparts/template-workspace":
+      sdkVersions.get("@boringparts/template-workspace") ?? "workspace:*",
   };
   if (options.includeTheme !== false) {
     collectionDependencies["@fixture/tooling-config"] = "workspace:*";

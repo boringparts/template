@@ -529,7 +529,7 @@ export function createDevelopmentContainerSession(options: {
   const projectIdentity = createHash("sha256")
     .update(path.resolve(options.projectDir))
     .digest("hex");
-  const idLabel = `com.ykdz.template.verification.project=${projectIdentity}`;
+  const idLabel = `com.boringparts.template.verification.project=${projectIdentity}`;
   const identityArgs = ["--id-label", idLabel] as const;
   let devcontainerTempDirectory: string | undefined;
   const ensureDevcontainerTempDirectory = async (): Promise<string> => {

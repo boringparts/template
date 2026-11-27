@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-import { defineReferencePackage } from "@ykdz/default-content-authoring/reference-package";
-import { definePreset } from "@ykdz/template-core/preset-definition";
+import { defineReferencePackage } from "@boringparts/default-content-authoring/reference-package";
+import { definePreset } from "@boringparts/template-core/preset-definition";
 
 import {
   deriveFixtureMatrix,
@@ -20,12 +20,12 @@ async function focusedProviderRuntime(withExports: boolean) {
   const sourcePreset = sourceGeneratedScenarioRuntime.content.find(
     (member) =>
       member.kind === "preset" &&
-      member.identity.packageName === "@ykdz/preset-ts-lib",
+      member.identity.packageName === "@boringparts/preset-ts-lib",
   );
   const sourceReference = sourceGeneratedScenarioRuntime.content.find(
     (member) =>
       member.kind === "reference" &&
-      member.identity.packageName === "@ykdz/reference-ts-lib",
+      member.identity.packageName === "@boringparts/reference-ts-lib",
   );
   assert.ok(sourcePreset?.kind === "preset");
   assert.ok(sourceReference?.kind === "reference");
@@ -186,7 +186,7 @@ void describe("real generated check scenarios for the single content collection"
     const runtime = await focusedProviderRuntime(true);
     const scenario = deriveFocusedProjectLinkScenarios(runtime).find(
       (candidate) =>
-        candidate.base.identity.packageName === "@ykdz/preset-ts-cli" &&
+        candidate.base.identity.packageName === "@boringparts/preset-ts-cli" &&
         candidate.addition?.identity.packageName ===
           "@fixture/focused-provider",
     );
@@ -248,7 +248,7 @@ void describe("real generated check scenarios for the single content collection"
       unsupportedRuntime,
     ).find(
       (candidate) =>
-        candidate.base.identity.packageName === "@ykdz/preset-ts-cli" &&
+        candidate.base.identity.packageName === "@boringparts/preset-ts-cli" &&
         candidate.addition?.identity.packageName ===
           "@fixture/focused-provider",
     );

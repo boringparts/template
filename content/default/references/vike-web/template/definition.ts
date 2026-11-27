@@ -1,16 +1,16 @@
-import { playwrightBrowserAssetsEnvironmentNeed } from "@ykdz/default-content-authoring/environment-needs";
+import { playwrightBrowserAssetsEnvironmentNeed } from "@boringparts/default-content-authoring/environment-needs";
 import {
   defineReferencePackage,
   type ReferenceTemplateDependency,
-} from "@ykdz/default-content-authoring/reference-package";
-import type { ReferenceDependency } from "@ykdz/template-core/reference-package";
+} from "@boringparts/default-content-authoring/reference-package";
+import type { ReferenceDependency } from "@boringparts/template-core/reference-package";
 
 import referenceManifest from "../package.json" with { type: "json" };
 
 const databaseDependency = {
   key: "database" as const,
   ownerLocal: {
-    specifier: "@ykdz/reference-vike-db/template",
+    specifier: "@boringparts/reference-vike-db/template",
     resolve: (specifier: string) => import.meta.resolve(specifier),
   },
 } as const satisfies ReferenceDependency;
@@ -18,7 +18,7 @@ const databaseDependency = {
 const baseWorkspaceDependency = {
   key: "base-workspace" as const,
   ownerLocal: {
-    specifier: "@ykdz/reference-workspace-root/template",
+    specifier: "@boringparts/reference-workspace-root/template",
     resolve: (specifier: string) => import.meta.resolve(specifier),
   },
 } as const satisfies ReferenceDependency;
@@ -26,24 +26,27 @@ const baseWorkspaceDependency = {
 const toolingConfigDependency = {
   key: "tooling-config" as const,
   ownerLocal: {
-    specifier: "@ykdz/reference-tooling-config/template",
+    specifier: "@boringparts/reference-tooling-config/template",
     resolve: (specifier: string) => import.meta.resolve(specifier),
   },
 } as const satisfies ReferenceDependency;
 
 const templateDependencies = [
-  { name: "@ykdz/reference-tooling-config", purpose: "target" },
+  { name: "@boringparts/reference-tooling-config", purpose: "target" },
   {
-    name: "@ykdz/reference-tooling-config",
+    name: "@boringparts/reference-tooling-config",
     purpose: "template-execution",
   },
-  { name: "@ykdz/tooling-config", purpose: "template-build" },
+  { name: "@boringparts/tooling-config", purpose: "template-build" },
   {
-    name: "@ykdz/reference-workspace-root",
+    name: "@boringparts/reference-workspace-root",
     purpose: "template-execution",
   },
-  { name: "@ykdz/template-core", purpose: "template-execution" },
-  { name: "@ykdz/default-content-authoring", purpose: "template-execution" },
+  { name: "@boringparts/template-core", purpose: "template-execution" },
+  {
+    name: "@boringparts/default-content-authoring",
+    purpose: "template-execution",
+  },
   { name: "typescript-7", purpose: "template-build" },
 ] as const satisfies readonly ReferenceTemplateDependency[];
 
@@ -94,10 +97,10 @@ export const referencePackage = defineReferencePackage({
   ],
   templateDependencies,
   executionDependencies: [
-    "@ykdz/template-core",
-    "@ykdz/default-content-authoring",
-    "@ykdz/reference-workspace-root",
-    "@ykdz/reference-tooling-config",
+    "@boringparts/template-core",
+    "@boringparts/default-content-authoring",
+    "@boringparts/reference-workspace-root",
+    "@boringparts/reference-tooling-config",
   ],
   templateScripts: ["build:template", "check:author-planning-roles"],
   foundation: {

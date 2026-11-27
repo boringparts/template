@@ -4,8 +4,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-import { templateContent, templatePresets } from "@ykdz/template-content";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+import {
+  templateContent,
+  templatePresets,
+} from "@boringparts/template-content";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 import { execa } from "execa";
 
 import {
@@ -50,7 +53,7 @@ void describe("Upstream type declarations and cross-package lint cache invalidat
         rm(workspace, { recursive: true, force: true }),
       );
 
-      const preset = presetFor("@ykdz/preset-vike-app");
+      const preset = presetFor("@boringparts/preset-vike-app");
       const initialized = await createDefaultGenerator({
         content: templateContent,
       }).init({
@@ -300,7 +303,7 @@ void describe("Upstream type declarations and cross-package lint cache invalidat
         rm(workspace, { recursive: true, force: true }),
       );
 
-      const preset = presetFor("@ykdz/preset-ts-lib");
+      const preset = presetFor("@boringparts/preset-ts-lib");
       const generator = createDefaultGenerator({ content: templateContent });
       const initialized = await generator.init({
         targetRoot,
@@ -438,8 +441,8 @@ void describe("Upstream type declarations and cross-package lint cache invalidat
         rm(workspace, { recursive: true, force: true }),
       );
 
-      const vikePreset = presetFor("@ykdz/preset-vike-app");
-      const libPreset = presetFor("@ykdz/preset-ts-lib");
+      const vikePreset = presetFor("@boringparts/preset-vike-app");
+      const libPreset = presetFor("@boringparts/preset-ts-lib");
       const generator = createDefaultGenerator({ content: templateContent });
 
       const initialized = await generator.init({
@@ -568,8 +571,8 @@ void describe("Upstream type declarations and cross-package lint cache invalidat
         rm(workspace, { recursive: true, force: true }),
       );
 
-      const vueHonoPreset = presetFor("@ykdz/preset-vue-hono-app");
-      const cliPreset = presetFor("@ykdz/preset-ts-cli");
+      const vueHonoPreset = presetFor("@boringparts/preset-vue-hono-app");
+      const cliPreset = presetFor("@boringparts/preset-ts-cli");
       const generator = createDefaultGenerator({ content: templateContent });
 
       const initialized = await generator.init({

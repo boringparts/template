@@ -1,8 +1,8 @@
 import { fileURLToPath } from "node:url";
 
-import { defineReferencePackage } from "@ykdz/default-content-authoring/reference-package";
-import { createTemplateSourceHandle } from "@ykdz/template-core/template-source";
-import toolingManifest from "@ykdz/tooling-config/reference" with { type: "json" };
+import { defineReferencePackage } from "@boringparts/default-content-authoring/reference-package";
+import { createTemplateSourceHandle } from "@boringparts/template-core/template-source";
+import toolingManifest from "@boringparts/tooling-config/reference" with { type: "json" };
 
 import referenceManifest from "../package.json" with { type: "json" };
 
@@ -62,17 +62,17 @@ export const referencePackage = defineReferencePackage({
     },
   ],
   templateDependencies: [
-    { name: "@ykdz/template-core", purpose: "template-execution" },
-    { name: "@ykdz/tooling-config", purpose: "template-execution" },
+    { name: "@boringparts/template-core", purpose: "template-execution" },
+    { name: "@boringparts/tooling-config", purpose: "template-execution" },
     {
-      name: "@ykdz/default-content-authoring",
+      name: "@boringparts/default-content-authoring",
       purpose: "template-execution",
     },
   ],
   executionDependencies: [
-    "@ykdz/template-core",
-    "@ykdz/tooling-config",
-    "@ykdz/default-content-authoring",
+    "@boringparts/template-core",
+    "@boringparts/tooling-config",
+    "@boringparts/default-content-authoring",
   ],
   templateScripts: ["build:template", "check:author-planning-roles"],
   templateExports: ["./reference", "./template"],

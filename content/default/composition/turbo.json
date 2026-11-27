@@ -4,11 +4,11 @@
   "tasks": {
     "build": {
       "dependsOn": [
-        "@ykdz/template-core#build",
-        "@ykdz/template-environment#build",
-        "@ykdz/template-generator#build",
-        "@ykdz/default-content-authoring#build",
-        "@ykdz/reference-workspace-root#build:template"
+        "@boringparts/template-core#build",
+        "@boringparts/template-environment#build",
+        "@boringparts/template-generator#build",
+        "@boringparts/default-content-authoring#build",
+        "@boringparts/reference-workspace-root#build:template"
       ],
       "tags": ["quality:light"],
       "cache": true,

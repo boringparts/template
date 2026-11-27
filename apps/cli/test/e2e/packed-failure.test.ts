@@ -60,7 +60,7 @@ void test("retains output, root cause, and generated workspace when a packed jou
       path.join(journeys, "packed-failure.journey.ts"),
       [
         'import assert from "node:assert/strict";',
-        'import { templatePresets } from "@ykdz/template-content";',
+        'import { templatePresets } from "@boringparts/template-content";',
         'const preset = templatePresets.find((candidate) => candidate.definition.operations.includes("init") && Object.keys(candidate.definition.nodes).length === 1);',
         'if (preset === undefined) throw new Error("No initializable single-node preset found");',
         "export default {",

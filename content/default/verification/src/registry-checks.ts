@@ -5,18 +5,18 @@ import { isDeepStrictEqual } from "node:util";
 import {
   contentIdentityKey,
   contentIdentityLabel,
-} from "@ykdz/template-core/content-identity";
+} from "@boringparts/template-core/content-identity";
 import {
   readProjectedMirrorSlotScalar,
   type ProjectProjectionEntry,
   type ProjectProjectionMirrorSlot,
   type ProjectProjectionSource,
-} from "@ykdz/template-core/project-projection";
+} from "@boringparts/template-core/project-projection";
 import {
   loadTemplateDependencyCatalog,
   selectTemplateDependencyCatalogEntries,
-} from "@ykdz/template-workspace/dependency-catalog";
-import { readRustToolchainChannelFromToml } from "@ykdz/template-workspace/rust-toolchain-facts";
+} from "@boringparts/template-workspace/dependency-catalog";
+import { readRustToolchainChannelFromToml } from "@boringparts/template-workspace/rust-toolchain-facts";
 import { parse as parseYaml } from "yaml";
 
 import type {

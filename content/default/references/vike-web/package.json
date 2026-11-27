@@ -1,5 +1,5 @@
 {
-  "name": "@ykdz/reference-vike-web",
+  "name": "@boringparts/reference-vike-web",
   "private": true,
   "files": [
     "dist"
@@ -45,8 +45,8 @@
     "build:template": "rm -rf template-dist && tsc -p tsconfig.template.json --pretty false"
   },
   "dependencies": {
+    "@boringparts/reference-vike-db": "workspace:*",
     "@vikejs/hono": "catalog:",
-    "@ykdz/reference-vike-db": "workspace:*",
     "hono": "catalog:",
     "srvx": "catalog:",
     "telefunc": "catalog:",
@@ -55,17 +55,17 @@
     "vue": "catalog:"
   },
   "devDependencies": {
+    "@boringparts/default-content-authoring": "workspace:*",
+    "@boringparts/reference-tooling-config": "workspace:*",
+    "@boringparts/reference-workspace-root": "workspace:*",
+    "@boringparts/template-core": "workspace:*",
+    "@boringparts/tooling-config": "workspace:*",
     "@playwright/test": "catalog:",
     "@tailwindcss/vite": "catalog:",
     "@types/node": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "@vitest/browser-playwright": "catalog:",
     "@vue/tsconfig": "catalog:",
-    "@ykdz/default-content-authoring": "workspace:*",
-    "@ykdz/reference-tooling-config": "workspace:*",
-    "@ykdz/reference-workspace-root": "workspace:*",
-    "@ykdz/template-core": "workspace:*",
-    "@ykdz/tooling-config": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "playwright": "catalog:",

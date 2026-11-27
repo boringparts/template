@@ -2,8 +2,8 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import databaseManifest from "@ykdz/reference-vike-db/package.json" with { type: "json" };
-import { databaseStorageTarget } from "@ykdz/reference-vike-db/storage";
+import databaseManifest from "@boringparts/reference-vike-db/package.json" with { type: "json" };
+import { databaseStorageTarget } from "@boringparts/reference-vike-db/storage";
 import { defineConfig } from "drizzle-kit";
 
 const schemaFile = fileURLToPath(

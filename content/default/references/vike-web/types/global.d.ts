@@ -1,4 +1,4 @@
-import type { Database } from "@ykdz/reference-vike-db";
+import type { Database } from "@boringparts/reference-vike-db";
 
 declare global {
   namespace Telefunc {

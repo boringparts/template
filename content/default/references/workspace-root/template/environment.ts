@@ -1,12 +1,12 @@
 import { readFileSync } from "node:fs";
 
-import { resolveTemplateSource } from "@ykdz/template-core/template-source";
+import { resolveTemplateSource } from "@boringparts/template-core/template-source";
 import {
   developmentContainerDockerfileFromText,
   planDevelopmentContainerToolLayersFromTexts,
   type DevelopmentContainerToolLayer,
   type DevelopmentContainerToolLayerPlan,
-} from "@ykdz/template-environment/development-container-tool-layer";
+} from "@boringparts/template-environment/development-container-tool-layer";
 
 import {
   editorCustomizationForCapabilities,
@@ -101,14 +101,14 @@ export function parseWorkspaceTemplateConfiguration(
 ): PreparedWorkspaceDevelopmentContainerResources["configuration"] {
   if (!isRecord(value) || !isRecord(value.features)) {
     throw new Error(
-      "@ykdz/reference-workspace-root#./environment workspace-template.json must contain a features object",
+      "@boringparts/reference-workspace-root#./environment workspace-template.json must contain a features object",
     );
   }
   const features: Record<string, Record<string, unknown>> = {};
   for (const [key, entry] of Object.entries(value.features)) {
     if (!isRecord(entry)) {
       throw new Error(
-        `@ykdz/reference-workspace-root#./environment workspace-template.json features.${key} must be an object`,
+        `@boringparts/reference-workspace-root#./environment workspace-template.json features.${key} must be an object`,
       );
     }
     features[key] = entry;
@@ -123,7 +123,7 @@ export function prepareWorkspaceDevelopmentContainerResources(): PreparedWorkspa
       return readFileSync(resolveTemplateSource(source, file), "utf8");
     } catch (cause) {
       throw new Error(
-        `Failed to read ${file} while preparing @ykdz/reference-workspace-root#./environment`,
+        `Failed to read ${file} while preparing @boringparts/reference-workspace-root#./environment`,
         { cause },
       );
     }
@@ -152,7 +152,7 @@ export function prepareWorkspaceDevelopmentContainerResources(): PreparedWorkspa
     ) as unknown;
   } catch (cause) {
     throw new Error(
-      "Failed to read workspace-template.json while preparing @ykdz/reference-workspace-root#./environment",
+      "Failed to read workspace-template.json while preparing @boringparts/reference-workspace-root#./environment",
       { cause },
     );
   }
@@ -313,12 +313,12 @@ export function prepareWorkspaceEditorCustomizationDeclarations(): EditorCustomi
         environmentSources.editorCustomization,
         "capabilities.json",
       ),
-      "@ykdz/reference-workspace-root#./resources/environment/editor-customization/capabilities.json",
+      "@boringparts/reference-workspace-root#./resources/environment/editor-customization/capabilities.json",
     );
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : String(cause);
     throw new Error(
-      `Failed to prepare @ykdz/reference-workspace-root#./environment: ${detail}`,
+      `Failed to prepare @boringparts/reference-workspace-root#./environment: ${detail}`,
       { cause },
     );
   }

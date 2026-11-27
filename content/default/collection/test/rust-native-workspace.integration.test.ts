@@ -18,8 +18,8 @@ import { fileURLToPath } from "node:url";
 import {
   installContentCollection,
   prepareContentCollection,
-} from "@ykdz/template-content-artifacts";
-import { loadContentSource } from "@ykdz/template-generator/content-source";
+} from "@boringparts/template-content-artifacts";
+import { loadContentSource } from "@boringparts/template-generator/content-source";
 import { execa } from "execa";
 
 import { unprivilegedProcessOptions } from "../test-support/unprivileged-process.ts";
@@ -62,11 +62,11 @@ void it(
           "turbo",
           "run",
           "build:template",
-          "--filter=@ykdz/preset-rust-bin",
-          "--filter=@ykdz/preset-ts-lib",
-          "--filter=@ykdz/reference-workspace-root",
-          "--filter=@ykdz/reference-tooling-config",
-          "--filter=@ykdz/reference-npm-publication",
+          "--filter=@boringparts/preset-rust-bin",
+          "--filter=@boringparts/preset-ts-lib",
+          "--filter=@boringparts/reference-workspace-root",
+          "--filter=@boringparts/reference-tooling-config",
+          "--filter=@boringparts/reference-npm-publication",
           "--force",
         ],
         { cwd: workspaceRoot, timeout: 300_000 },
@@ -78,55 +78,58 @@ void it(
           "turbo",
           "run",
           "build",
-          "--filter=@ykdz/template-workspace",
+          "--filter=@boringparts/template-workspace",
           "--force",
         ],
         { cwd: workspaceRoot, timeout: 300_000 },
       );
 
       const content = await loadContentSource({
-        namespace: "ykdz",
+        namespace: "boringparts",
         resolve: (specifier) => import.meta.resolve(specifier),
         members: [
           {
-            specifier: "@ykdz/reference-workspace-root/template",
-            load: () => import("@ykdz/reference-workspace-root/template"),
+            specifier: "@boringparts/reference-workspace-root/template",
+            load: () =>
+              import("@boringparts/reference-workspace-root/template"),
           },
           {
-            specifier: "@ykdz/reference-rust-bin/template",
-            load: () => import("@ykdz/reference-rust-bin/template"),
+            specifier: "@boringparts/reference-rust-bin/template",
+            load: () => import("@boringparts/reference-rust-bin/template"),
           },
           {
-            specifier: "@ykdz/reference-ts-lib/template",
-            load: () => import("@ykdz/reference-ts-lib/template"),
+            specifier: "@boringparts/reference-ts-lib/template",
+            load: () => import("@boringparts/reference-ts-lib/template"),
           },
           {
-            specifier: "@ykdz/reference-tooling-config/template",
-            load: () => import("@ykdz/reference-tooling-config/template"),
+            specifier: "@boringparts/reference-tooling-config/template",
+            load: () =>
+              import("@boringparts/reference-tooling-config/template"),
           },
           {
-            specifier: "@ykdz/reference-npm-publication/template",
-            load: () => import("@ykdz/reference-npm-publication/template"),
+            specifier: "@boringparts/reference-npm-publication/template",
+            load: () =>
+              import("@boringparts/reference-npm-publication/template"),
           },
           {
-            specifier: "@ykdz/preset-rust-bin/template",
-            load: () => import("@ykdz/preset-rust-bin/template"),
+            specifier: "@boringparts/preset-rust-bin/template",
+            load: () => import("@boringparts/preset-rust-bin/template"),
           },
           {
-            specifier: "@ykdz/preset-ts-lib/template",
-            load: () => import("@ykdz/preset-ts-lib/template"),
+            specifier: "@boringparts/preset-ts-lib/template",
+            load: () => import("@boringparts/preset-ts-lib/template"),
           },
         ],
       });
       const libraryPreset = content.find(
         (member) =>
           member.kind === "preset" &&
-          member.identity.packageName === "@ykdz/preset-ts-lib",
+          member.identity.packageName === "@boringparts/preset-ts-lib",
       );
       const rustPreset = content.find(
         (member) =>
           member.kind === "preset" &&
-          member.identity.packageName === "@ykdz/preset-rust-bin",
+          member.identity.packageName === "@boringparts/preset-rust-bin",
       );
       assert.ok(libraryPreset);
       assert.ok(rustPreset);
@@ -134,24 +137,24 @@ void it(
       prepared = await prepareContentCollection({
         content,
         roots: [libraryPreset, rustPreset],
-        packageName: "@ykdz/template-content",
-        additionalSdkRoots: ["@ykdz/template-workspace"],
+        packageName: "@boringparts/template-content",
+        additionalSdkRoots: ["@boringparts/template-workspace"],
         workspaceRoot,
         root: path.join(temporaryRoot, "prepared"),
       });
       assert.ok(
         prepared.members.some(
           (member) =>
-            member.identity.packageName === "@ykdz/reference-rust-bin",
+            member.identity.packageName === "@boringparts/reference-rust-bin",
         ),
       );
       const rustOwnerArtifact = prepared.owners.find(
         ({ member }) =>
-          member.identity.packageName === "@ykdz/reference-rust-bin",
+          member.identity.packageName === "@boringparts/reference-rust-bin",
       );
       assert.ok(rustOwnerArtifact);
       const workspaceSdk = prepared.sdkPackages.find(
-        ({ name }) => name === "@ykdz/template-workspace",
+        ({ name }) => name === "@boringparts/template-workspace",
       );
       assert.ok(workspaceSdk);
       assert.match(workspaceSdk.sha256, /^[0-9a-f]{64}$/u);
@@ -186,13 +189,13 @@ void it(
         [
           'import assert from "node:assert/strict";',
           'import { readdir, readFile } from "node:fs/promises";',
-          'import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";',
-          'import { templateContent } from "@ykdz/template-content";',
+          'import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";',
+          'import { templateContent } from "@boringparts/template-content";',
           "const [phase, targetRoot, authorRootsPath] = process.argv.slice(2);",
           "const authorRoots = JSON.parse(await readFile(authorRootsPath, 'utf8'));",
           "for (const authorRoot of authorRoots) await assert.rejects(readdir(authorRoot), { code: 'EACCES' });",
-          'const libraryPreset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === "@ykdz/preset-ts-lib");',
-          'const rustPreset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === "@ykdz/preset-rust-bin");',
+          'const libraryPreset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === "@boringparts/preset-ts-lib");',
+          'const rustPreset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === "@boringparts/preset-rust-bin");',
           "if (!libraryPreset || !rustPreset) throw new Error('Installed content collection is missing required presets');",
           "const generator = createDefaultGenerator({ content: templateContent });",
           'const planning = phase === "init"',

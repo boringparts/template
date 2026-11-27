@@ -9,7 +9,7 @@
     },
     "build": {
       "cache": true,
-      "dependsOn": ["@ykdz/reference-hono-api#build"],
+      "dependsOn": ["@boringparts/reference-hono-api#build"],
       "outputs": ["dist/**"],
       "tags": ["quality:light"]
     },
@@ -31,13 +31,13 @@
     },
     "lint": {
       "cache": true,
-      "dependsOn": ["@ykdz/reference-hono-api#build", "^lint"],
+      "dependsOn": ["@boringparts/reference-hono-api#build", "^lint"],
       "outputs": [],
       "tags": ["quality:light"]
     },
     "lint:fix": {
       "cache": false,
-      "dependsOn": ["@ykdz/reference-hono-api#build"],
+      "dependsOn": ["@boringparts/reference-hono-api#build"],
       "outputs": [],
       "tags": ["work:repair"]
     },
@@ -54,15 +54,15 @@
     },
     "typecheck": {
       "cache": true,
-      "dependsOn": ["@ykdz/reference-hono-api#build", "^typecheck"],
+      "dependsOn": ["@boringparts/reference-hono-api#build", "^typecheck"],
       "outputs": [],
       "tags": ["quality:light"]
     },
     "build:template": {
       "dependsOn": [
-        "@ykdz/reference-hono-api#build",
-        "@ykdz/template-core#build",
-        "@ykdz/default-content-authoring#build"
+        "@boringparts/reference-hono-api#build",
+        "@boringparts/template-core#build",
+        "@boringparts/default-content-authoring#build"
       ],
       "outputs": ["template-dist/**"],
       "tags": ["work:preparation"]

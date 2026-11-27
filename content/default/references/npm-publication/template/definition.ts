@@ -1,10 +1,10 @@
-import { defineReferencePackage } from "@ykdz/default-content-authoring/reference-package";
+import { defineReferencePackage } from "@boringparts/default-content-authoring/reference-package";
 import type {
   DefaultCompositionFile,
   DefaultRootDeclarationData,
   ReferencePackageManifest,
-} from "@ykdz/default-content-authoring/reference-package";
-import type { ResourceFileSnapshot } from "@ykdz/template-core/reference-package";
+} from "@boringparts/default-content-authoring/reference-package";
+import type { ResourceFileSnapshot } from "@boringparts/template-core/reference-package";
 
 import referenceManifest from "../package.json" with { type: "json" };
 
@@ -67,11 +67,14 @@ export const referencePackage = defineReferencePackage({
     { path: "resources/release.yml" },
   ],
   templateDependencies: [
-    { name: "@ykdz/tooling-config", purpose: "template-build" },
-    { name: "@ykdz/template-core", purpose: "template-build" },
-    { name: "@ykdz/default-content-authoring", purpose: "template-execution" },
+    { name: "@boringparts/tooling-config", purpose: "template-build" },
+    { name: "@boringparts/template-core", purpose: "template-build" },
+    {
+      name: "@boringparts/default-content-authoring",
+      purpose: "template-execution",
+    },
   ],
-  executionDependencies: ["@ykdz/default-content-authoring"],
+  executionDependencies: ["@boringparts/default-content-authoring"],
   templateScripts: [
     "build:template",
     "publication:pack",

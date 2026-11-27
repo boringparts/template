@@ -1,24 +1,24 @@
 import { lstat, readFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { DefaultPresetRootContributionOwner } from "@ykdz/default-content-authoring/preset-root-contribution";
-import { workspaceRootIdentity } from "@ykdz/reference-workspace-root/template";
-import type { CompositionPackage } from "@ykdz/template-core/composition";
+import type { DefaultPresetRootContributionOwner } from "@boringparts/default-content-authoring/preset-root-contribution";
+import { workspaceRootIdentity } from "@boringparts/reference-workspace-root/template";
+import type { CompositionPackage } from "@boringparts/template-core/composition";
 import {
   contentIdentityKey,
   contentIdentityLabel,
   createContentIndex,
   type ContentIdentity,
   type ContentSelector,
-} from "@ykdz/template-core/content-identity";
-import type { GenerationRecordSelection } from "@ykdz/template-core/generation-record";
-import { ProjectBlueprintValidationError } from "@ykdz/template-core/project-blueprint";
-import type { CurrentProjectProjectionEntry } from "@ykdz/template-core/project-projection";
+} from "@boringparts/template-core/content-identity";
+import type { GenerationRecordSelection } from "@boringparts/template-core/generation-record";
+import { ProjectBlueprintValidationError } from "@boringparts/template-core/project-blueprint";
+import type { CurrentProjectProjectionEntry } from "@boringparts/template-core/project-projection";
 import type {
   GeneratorAdditionSelection,
   GeneratorRestoredProject,
-} from "@ykdz/template-generator";
-import { createGenerator } from "@ykdz/template-generator";
+} from "@boringparts/template-generator";
+import { createGenerator } from "@boringparts/template-generator";
 
 import {
   createDefaultComposition,

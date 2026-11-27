@@ -1,6 +1,6 @@
 import { isDeepStrictEqual } from "node:util";
 
-import type { SharedRootContribution } from "@ykdz/default-content-authoring/contracts";
+import type { SharedRootContribution } from "@boringparts/default-content-authoring/contracts";
 import { parseDocument, type YAMLMap, type YAMLSeq } from "yaml";
 
 function isYamlMapStep(value: unknown): value is YAMLMap {

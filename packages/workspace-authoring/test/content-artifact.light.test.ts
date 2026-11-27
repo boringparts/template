@@ -5,8 +5,8 @@ import path from "node:path";
 import { it } from "node:test";
 import { pathToFileURL } from "node:url";
 
-import { createTemplateSourceHandle } from "@ykdz/template-core/template-source";
-import { defineNativeContentArtifact } from "@ykdz/template-workspace-authoring/content-artifact";
+import { createTemplateSourceHandle } from "@boringparts/template-core/template-source";
+import { defineNativeContentArtifact } from "@boringparts/template-workspace-authoring/content-artifact";
 
 void it("public artifact handle preserves compiled files, resource bytes, and dependency purposes", async () => {
   const root = await mkdtemp(

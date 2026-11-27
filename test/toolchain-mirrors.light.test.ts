@@ -12,8 +12,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, it } from "node:test";
 
-import { templateContent, templatePresets } from "@ykdz/template-content";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+import {
+  templateContent,
+  templatePresets,
+} from "@boringparts/template-content";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 
 const temporaryDirectories: string[] = [];
 
@@ -29,7 +32,7 @@ function workspaceGenerator() {
   return createDefaultGenerator({ content: templateContent });
 }
 
-async function createWorkspace(presetName = "@ykdz/preset-ts-lib") {
+async function createWorkspace(presetName = "@boringparts/preset-ts-lib") {
   const directory = await mkdtemp(
     path.join(tmpdir(), "template-toolchain-mirror-"),
   );
@@ -92,7 +95,7 @@ async function addTsLibrary(
 ) {
   return await generator.add({
     repositoryRoot,
-    preset: presetFor("@ykdz/preset-ts-lib").identity,
+    preset: presetFor("@boringparts/preset-ts-lib").identity,
     creationInput: {
       leafName,
       packagePath: `packages/${leafName}`,
@@ -105,7 +108,7 @@ void it("plans public package addition without writing and commits in the same p
   const before = await snapshotTree(repositoryRoot);
   const planned = await generator.planAdd({
     repositoryRoot,
-    preset: presetFor("@ykdz/preset-ts-lib").identity,
+    preset: presetFor("@boringparts/preset-ts-lib").identity,
     creationInput: { leafName: "planned", packagePath: "packages/planned" },
   });
 
@@ -130,7 +133,7 @@ void it("rejects public package addition commit when relevant facts change after
   const { generator, repositoryRoot } = await createWorkspace();
   const planned = await generator.planAdd({
     repositoryRoot,
-    preset: presetFor("@ykdz/preset-ts-lib").identity,
+    preset: presetFor("@boringparts/preset-ts-lib").identity,
     creationInput: { leafName: "stale", packagePath: "packages/stale" },
   });
 
@@ -146,7 +149,7 @@ void it("rejects public package addition commit when relevant facts change after
     JSON.stringify(committed),
     /Target facts changed after planning/u,
   );
-  assert.match(JSON.stringify(committed), /@ykdz\/reference-ts-lib/u);
+  assert.match(JSON.stringify(committed), /@boringparts\/reference-ts-lib/u);
   assert.equal(
     await readFile(path.join(packagePath, "package.json"), "utf8"),
     "consumer\n",
@@ -158,7 +161,7 @@ void it("rejects package addition commit when generation metadata changes after 
   const { generator, repositoryRoot: targetRoot } = await createWorkspace();
   const planned = await generator.planAdd({
     repositoryRoot: targetRoot,
-    preset: presetFor("@ykdz/preset-ts-lib").identity,
+    preset: presetFor("@boringparts/preset-ts-lib").identity,
     creationInput: { leafName: "second", packagePath: "packages/second" },
   });
   assert.equal(planned.status, "planned", JSON.stringify(planned));
@@ -196,7 +199,7 @@ afterEach(async () => {
 void describe("Node and Rust root toolchain mirrors", () => {
   void it("reconciles dev and deployment bootstrap mirrors from the current root pnpm declaration while preserving unrelated lines", async () => {
     const { generator, repositoryRoot } = await createWorkspace(
-      "@ykdz/preset-vike-app",
+      "@boringparts/preset-vike-app",
     );
     const manifestPath = path.join(repositoryRoot, "package.json");
     const manifest = await readJson<{ packageManager: string }>(manifestPath);
@@ -367,7 +370,7 @@ void describe("Node and Rust root toolchain mirrors", () => {
 
   void it("establishes M5 root declaration when adding Rust to a Node repo for the first time and preserves user edits afterward", async () => {
     const { generator, repositoryRoot } = await createWorkspace();
-    const rustPreset = presetFor("@ykdz/preset-rust-bin");
+    const rustPreset = presetFor("@boringparts/preset-rust-bin");
     const first = await generator.add({
       repositoryRoot,
       preset: rustPreset.identity,

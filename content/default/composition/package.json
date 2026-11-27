@@ -1,5 +1,5 @@
 {
-  "name": "@ykdz/template-workspace",
+  "name": "@boringparts/template-workspace",
   "version": "0.0.0",
   "private": true,
   "files": [
@@ -72,19 +72,19 @@
     "sync:release-toolchain-snapshot": "node scripts/sync-snapshot.ts src/release-toolchain-snapshot.ts"
   },
   "dependencies": {
-    "@ykdz/default-content-authoring": "workspace:*",
-    "@ykdz/reference-workspace-root": "workspace:*",
-    "@ykdz/template-core": "workspace:*",
-    "@ykdz/template-generator": "workspace:*",
+    "@boringparts/default-content-authoring": "workspace:*",
+    "@boringparts/reference-workspace-root": "workspace:*",
+    "@boringparts/template-core": "workspace:*",
+    "@boringparts/template-generator": "workspace:*",
     "ignore": "catalog:",
     "jsonc-parser": "catalog:",
     "smol-toml": "catalog:",
     "yaml": "catalog:"
   },
   "devDependencies": {
+    "@boringparts/template-environment": "workspace:*",
+    "@boringparts/tooling-config": "workspace:*",
     "@types/node": "catalog:",
-    "@ykdz/template-environment": "workspace:*",
-    "@ykdz/tooling-config": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",

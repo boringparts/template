@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-import { createTemplateSourceHandle } from "@ykdz/template-core/template-source";
+import { createTemplateSourceHandle } from "@boringparts/template-core/template-source";
 import {
   planDevelopmentContainerToolLayersFromTexts,
   prepareDevelopmentContainerToolLayerTexts,
   type DevelopmentContainerToolLayer,
-} from "@ykdz/template-environment/development-container-tool-layer";
+} from "@boringparts/template-environment/development-container-tool-layer";
 
 const source = createTemplateSourceHandle(
   path.resolve("test/fixtures/development-container-tool-layers"),

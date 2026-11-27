@@ -4,7 +4,7 @@ import path from "node:path";
 import {
   resolveTemplateSource,
   type TemplateSourceHandle,
-} from "@ykdz/template-core/template-source";
+} from "@boringparts/template-core/template-source";
 
 export type DevelopmentContainerToolLayerBuildArgument = {
   readonly name: string;

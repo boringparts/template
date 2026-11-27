@@ -53,7 +53,7 @@ async function packWorkspacePackage(
 
 async function installContentArtifactBuilder(
   root: string,
-): Promise<typeof import("@ykdz/template-content-artifacts")> {
+): Promise<typeof import("@boringparts/template-content-artifacts")> {
   const builderRoot = fileURLToPath(new URL("../", import.meta.url));
   const builderInstallRoot = path.join(root, "builder-install");
   const builderArchive = await packWorkspacePackage(
@@ -71,7 +71,7 @@ async function installContentArtifactBuilder(
   await mkdir(builderInstallRoot, { recursive: true });
   await writeFile(
     path.join(builderInstallRoot, "package.json"),
-    `${JSON.stringify({ name: "installed-content-artifact-builder", private: true, type: "module", dependencies: { "@ykdz/template-content-artifacts": `file:${builderArchive}` } }, null, 2)}\n`,
+    `${JSON.stringify({ name: "installed-content-artifact-builder", private: true, type: "module", dependencies: { "@boringparts/template-content-artifacts": `file:${builderArchive}` } }, null, 2)}\n`,
   );
   await writeFile(
     path.join(builderInstallRoot, "pnpm-workspace.yaml"),
@@ -79,8 +79,8 @@ async function installContentArtifactBuilder(
       "packages:",
       '  - "."',
       "overrides:",
-      `  ${JSON.stringify("@ykdz/template-core")}: ${JSON.stringify(`file:${coreArchive}`)}`,
-      `  ${JSON.stringify("@ykdz/template-workspace-authoring")}: ${JSON.stringify(`file:${authoringArchive}`)}`,
+      `  ${JSON.stringify("@boringparts/template-core")}: ${JSON.stringify(`file:${coreArchive}`)}`,
+      `  ${JSON.stringify("@boringparts/template-workspace-authoring")}: ${JSON.stringify(`file:${authoringArchive}`)}`,
       "",
     ].join("\n"),
   );
@@ -91,7 +91,7 @@ async function installContentArtifactBuilder(
     path.join(builderInstallRoot, "package.json"),
   ).href;
   const installedEntry = createRequire(packageURL).resolve(
-    "@ykdz/template-content-artifacts",
+    "@boringparts/template-content-artifacts",
   );
   const installedModulesRoot = path.resolve(builderInstallRoot, "node_modules");
   assert.ok(
@@ -100,7 +100,7 @@ async function installContentArtifactBuilder(
   );
   return (await import(
     pathToFileURL(installedEntry).href
-  )) as typeof import("@ykdz/template-content-artifacts");
+  )) as typeof import("@boringparts/template-content-artifacts");
 }
 
 async function linkPackage(
@@ -145,12 +145,12 @@ async function prepareOwnerPackage(
   await linkPackage(nodeModulesRoot, "@types/node", nodeTypesRoot);
   await linkPackage(
     nodeModulesRoot,
-    "@ykdz/template-core",
+    "@boringparts/template-core",
     path.join(workspaceRoot, "packages/core"),
   );
   await linkPackage(
     nodeModulesRoot,
-    "@ykdz/template-workspace-authoring",
+    "@boringparts/template-workspace-authoring",
     path.join(workspaceRoot, "packages/workspace-authoring"),
   );
 }
@@ -171,8 +171,8 @@ async function prepareSourceCollection(
     await mkdir(providerSourceRoot, { recursive: true });
     const dependencies = Object.fromEntries([
       ...[...provider.ownerRoots.keys()].map((name) => [name, "workspace:*"]),
-      ["@ykdz/template-core", "workspace:*"],
-      ["@ykdz/template-generator", "workspace:*"],
+      ["@boringparts/template-core", "workspace:*"],
+      ["@boringparts/template-generator", "workspace:*"],
     ]);
     await writeFile(
       path.join(providerRoot, "package.json"),
@@ -199,7 +199,7 @@ async function prepareSourceCollection(
     await writeFile(
       path.join(providerSourceRoot, "index.ts"),
       [
-        'import { loadContentSource } from "@ykdz/template-generator/content-source";',
+        'import { loadContentSource } from "@boringparts/template-generator/content-source";',
         "",
         "export const templateContent = await loadContentSource({",
         `  namespace: ${JSON.stringify(provider.namespace)},`,
@@ -220,8 +220,8 @@ async function prepareSourceCollection(
     }
     for (const packageName of [
       "@types/node",
-      "@ykdz/template-core",
-      "@ykdz/template-generator",
+      "@boringparts/template-core",
+      "@boringparts/template-generator",
     ]) {
       const packageRoot =
         packageName === "@types/node"
@@ -229,7 +229,9 @@ async function prepareSourceCollection(
           : path.join(
               workspaceRoot,
               "packages",
-              packageName === "@ykdz/template-core" ? "core" : "generator",
+              packageName === "@boringparts/template-core"
+                ? "core"
+                : "generator",
             );
       await linkPackage(providerNodeModulesRoot, packageName, packageRoot);
     }
@@ -259,7 +261,7 @@ async function prepareSourceCollection(
           ...Object.fromEntries(
             providers.map((provider) => [provider.name, "workspace:*"]),
           ),
-          "@ykdz/template-core": "workspace:*",
+          "@boringparts/template-core": "workspace:*",
         },
       },
       null,
@@ -270,7 +272,7 @@ async function prepareSourceCollection(
     path.join(sourceRoot, "src/index.ts"),
     [
       ...providerImports,
-      'export { deriveContentMembers as deriveTemplateMembers } from "@ykdz/template-core/content-identity";',
+      'export { deriveContentMembers as deriveTemplateMembers } from "@boringparts/template-core/content-identity";',
       "",
       "export const templateContent = Object.freeze([",
       ...providers.map((_, index) => `  ...provider${index},`),
@@ -290,7 +292,7 @@ async function prepareSourceCollection(
   await linkPackage(nodeModulesRoot, "@types/node", nodeTypesRoot);
   await linkPackage(
     nodeModulesRoot,
-    "@ykdz/template-core",
+    "@boringparts/template-core",
     path.join(workspaceRoot, "packages/core"),
   );
 }
@@ -494,9 +496,9 @@ void it("same strict TypeScript consumer passes against both source and installe
       path.join(fixtureRoot, "content-public-contract.mts"),
     );
     const sourceSdkRoots = new Map([
-      ["@ykdz/template-core", path.join(workspaceRoot, "packages/core")],
+      ["@boringparts/template-core", path.join(workspaceRoot, "packages/core")],
       [
-        "@ykdz/template-generator",
+        "@boringparts/template-generator",
         path.join(workspaceRoot, "packages/generator"),
       ],
     ]);
@@ -613,7 +615,7 @@ void it("same strict TypeScript consumer passes against both source and installe
       ]),
     );
     assert.deepEqual(
-      alphaDependencyPurposes.get("@ykdz/template-workspace-authoring"),
+      alphaDependencyPurposes.get("@boringparts/template-workspace-authoring"),
       ["template-execution"],
     );
     assert.deepEqual(
@@ -627,7 +629,9 @@ void it("same strict TypeScript consumer passes against both source and installe
       ),
     ) as { readonly dependencies: Readonly<Record<string, string>> };
     assert.equal(
-      alphaInstalledManifest.dependencies["@ykdz/template-workspace-authoring"],
+      alphaInstalledManifest.dependencies[
+        "@boringparts/template-workspace-authoring"
+      ],
       "0.0.0",
     );
     assert.equal(
@@ -635,15 +639,17 @@ void it("same strict TypeScript consumer passes against both source and installe
       undefined,
     );
     const sdkPackageNames = prepared.sdkPackages.map(({ name }) => name);
-    assert.ok(sdkPackageNames.includes("@ykdz/template-core"));
-    assert.ok(sdkPackageNames.includes("@ykdz/template-generator"));
-    assert.ok(sdkPackageNames.includes("@ykdz/template-workspace-authoring"));
+    assert.ok(sdkPackageNames.includes("@boringparts/template-core"));
+    assert.ok(sdkPackageNames.includes("@boringparts/template-generator"));
+    assert.ok(
+      sdkPackageNames.includes("@boringparts/template-workspace-authoring"),
+    );
     assert.ok(
       !sdkPackageNames.some(
         (name) =>
-          name === "@ykdz/template-workspace" ||
-          name.startsWith("@ykdz/reference-") ||
-          name.startsWith("@ykdz/preset-") ||
+          name === "@boringparts/template-workspace" ||
+          name.startsWith("@boringparts/reference-") ||
+          name.startsWith("@boringparts/preset-") ||
           name === "never-install-target-application",
       ),
     );
@@ -690,8 +696,8 @@ void it("same strict TypeScript consumer passes against both source and installe
     );
 
     const requiredSdkArchives = [
-      "@ykdz/template-core",
-      "@ykdz/template-generator",
+      "@boringparts/template-core",
+      "@boringparts/template-generator",
     ].map((packageName) => {
       const archive = prepared.sdkPackages.find(
         (candidate) => candidate.name === packageName,

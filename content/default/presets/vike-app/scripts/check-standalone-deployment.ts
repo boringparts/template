@@ -5,13 +5,13 @@ import path from "node:path";
 const repositoryRoot = process.cwd();
 const rootManifest: { readonly engines: { readonly node: string } } =
   JSON.parse(await readFile(path.join(repositoryRoot, "package.json"), "utf8"));
-const applicationPackageName = "@ykdz/reference-vike-web";
+const applicationPackageName = "@boringparts/reference-vike-web";
 const buildArguments = Object.entries({
   NODE_VERSION: rootManifest.engines.node,
   APPLICATION_PACKAGE_NAME: applicationPackageName,
   APPLICATION_PACKAGE_PATH: "references/vike-web",
-  DATABASE_PACKAGE_NAME: "@ykdz/reference-vike-db",
-  MIGRATION_PACKAGE_NAME: "@ykdz/reference-vike-migrations",
+  DATABASE_PACKAGE_NAME: "@boringparts/reference-vike-db",
+  MIGRATION_PACKAGE_NAME: "@boringparts/reference-vike-migrations",
 }).flatMap(([name, value]) => ["--build-arg", `${name}=${value}`]);
 const uniqueId = `${process.pid}-${Date.now()}`;
 const standaloneImage = `vike-deployment-check-standalone:${uniqueId}`;

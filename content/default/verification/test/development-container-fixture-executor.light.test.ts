@@ -9,7 +9,7 @@ import {
   createDevelopmentContainerSession,
   deriveDevelopmentContainerBuildIdentity,
   type ContainerCommandRunner,
-} from "@ykdz/template-verification-runtime/development-container-session";
+} from "@boringparts/template-verification-runtime/development-container-session";
 import { execa } from "execa";
 
 import { runGeneratedScenarioSet } from "../src/check-generated-registry.ts";
@@ -34,7 +34,7 @@ type Command = {
 };
 
 function fixtureIdLabel(projectDir: string): string {
-  return `com.ykdz.template.verification.project=${fixtureProjectIdentity(projectDir)}`;
+  return `com.boringparts.template.verification.project=${fixtureProjectIdentity(projectDir)}`;
 }
 
 function fixtureProjectIdentity(projectDir: string): string {
@@ -1860,7 +1860,7 @@ void describe("Development Container Fixture Executor", () => {
       );
       assert.ok(
         reports.some((report) =>
-          /\[Fixture Evidence\] init .* \(init--.*\) failed: .*Reproduce the scenario set with pnpm --filter @ykdz\/default-content-verification check:generated; generated artifact:/u.test(
+          /\[Fixture Evidence\] init .* \(init--.*\) failed: .*Reproduce the scenario set with pnpm --filter @boringparts\/default-content-verification check:generated; generated artifact:/u.test(
             report,
           ),
         ),

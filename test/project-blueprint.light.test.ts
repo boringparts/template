@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import {
   assertProjectBlueprintDraft,
   validateProjectBlueprint,
-} from "@ykdz/template-core/project-blueprint";
+} from "@boringparts/template-core/project-blueprint";
 
 const firstPackageId = `package-${"1".repeat(64)}` as const;
 const secondPackageId = `package-${"2".repeat(64)}` as const;

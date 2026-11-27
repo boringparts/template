@@ -1,9 +1,9 @@
-import { defineReferencePackage } from "@ykdz/default-content-authoring/reference-package";
+import { defineReferencePackage } from "@boringparts/default-content-authoring/reference-package";
 
 import referenceManifest from "../package.json" with { type: "json" };
 
 export const workspaceRootIdentity = Object.freeze({
-  namespace: "ykdz",
+  namespace: "boringparts",
   packageName: referenceManifest.name,
   exportPath: "./template",
 });
@@ -27,7 +27,7 @@ export const referencePackage = defineReferencePackage({
     {
       key: "tooling-config",
       ownerLocal: {
-        specifier: "@ykdz/reference-tooling-config/template",
+        specifier: "@boringparts/reference-tooling-config/template",
         resolve: (specifier) => import.meta.resolve(specifier),
       },
     },
@@ -71,26 +71,26 @@ export const referencePackage = defineReferencePackage({
     { path: "resources/gitignore", targetPath: ".gitignore" },
   ],
   templateDependencies: [
-    { name: "@ykdz/tooling-config", purpose: "template-build" },
+    { name: "@boringparts/tooling-config", purpose: "template-build" },
     {
-      name: "@ykdz/template-core",
+      name: "@boringparts/template-core",
       purpose: "template-execution",
     },
     {
-      name: "@ykdz/template-environment",
+      name: "@boringparts/template-environment",
       purpose: "template-execution",
     },
     {
-      name: "@ykdz/default-content-authoring",
+      name: "@boringparts/default-content-authoring",
       purpose: "template-execution",
     },
     { name: "zod", purpose: "template-execution" },
     { name: "yaml", purpose: "template-execution" },
   ],
   executionDependencies: [
-    "@ykdz/default-content-authoring",
-    "@ykdz/template-core",
-    "@ykdz/template-environment",
+    "@boringparts/default-content-authoring",
+    "@boringparts/template-core",
+    "@boringparts/template-environment",
     "zod",
     "yaml",
   ],

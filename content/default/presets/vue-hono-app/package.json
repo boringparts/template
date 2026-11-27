@@ -1,5 +1,5 @@
 {
-  "name": "@ykdz/preset-vue-hono-app",
+  "name": "@boringparts/preset-vue-hono-app",
   "version": "0.0.0",
   "private": true,
   "files": [
@@ -28,23 +28,23 @@
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
   },
   "dependencies": {
-    "@ykdz/reference-hono-api": "workspace:*",
-    "@ykdz/reference-vue-hono-web": "workspace:*",
-    "@ykdz/template-core": "workspace:*",
-    "@ykdz/template-workspace-authoring": "workspace:*"
+    "@boringparts/reference-hono-api": "workspace:*",
+    "@boringparts/reference-vue-hono-web": "workspace:*",
+    "@boringparts/template-core": "workspace:*",
+    "@boringparts/template-workspace-authoring": "workspace:*"
   },
   "devDependencies": {
+    "@boringparts/default-content-authoring": "workspace:*",
+    "@boringparts/reference-npm-publication": "workspace:*",
+    "@boringparts/reference-tooling-config": "workspace:*",
+    "@boringparts/reference-ts-cli": "workspace:*",
+    "@boringparts/reference-ts-lib": "workspace:*",
+    "@boringparts/reference-workspace-root": "workspace:*",
+    "@boringparts/template-generator": "workspace:*",
+    "@boringparts/template-workspace": "workspace:*",
+    "@boringparts/tooling-config": "workspace:*",
     "@playwright/test": "catalog:",
     "@types/node": "catalog:",
-    "@ykdz/default-content-authoring": "workspace:*",
-    "@ykdz/reference-npm-publication": "workspace:*",
-    "@ykdz/reference-tooling-config": "workspace:*",
-    "@ykdz/reference-ts-cli": "workspace:*",
-    "@ykdz/reference-ts-lib": "workspace:*",
-    "@ykdz/reference-workspace-root": "workspace:*",
-    "@ykdz/template-generator": "workspace:*",
-    "@ykdz/template-workspace": "workspace:*",
-    "@ykdz/tooling-config": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",

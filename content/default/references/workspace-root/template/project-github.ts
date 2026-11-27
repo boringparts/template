@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import type {
   CiDiagnosticArtifactDeclaration,
   DependencyMaintenancePolicy,
-} from "@ykdz/default-content-authoring/contracts";
+} from "@boringparts/default-content-authoring/contracts";
 import { parseDocument, type YAMLMap, type YAMLSeq } from "yaml";
 
 export type ProjectCheckWorkflowDiagnosticOptions = {
@@ -47,7 +47,7 @@ export function prepareProjectGithubTemplates(): PreparedProjectGithubTemplates 
       );
     } catch (cause) {
       throw new Error(
-        `Failed to read ${file} while preparing @ykdz/reference-workspace-root#./project-github`,
+        `Failed to read ${file} while preparing @boringparts/reference-workspace-root#./project-github`,
         { cause },
       );
     }

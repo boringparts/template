@@ -4,33 +4,33 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { it } from "node:test";
 
-import type { DefaultRootDeclarationData } from "@ykdz/default-content-authoring/reference-package";
-import { loadContentSource } from "@ykdz/template-generator/content-source";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+import type { DefaultRootDeclarationData } from "@boringparts/default-content-authoring/reference-package";
+import { loadContentSource } from "@boringparts/template-generator/content-source";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 
 const content = await loadContentSource({
-  namespace: "ykdz",
+  namespace: "boringparts",
   resolve: (specifier) => import.meta.resolve(specifier),
   members: [
     {
-      specifier: "@ykdz/reference-workspace-root/template",
-      load: () => import("@ykdz/reference-workspace-root/template"),
+      specifier: "@boringparts/reference-workspace-root/template",
+      load: () => import("@boringparts/reference-workspace-root/template"),
     },
     {
-      specifier: "@ykdz/reference-ts-lib/template",
-      load: () => import("@ykdz/reference-ts-lib/template"),
+      specifier: "@boringparts/reference-ts-lib/template",
+      load: () => import("@boringparts/reference-ts-lib/template"),
     },
     {
-      specifier: "@ykdz/reference-tooling-config/template",
-      load: () => import("@ykdz/reference-tooling-config/template"),
+      specifier: "@boringparts/reference-tooling-config/template",
+      load: () => import("@boringparts/reference-tooling-config/template"),
     },
     {
-      specifier: "@ykdz/reference-npm-publication/template",
-      load: () => import("@ykdz/reference-npm-publication/template"),
+      specifier: "@boringparts/reference-npm-publication/template",
+      load: () => import("@boringparts/reference-npm-publication/template"),
     },
     {
-      specifier: "@ykdz/preset-ts-lib/template",
-      load: () => import("@ykdz/preset-ts-lib/template"),
+      specifier: "@boringparts/preset-ts-lib/template",
+      load: () => import("@boringparts/preset-ts-lib/template"),
     },
   ],
 });
@@ -38,22 +38,22 @@ const content = await loadContentSource({
 const root = content.find(
   (member) =>
     member.kind === "reference" &&
-    member.identity.packageName === "@ykdz/reference-workspace-root",
+    member.identity.packageName === "@boringparts/reference-workspace-root",
 );
 const library = content.find(
   (member) =>
     member.kind === "reference" &&
-    member.identity.packageName === "@ykdz/reference-ts-lib",
+    member.identity.packageName === "@boringparts/reference-ts-lib",
 );
 const publication = content.find(
   (member) =>
     member.kind === "reference" &&
-    member.identity.packageName === "@ykdz/reference-npm-publication",
+    member.identity.packageName === "@boringparts/reference-npm-publication",
 );
 const libraryPreset = content.find(
   (member) =>
     member.kind === "preset" &&
-    member.identity.packageName === "@ykdz/preset-ts-lib",
+    member.identity.packageName === "@boringparts/preset-ts-lib",
 );
 assert.ok(root);
 assert.ok(library);
@@ -100,8 +100,8 @@ await it("generates a native workspace root directly from references and sequent
     assert.equal(initialized.status, "success", JSON.stringify(initialized));
     if (initialized.status !== "success") return;
     assert.deepEqual(initialized.generationRecord.composition.identity, {
-      namespace: "ykdz",
-      packageName: "@ykdz/template-workspace",
+      namespace: "boringparts",
+      packageName: "@boringparts/template-workspace",
       exportPath: "./default-composition",
     });
 
@@ -245,7 +245,8 @@ await it("reports a conflict naming both sources when same-source root file decl
       ownerFacts: unknown,
     ) => DefaultRootDeclarationData | undefined;
   };
-  const sourceLabel = "ykdz:@ykdz/reference-npm-publication#./template";
+  const sourceLabel =
+    "boringparts:@boringparts/reference-npm-publication#./template";
   const contentWithConflict = content.map((member) => {
     if (member.identity.packageName !== publication.identity.packageName) {
       return member;
@@ -337,7 +338,7 @@ await it("explicitly creates the base root for the ts-lib preset as well", async
 await it("rejects initialization when ts-lib is selected without loading the publication attachment owner", async () => {
   const contentWithoutPublication = content.filter(
     (member) =>
-      member.identity.packageName !== "@ykdz/reference-npm-publication",
+      member.identity.packageName !== "@boringparts/reference-npm-publication",
   );
   const current = createDefaultGenerator({
     content: contentWithoutPublication,
@@ -366,7 +367,7 @@ await it("rejects initialization when ts-lib is selected without loading the pub
 await it("does not require or project the publication attachment owner for root-only initialization", async () => {
   const contentWithoutPublication = content.filter(
     (member) =>
-      member.identity.packageName !== "@ykdz/reference-npm-publication",
+      member.identity.packageName !== "@boringparts/reference-npm-publication",
   );
   const current = createDefaultGenerator({
     content: contentWithoutPublication,

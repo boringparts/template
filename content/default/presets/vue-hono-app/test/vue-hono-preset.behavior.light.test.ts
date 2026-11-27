@@ -12,46 +12,46 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, describe, it } from "node:test";
 
-import { honoApiDependencyKey } from "@ykdz/reference-vue-hono-web/template";
+import { honoApiDependencyKey } from "@boringparts/reference-vue-hono-web/template";
 import {
   contentIdentityKey,
   type ContentIdentity,
   type LoadedContentMember,
-} from "@ykdz/template-core/content-identity";
-import { loadContentSource } from "@ykdz/template-generator/content-source";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+} from "@boringparts/template-core/content-identity";
+import { loadContentSource } from "@boringparts/template-generator/content-source";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 
 const content = await loadContentSource({
-  namespace: "ykdz",
+  namespace: "boringparts",
   resolve: (specifier) => import.meta.resolve(specifier),
   members: [
     {
-      specifier: "@ykdz/reference-workspace-root/template",
-      load: () => import("@ykdz/reference-workspace-root/template"),
+      specifier: "@boringparts/reference-workspace-root/template",
+      load: () => import("@boringparts/reference-workspace-root/template"),
     },
     {
-      specifier: "@ykdz/reference-hono-api/template",
-      load: () => import("@ykdz/reference-hono-api/template"),
+      specifier: "@boringparts/reference-hono-api/template",
+      load: () => import("@boringparts/reference-hono-api/template"),
     },
     {
-      specifier: "@ykdz/reference-vue-hono-web/template",
-      load: () => import("@ykdz/reference-vue-hono-web/template"),
+      specifier: "@boringparts/reference-vue-hono-web/template",
+      load: () => import("@boringparts/reference-vue-hono-web/template"),
     },
     {
-      specifier: "@ykdz/reference-tooling-config/template",
-      load: () => import("@ykdz/reference-tooling-config/template"),
+      specifier: "@boringparts/reference-tooling-config/template",
+      load: () => import("@boringparts/reference-tooling-config/template"),
     },
     {
-      specifier: "@ykdz/reference-ts-lib/template",
-      load: () => import("@ykdz/reference-ts-lib/template"),
+      specifier: "@boringparts/reference-ts-lib/template",
+      load: () => import("@boringparts/reference-ts-lib/template"),
     },
     {
-      specifier: "@ykdz/reference-npm-publication/template",
-      load: () => import("@ykdz/reference-npm-publication/template"),
+      specifier: "@boringparts/reference-npm-publication/template",
+      load: () => import("@boringparts/reference-npm-publication/template"),
     },
     {
-      specifier: "@ykdz/preset-vue-hono-app/template",
-      load: () => import("@ykdz/preset-vue-hono-app/template"),
+      specifier: "@boringparts/preset-vue-hono-app/template",
+      load: () => import("@boringparts/preset-vue-hono-app/template"),
     },
   ],
 });
@@ -70,11 +70,11 @@ function member(
   return found;
 }
 
-const root = member("reference", "@ykdz/reference-workspace-root");
-const api = member("reference", "@ykdz/reference-hono-api");
-const web = member("reference", "@ykdz/reference-vue-hono-web");
-const library = member("reference", "@ykdz/reference-ts-lib");
-const preset = member("preset", "@ykdz/preset-vue-hono-app");
+const root = member("reference", "@boringparts/reference-workspace-root");
+const api = member("reference", "@boringparts/reference-hono-api");
+const web = member("reference", "@boringparts/reference-vue-hono-web");
+const library = member("reference", "@boringparts/reference-ts-lib");
+const preset = member("preset", "@boringparts/preset-vue-hono-app");
 
 const conventions = {
   repositoryName: "demo",

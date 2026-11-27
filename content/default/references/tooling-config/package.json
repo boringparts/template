@@ -1,5 +1,5 @@
 {
-  "name": "@ykdz/reference-tooling-config",
+  "name": "@boringparts/reference-tooling-config",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -21,10 +21,10 @@
     "build:template": "rm -rf template-dist && tsc -p tsconfig.template.json --pretty false"
   },
   "devDependencies": {
+    "@boringparts/default-content-authoring": "workspace:*",
+    "@boringparts/template-core": "workspace:*",
+    "@boringparts/tooling-config": "workspace:*",
     "@types/node": "catalog:",
-    "@ykdz/default-content-authoring": "workspace:*",
-    "@ykdz/template-core": "workspace:*",
-    "@ykdz/tooling-config": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",

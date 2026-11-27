@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url";
 import {
   createTemplateSourceHandle,
   resolveTemplateSource,
-} from "@ykdz/template-core/template-source";
-import type { DevelopmentContainerToolLayer } from "@ykdz/template-environment/development-container-tool-layer";
+} from "@boringparts/template-core/template-source";
+import type { DevelopmentContainerToolLayer } from "@boringparts/template-environment/development-container-tool-layer";
 
 const resourceSource = createTemplateSourceHandle(
   fileURLToPath(new URL("../resources/devcontainer/", import.meta.url)),
@@ -24,7 +24,7 @@ export function prepareRustDevelopmentContainerToolLayerFragments(): Readonly<
     };
   } catch (cause) {
     throw new Error(
-      "Failed to read rust.Dockerfile while preparing @ykdz/reference-rust-bin#./environment",
+      "Failed to read rust.Dockerfile while preparing @boringparts/reference-rust-bin#./environment",
       { cause },
     );
   }

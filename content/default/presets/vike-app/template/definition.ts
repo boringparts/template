@@ -1,18 +1,18 @@
-import type { DefaultPresetRootContributionOwner } from "@ykdz/default-content-authoring/preset-root-contribution";
-import { referencePackage as database } from "@ykdz/reference-vike-db/template";
+import type { DefaultPresetRootContributionOwner } from "@boringparts/default-content-authoring/preset-root-contribution";
+import { referencePackage as database } from "@boringparts/reference-vike-db/template";
 import {
   databaseDependencyKey as migrationsDatabaseDependencyKey,
   referencePackage as migrations,
-} from "@ykdz/reference-vike-migrations/template";
+} from "@boringparts/reference-vike-migrations/template";
 import {
   databaseDependencyKey as webDatabaseDependencyKey,
   referencePackage as web,
-} from "@ykdz/reference-vike-web/template";
+} from "@boringparts/reference-vike-web/template";
 import {
   definePreset,
   presetOwnerFromManifest,
-} from "@ykdz/template-core/preset-definition";
-import { defineNativeContentArtifact } from "@ykdz/template-workspace-authoring/content-artifact";
+} from "@boringparts/template-core/preset-definition";
+import { defineNativeContentArtifact } from "@boringparts/template-workspace-authoring/content-artifact";
 
 import presetPackage from "../package.json" with { type: "json" };
 import {
@@ -53,8 +53,8 @@ const nativePreset = defineNativeContentArtifact(
     exportPath: "./template",
     resources: vikeDeploymentResources,
     executionDependencies: [
-      "@ykdz/default-content-authoring",
-      "@ykdz/template-workspace-authoring",
+      "@boringparts/default-content-authoring",
+      "@boringparts/template-workspace-authoring",
       "yaml",
     ],
   },

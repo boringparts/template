@@ -1,7 +1,7 @@
 import { lstat, readFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { CurrentProjectProjectionEntry } from "@ykdz/template-core/project-projection";
+import type { CurrentProjectProjectionEntry } from "@boringparts/template-core/project-projection";
 import { parse as parseToml } from "smol-toml";
 
 export const rootRustDeclarationFileName = "rust-toolchain.toml";

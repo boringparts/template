@@ -16,21 +16,21 @@ import {
   contentIdentityKey,
   type ContentIdentity,
   type LoadedContentMember,
-} from "@ykdz/template-core/content-identity";
-import { definePreset } from "@ykdz/template-core/preset-definition";
-import { loadContentSource } from "@ykdz/template-generator/content-source";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+} from "@boringparts/template-core/content-identity";
+import { definePreset } from "@boringparts/template-core/preset-definition";
+import { loadContentSource } from "@boringparts/template-generator/content-source";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 
 const content = await loadContentSource({
-  namespace: "ykdz",
+  namespace: "boringparts",
   resolve: (specifier) => import.meta.resolve(specifier),
   members: [
-    "@ykdz/reference-workspace-root/template",
-    "@ykdz/reference-vue-app/template",
-    "@ykdz/reference-tooling-config/template",
-    "@ykdz/reference-ts-lib/template",
-    "@ykdz/reference-npm-publication/template",
-    "@ykdz/preset-vue-app/template",
+    "@boringparts/reference-workspace-root/template",
+    "@boringparts/reference-vue-app/template",
+    "@boringparts/reference-tooling-config/template",
+    "@boringparts/reference-ts-lib/template",
+    "@boringparts/reference-npm-publication/template",
+    "@boringparts/preset-vue-app/template",
   ],
 });
 
@@ -48,10 +48,13 @@ function member(
   return found;
 }
 
-const root = member("reference", "@ykdz/reference-workspace-root");
-const vueApp = member("reference", "@ykdz/reference-vue-app");
-const configuration = member("reference", "@ykdz/reference-tooling-config");
-const preset = member("preset", "@ykdz/preset-vue-app");
+const root = member("reference", "@boringparts/reference-workspace-root");
+const vueApp = member("reference", "@boringparts/reference-vue-app");
+const configuration = member(
+  "reference",
+  "@boringparts/reference-tooling-config",
+);
+const preset = member("preset", "@boringparts/preset-vue-app");
 
 const conventions = {
   repositoryName: "demo",

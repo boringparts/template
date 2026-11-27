@@ -11,37 +11,37 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-import type { ContentIdentity } from "@ykdz/template-core/content-identity";
-import { loadContentSource } from "@ykdz/template-generator/content-source";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+import type { ContentIdentity } from "@boringparts/template-core/content-identity";
+import { loadContentSource } from "@boringparts/template-generator/content-source";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 
 const content = await loadContentSource({
-  namespace: "ykdz",
+  namespace: "boringparts",
   resolve: (specifier) => import.meta.resolve(specifier),
   members: [
     {
-      specifier: "@ykdz/reference-workspace-root/template",
-      load: () => import("@ykdz/reference-workspace-root/template"),
+      specifier: "@boringparts/reference-workspace-root/template",
+      load: () => import("@boringparts/reference-workspace-root/template"),
     },
     {
-      specifier: "@ykdz/reference-tooling-config/template",
-      load: () => import("@ykdz/reference-tooling-config/template"),
+      specifier: "@boringparts/reference-tooling-config/template",
+      load: () => import("@boringparts/reference-tooling-config/template"),
     },
     {
-      specifier: "@ykdz/reference-hono-api/template",
-      load: () => import("@ykdz/reference-hono-api/template"),
+      specifier: "@boringparts/reference-hono-api/template",
+      load: () => import("@boringparts/reference-hono-api/template"),
     },
     {
-      specifier: "@ykdz/reference-vue-hono-web/template",
-      load: () => import("@ykdz/reference-vue-hono-web/template"),
+      specifier: "@boringparts/reference-vue-hono-web/template",
+      load: () => import("@boringparts/reference-vue-hono-web/template"),
     },
     {
-      specifier: "@ykdz/reference-vue-app/template",
-      load: () => import("@ykdz/reference-vue-app/template"),
+      specifier: "@boringparts/reference-vue-app/template",
+      load: () => import("@boringparts/reference-vue-app/template"),
     },
     {
-      specifier: "@ykdz/preset-vue-hono-app/template",
-      load: () => import("@ykdz/preset-vue-hono-app/template"),
+      specifier: "@boringparts/preset-vue-hono-app/template",
+      load: () => import("@boringparts/preset-vue-hono-app/template"),
     },
   ],
 });
@@ -69,7 +69,7 @@ function referenceIdentity(packageName: string): ContentIdentity {
   return member.identity;
 }
 
-const vueHonoPreset = presetMember("@ykdz/preset-vue-hono-app");
+const vueHonoPreset = presetMember("@boringparts/preset-vue-hono-app");
 
 void describe("Vue-Hono preset in public content collection", () => {
   void it("initializes web, API, shared dependencies, and joint verification config", async (testContext) => {
@@ -107,11 +107,11 @@ void describe("Vue-Hono preset in public content collection", () => {
     );
     const initializedWeb = initialized.generationRecord.packages.find(
       ({ contentIdentity }) =>
-        contentIdentity.packageName === "@ykdz/reference-vue-hono-web",
+        contentIdentity.packageName === "@boringparts/reference-vue-hono-web",
     );
     const initializedApi = initialized.generationRecord.packages.find(
       ({ contentIdentity }) =>
-        contentIdentity.packageName === "@ykdz/reference-hono-api",
+        contentIdentity.packageName === "@boringparts/reference-hono-api",
     );
     assert.ok(initializedWeb && initializedApi);
     assert.deepStrictEqual(initialized.blueprint.packageLinkIntents, [
@@ -163,14 +163,14 @@ void describe("Vue-Hono preset in public content collection", () => {
       };
     }[] = [
       {
-        contentIdentity: referenceIdentity("@ykdz/reference-hono-api"),
+        contentIdentity: referenceIdentity("@boringparts/reference-hono-api"),
         creationInput: {
           leafName: "support-api",
           packagePath: "apps/support-api",
         },
       },
       {
-        contentIdentity: referenceIdentity("@ykdz/reference-vue-app"),
+        contentIdentity: referenceIdentity("@boringparts/reference-vue-app"),
         creationInput: { leafName: "portal", packagePath: "apps/portal" },
       },
     ];

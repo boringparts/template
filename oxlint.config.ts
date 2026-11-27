@@ -1,4 +1,4 @@
-import lintConfiguration from "@ykdz/tooling-config/oxlint";
+import lintConfiguration from "@boringparts/tooling-config/oxlint";
 import { defineConfig } from "oxlint";
 
 export default defineConfig({

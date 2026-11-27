@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 
 import { execa } from "execa";
 
-void describe("@ykdz/default-content-verification publication boundary", () => {
+void describe("@boringparts/default-content-verification publication boundary", () => {
   void it("keeps the generated registry Task Entrypoint private under source resolution", async () => {
     const privateImport = await execa(
       "node",
@@ -11,7 +11,7 @@ void describe("@ykdz/default-content-verification publication boundary", () => {
         "--conditions=source",
         "--input-type=module",
         "-e",
-        'await import("@ykdz/default-content-verification/check-generated-registry")',
+        'await import("@boringparts/default-content-verification/check-generated-registry")',
       ],
       {
         cwd: process.cwd(),

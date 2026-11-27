@@ -1,5 +1,5 @@
-import { defineReferencePackage } from "@ykdz/default-content-authoring/reference-package";
-import type { JsonValue } from "@ykdz/template-core/json";
+import { defineReferencePackage } from "@boringparts/default-content-authoring/reference-package";
+import type { JsonValue } from "@boringparts/template-core/json";
 
 import referenceManifest from "../package.json" with { type: "json" };
 import { projectCliPackageManifest } from "./package-manifest.ts";
@@ -135,14 +135,14 @@ export const referencePackage = defineReferencePackage({
     {
       key: "base-workspace",
       ownerLocal: {
-        specifier: "@ykdz/reference-workspace-root/template",
+        specifier: "@boringparts/reference-workspace-root/template",
         resolve: (specifier) => import.meta.resolve(specifier),
       },
     },
     {
       key: "tooling-config",
       ownerLocal: {
-        specifier: "@ykdz/reference-tooling-config/template",
+        specifier: "@boringparts/reference-tooling-config/template",
         resolve: (specifier) => import.meta.resolve(specifier),
       },
     },
@@ -151,7 +151,7 @@ export const referencePackage = defineReferencePackage({
     {
       key: "npm-publication",
       ownerLocal: {
-        specifier: "@ykdz/reference-npm-publication/template",
+        specifier: "@boringparts/reference-npm-publication/template",
         resolve: (specifier) => import.meta.resolve(specifier),
       },
     },
@@ -174,37 +174,37 @@ export const referencePackage = defineReferencePackage({
     { path: "turbo.json" },
   ],
   templateDependencies: [
-    { name: "@ykdz/tooling-config", purpose: "template-build" },
+    { name: "@boringparts/tooling-config", purpose: "template-build" },
     {
-      name: "@ykdz/reference-tooling-config",
+      name: "@boringparts/reference-tooling-config",
       purpose: "target",
     },
     {
-      name: "@ykdz/reference-tooling-config",
+      name: "@boringparts/reference-tooling-config",
       purpose: "template-execution",
     },
     {
-      name: "@ykdz/reference-workspace-root",
+      name: "@boringparts/reference-workspace-root",
       purpose: "template-execution",
     },
     {
-      name: "@ykdz/reference-npm-publication",
+      name: "@boringparts/reference-npm-publication",
       purpose: "template-execution",
     },
     {
-      name: "@ykdz/template-core",
+      name: "@boringparts/template-core",
       purpose: "template-build",
     },
     {
-      name: "@ykdz/default-content-authoring",
+      name: "@boringparts/default-content-authoring",
       purpose: "template-execution",
     },
   ],
   executionDependencies: [
-    "@ykdz/reference-tooling-config",
-    "@ykdz/reference-workspace-root",
-    "@ykdz/reference-npm-publication",
-    "@ykdz/default-content-authoring",
+    "@boringparts/reference-tooling-config",
+    "@boringparts/reference-workspace-root",
+    "@boringparts/reference-npm-publication",
+    "@boringparts/default-content-authoring",
   ],
   templateScripts: [
     "build:template",

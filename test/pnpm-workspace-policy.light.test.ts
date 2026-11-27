@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { renderGeneratedPnpmWorkspaceYaml } from "@ykdz/template-workspace/dependency-catalog";
+import { renderGeneratedPnpmWorkspaceYaml } from "@boringparts/template-workspace/dependency-catalog";
 
 void describe("pnpm Workspace Policy", () => {
   void it("renders only explicitly requested dependency overrides", () => {

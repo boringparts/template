@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { ProjectBlueprintValidationError } from "@ykdz/template-core/project-blueprint";
+import { ProjectBlueprintValidationError } from "@boringparts/template-core/project-blueprint";
 import {
   assertDefaultProjectBlueprintDraft,
   isValidDefaultNpmPackageName,
   validateDefaultPackagePath,
   validateDefaultProjectBlueprint,
-} from "@ykdz/template-workspace/default-package-identity";
+} from "@boringparts/template-workspace/default-package-identity";
 
 const packageDefinitionId = `package-${"1".repeat(64)}` as const;
 

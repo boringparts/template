@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { it } from "node:test";
 
-import type { ContainerCommandRunner } from "@ykdz/template-verification-runtime/development-container-session";
+import type { ContainerCommandRunner } from "@boringparts/template-verification-runtime/development-container-session";
 import { execa } from "execa";
 
 import { checkRepositoryDevelopmentContainer } from "../scripts/check-repository-development-container.ts";
@@ -131,9 +131,9 @@ void it("runs frozen checks on the current working tree snapshot, removes it on 
           "turbo",
           "run",
           "test:browser",
-          "@ykdz/reference-vue-app#test:e2e",
-          "@ykdz/reference-vike-web#test:e2e",
-          "@ykdz/preset-vue-hono-app#test:e2e",
+          "@boringparts/reference-vue-app#test:e2e",
+          "@boringparts/reference-vike-web#test:e2e",
+          "@boringparts/preset-vue-hono-app#test:e2e",
           "--output-logs=errors-only",
         ],
       ],

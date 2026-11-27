@@ -4,40 +4,40 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-import { loadContentSource } from "@ykdz/template-generator/content-source";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+import { loadContentSource } from "@boringparts/template-generator/content-source";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 import { execa } from "execa";
 
 const content = await loadContentSource({
-  namespace: "ykdz",
+  namespace: "boringparts",
   resolve: (specifier) => import.meta.resolve(specifier),
   members: [
     {
-      specifier: "@ykdz/reference-workspace-root/template",
-      load: () => import("@ykdz/reference-workspace-root/template"),
+      specifier: "@boringparts/reference-workspace-root/template",
+      load: () => import("@boringparts/reference-workspace-root/template"),
     },
     {
-      specifier: "@ykdz/reference-ts-lib/template",
-      load: () => import("@ykdz/reference-ts-lib/template"),
+      specifier: "@boringparts/reference-ts-lib/template",
+      load: () => import("@boringparts/reference-ts-lib/template"),
     },
     {
-      specifier: "@ykdz/reference-tooling-config/template",
-      load: () => import("@ykdz/reference-tooling-config/template"),
+      specifier: "@boringparts/reference-tooling-config/template",
+      load: () => import("@boringparts/reference-tooling-config/template"),
     },
     {
-      specifier: "@ykdz/reference-npm-publication/template",
-      load: () => import("@ykdz/reference-npm-publication/template"),
+      specifier: "@boringparts/reference-npm-publication/template",
+      load: () => import("@boringparts/reference-npm-publication/template"),
     },
     {
-      specifier: "@ykdz/preset-ts-lib/template",
-      load: () => import("@ykdz/preset-ts-lib/template"),
+      specifier: "@boringparts/preset-ts-lib/template",
+      load: () => import("@boringparts/preset-ts-lib/template"),
     },
   ],
 });
 const preset = content.find(
   (member) =>
     member.kind === "preset" &&
-    member.identity.packageName === "@ykdz/preset-ts-lib",
+    member.identity.packageName === "@boringparts/preset-ts-lib",
 );
 assert.ok(preset);
 

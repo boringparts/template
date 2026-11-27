@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import { projectCliPackageManifest } from "../../template/package-manifest.ts";
 
 const manifest = {
-  name: "@ykdz/reference-ts-cli",
+  name: "@boringparts/reference-ts-cli",
   private: true,
   bin: { "reference-cli": "./dist/cli.js" },
   files: ["dist"],

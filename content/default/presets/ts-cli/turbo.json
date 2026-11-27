@@ -4,9 +4,9 @@
   "tasks": {
     "build": {
       "dependsOn": [
-        "@ykdz/template-core#build",
-        "@ykdz/reference-ts-cli#build:template",
-        "@ykdz/reference-npm-publication#build:template"
+        "@boringparts/template-core#build",
+        "@boringparts/reference-ts-cli#build:template",
+        "@boringparts/reference-npm-publication#build:template"
       ],
       "tags": ["quality:light"],
       "cache": true,
@@ -72,9 +72,9 @@
     },
     "build:template": {
       "dependsOn": [
-        "@ykdz/template-core#build",
-        "@ykdz/reference-ts-cli#build:template",
-        "@ykdz/reference-npm-publication#build:template"
+        "@boringparts/template-core#build",
+        "@boringparts/reference-ts-cli#build:template",
+        "@boringparts/reference-npm-publication#build:template"
       ],
       "tags": ["work:preparation"],
       "cache": true,

@@ -4,8 +4,8 @@
   "tasks": {
     "build": {
       "dependsOn": [
-        "@ykdz/template-core#build",
-        "@ykdz/reference-vue-app#build:template"
+        "@boringparts/template-core#build",
+        "@boringparts/reference-vue-app#build:template"
       ],
       "tags": ["quality:light"],
       "cache": true,
@@ -63,8 +63,8 @@
     },
     "build:template": {
       "dependsOn": [
-        "@ykdz/template-core#build",
-        "@ykdz/reference-vue-app#build:template"
+        "@boringparts/template-core#build",
+        "@boringparts/reference-vue-app#build:template"
       ],
       "tags": ["work:preparation"],
       "cache": true,

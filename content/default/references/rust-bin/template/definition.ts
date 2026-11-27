@@ -1,16 +1,16 @@
 import type {
   ApplicationRequirements,
   RustToolchainRequirement,
-} from "@ykdz/default-content-authoring/contracts";
-import { rustToolchainEnvironmentNeed } from "@ykdz/default-content-authoring/environment-needs";
+} from "@boringparts/default-content-authoring/contracts";
+import { rustToolchainEnvironmentNeed } from "@boringparts/default-content-authoring/environment-needs";
 import {
   defineReferencePackage,
   serializeNativeReferenceDocument,
   type DefaultReferenceContributionFacts,
-} from "@ykdz/default-content-authoring/reference-package";
-import type { JsonValue } from "@ykdz/template-core/json";
-import type { PackageContribution } from "@ykdz/template-core/package-contribution";
-import type { ResourceFileSnapshot } from "@ykdz/template-core/reference-package";
+} from "@boringparts/default-content-authoring/reference-package";
+import type { JsonValue } from "@boringparts/template-core/json";
+import type { PackageContribution } from "@boringparts/template-core/package-contribution";
+import type { ResourceFileSnapshot } from "@boringparts/template-core/reference-package";
 import { parse } from "smol-toml";
 
 import referenceManifest from "../package.json" with { type: "json" };
@@ -176,7 +176,7 @@ const nativeReference = defineReferencePackage<
     {
       key: "base-workspace",
       ownerLocal: {
-        specifier: "@ykdz/reference-workspace-root/template",
+        specifier: "@boringparts/reference-workspace-root/template",
         resolve: (specifier) => import.meta.resolve(specifier),
       },
     },
@@ -196,14 +196,17 @@ const nativeReference = defineReferencePackage<
     },
   ],
   templateDependencies: [
-    { name: "@ykdz/template-core", purpose: "template-execution" },
+    { name: "@boringparts/template-core", purpose: "template-execution" },
     {
-      name: "@ykdz/default-content-authoring",
+      name: "@boringparts/default-content-authoring",
       purpose: "template-execution",
     },
-    { name: "@ykdz/template-environment", purpose: "template-build" },
-    { name: "@ykdz/reference-workspace-root", purpose: "template-execution" },
-    { name: "@ykdz/tooling-config", purpose: "template-build" },
+    { name: "@boringparts/template-environment", purpose: "template-build" },
+    {
+      name: "@boringparts/reference-workspace-root",
+      purpose: "template-execution",
+    },
+    { name: "@boringparts/tooling-config", purpose: "template-build" },
     { name: "oxfmt", purpose: "template-build" },
     { name: "oxlint", purpose: "template-build" },
     { name: "tsrs", purpose: "template-build" },
@@ -211,9 +214,9 @@ const nativeReference = defineReferencePackage<
     { name: "typescript-7", purpose: "template-build" },
   ],
   executionDependencies: [
-    "@ykdz/template-core",
-    "@ykdz/default-content-authoring",
-    "@ykdz/reference-workspace-root",
+    "@boringparts/template-core",
+    "@boringparts/default-content-authoring",
+    "@boringparts/reference-workspace-root",
     "smol-toml",
   ],
   templateScripts: [

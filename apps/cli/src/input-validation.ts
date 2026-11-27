@@ -4,7 +4,7 @@ import {
   isValidDefaultNpmPackageName,
   isValidDefaultPackageScope,
   validateDefaultPackagePath,
-} from "@ykdz/template-workspace/default-package-identity";
+} from "@boringparts/template-workspace/default-package-identity";
 
 import { presetByAlias, type CliPreset } from "./preset-catalog.ts";
 

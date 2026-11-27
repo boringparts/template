@@ -4,7 +4,7 @@ import path from "node:path";
 import {
   prepareRustDevelopmentContainerToolLayerFragments,
   rustDevelopmentContainerToolLayer,
-} from "@ykdz/reference-rust-bin/environment";
+} from "@boringparts/reference-rust-bin/environment";
 import {
   browserTestDevelopmentContainerToolLayer,
   prepareWorkspaceDevelopmentContainerResources,
@@ -12,9 +12,9 @@ import {
   projectWorkspaceDevelopmentContainer,
   projectWorkspaceEditorCustomization,
   shellCheckDevelopmentContainerToolLayer,
-} from "@ykdz/reference-workspace-root/environment";
-import { createTemplateSourceHandle } from "@ykdz/template-core/template-source";
-import type { DevelopmentContainerToolLayerProbe } from "@ykdz/template-environment/development-container-tool-layer";
+} from "@boringparts/reference-workspace-root/environment";
+import { createTemplateSourceHandle } from "@boringparts/template-core/template-source";
+import type { DevelopmentContainerToolLayerProbe } from "@boringparts/template-environment/development-container-tool-layer";
 import { format } from "oxfmt";
 
 import formatterConfig from "../oxfmt.config.ts";

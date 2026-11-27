@@ -1,4 +1,4 @@
-import databaseManifest from "@ykdz/reference-vike-db/package.json" with { type: "json" };
+import databaseManifest from "@boringparts/reference-vike-db/package.json" with { type: "json" };
 import telefunc from "telefunc/vite";
 import vike from "vike/plugin";
 import { defineConfig, type PluginOption } from "vite";

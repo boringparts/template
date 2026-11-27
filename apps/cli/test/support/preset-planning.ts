@@ -1,10 +1,13 @@
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { templateContent, type TemplatePreset } from "@ykdz/template-content";
-import type { PackageDefinition } from "@ykdz/template-core/project-blueprint";
-import type { ProjectProjection } from "@ykdz/template-core/project-projection";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+import {
+  templateContent,
+  type TemplatePreset,
+} from "@boringparts/template-content";
+import type { PackageDefinition } from "@boringparts/template-core/project-blueprint";
+import type { ProjectProjection } from "@boringparts/template-core/project-projection";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 
 const generator = createDefaultGenerator({ content: templateContent });
 

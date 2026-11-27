@@ -14,14 +14,14 @@ import type {
   DeploymentEnvironmentNeed,
   EnvironmentNeedsMetadata,
   RustToolchainTarget,
-} from "@ykdz/default-content-authoring/contracts";
-import { normalizeEnvironmentNeeds } from "@ykdz/default-content-authoring/environment-needs";
-import { isDefaultPackageRole } from "@ykdz/default-content-authoring/package-role";
-import type { DefaultPresetRootContributionOwner } from "@ykdz/default-content-authoring/preset-root-contribution";
+} from "@boringparts/default-content-authoring/contracts";
+import { normalizeEnvironmentNeeds } from "@boringparts/default-content-authoring/environment-needs";
+import { isDefaultPackageRole } from "@boringparts/default-content-authoring/package-role";
+import type { DefaultPresetRootContributionOwner } from "@boringparts/default-content-authoring/preset-root-contribution";
 import {
   serializeNativeJson,
   serializeNativeReferenceDocument,
-} from "@ykdz/default-content-authoring/reference-package";
+} from "@boringparts/default-content-authoring/reference-package";
 import {
   browserTestDevelopmentContainerToolLayer,
   prepareWorkspaceDevelopmentContainerResources,
@@ -32,7 +32,7 @@ import {
   type EditorCustomizationCapability,
   type EditorCustomizationDeclarations,
   type PreparedWorkspaceDevelopmentContainerResources,
-} from "@ykdz/reference-workspace-root/environment";
+} from "@boringparts/reference-workspace-root/environment";
 import {
   normalizeProjectCheckWorkflowJob,
   prepareProjectGithubTemplates,
@@ -41,34 +41,34 @@ import {
   projectNextStepsDocument,
   type PreparedProjectGithubTemplates,
   type ProjectCheckWorkflowJob,
-} from "@ykdz/reference-workspace-root/project-github";
-import { workspaceRootNextSteps } from "@ykdz/reference-workspace-root/template";
+} from "@boringparts/reference-workspace-root/project-github";
+import { workspaceRootNextSteps } from "@boringparts/reference-workspace-root/template";
 import type {
   Composition,
   CompositionPackage,
   CompositionPackageEvaluation,
-} from "@ykdz/template-core/composition";
+} from "@boringparts/template-core/composition";
 import {
   contentIdentityKey,
   contentIdentityLabel,
   type ContentIdentity,
   type LoadedContentMember,
-} from "@ykdz/template-core/content-identity";
-import type { GenerationRecordSelection } from "@ykdz/template-core/generation-record";
-import type { JsonValue } from "@ykdz/template-core/json";
+} from "@boringparts/template-core/content-identity";
+import type { GenerationRecordSelection } from "@boringparts/template-core/generation-record";
+import type { JsonValue } from "@boringparts/template-core/json";
 import type {
   CompositionFile,
   CompositionReconciliation,
-} from "@ykdz/template-core/package-contribution";
+} from "@boringparts/template-core/package-contribution";
 import type {
   PackageLinkIntent,
   PackageDefinitionId,
   ProjectBlueprint,
-} from "@ykdz/template-core/project-blueprint";
-import type { CurrentProjectProjectionEntry } from "@ykdz/template-core/project-projection";
-import type { ReferenceDependency } from "@ykdz/template-core/reference-package";
-import type { DevelopmentContainerToolLayer } from "@ykdz/template-environment/development-container-tool-layer";
-import { resolveReferenceDependencyIdentity } from "@ykdz/template-generator";
+} from "@boringparts/template-core/project-blueprint";
+import type { CurrentProjectProjectionEntry } from "@boringparts/template-core/project-projection";
+import type { ReferenceDependency } from "@boringparts/template-core/reference-package";
+import type { DevelopmentContainerToolLayer } from "@boringparts/template-environment/development-container-tool-layer";
+import { resolveReferenceDependencyIdentity } from "@boringparts/template-generator";
 import { stringify as stringifyYaml } from "yaml";
 
 import {
@@ -95,8 +95,8 @@ import {
 } from "./workspace-policy-snapshot.ts";
 
 const defaultCompositionIdentity: ContentIdentity = Object.freeze({
-  namespace: "ykdz",
-  packageName: "@ykdz/template-workspace",
+  namespace: "boringparts",
+  packageName: "@boringparts/template-workspace",
   exportPath: "./default-composition",
 });
 

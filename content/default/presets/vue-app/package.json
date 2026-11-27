@@ -1,5 +1,5 @@
 {
-  "name": "@ykdz/preset-vue-app",
+  "name": "@boringparts/preset-vue-app",
   "version": "0.0.0",
   "private": true,
   "files": [
@@ -26,18 +26,18 @@
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
   },
   "dependencies": {
-    "@ykdz/reference-vue-app": "workspace:*",
-    "@ykdz/template-core": "workspace:*"
+    "@boringparts/reference-vue-app": "workspace:*",
+    "@boringparts/template-core": "workspace:*"
   },
   "devDependencies": {
+    "@boringparts/reference-npm-publication": "workspace:*",
+    "@boringparts/reference-tooling-config": "workspace:*",
+    "@boringparts/reference-ts-lib": "workspace:*",
+    "@boringparts/template-generator": "workspace:*",
+    "@boringparts/template-workspace": "workspace:*",
+    "@boringparts/template-workspace-authoring": "workspace:*",
+    "@boringparts/tooling-config": "workspace:*",
     "@types/node": "catalog:",
-    "@ykdz/reference-npm-publication": "workspace:*",
-    "@ykdz/reference-tooling-config": "workspace:*",
-    "@ykdz/reference-ts-lib": "workspace:*",
-    "@ykdz/template-generator": "workspace:*",
-    "@ykdz/template-workspace": "workspace:*",
-    "@ykdz/template-workspace-authoring": "workspace:*",
-    "@ykdz/tooling-config": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",

@@ -5,13 +5,13 @@ import path from "node:path";
 import { after, it } from "node:test";
 import { pathToFileURL } from "node:url";
 
-import type { Composition } from "@ykdz/template-core/composition";
-import type { LoadedContentMember } from "@ykdz/template-core/content-identity";
-import type { PackageDefinitionId } from "@ykdz/template-core/project-blueprint";
-import type { ReferencePackageDefinition } from "@ykdz/template-core/reference-package";
-import { createTemplateSourceHandle } from "@ykdz/template-core/template-source";
-import { createGenerator } from "@ykdz/template-generator";
-import { defineNativeReferenceContentArtifact } from "@ykdz/template-workspace-authoring/content-artifact";
+import type { Composition } from "@boringparts/template-core/composition";
+import type { LoadedContentMember } from "@boringparts/template-core/content-identity";
+import type { PackageDefinitionId } from "@boringparts/template-core/project-blueprint";
+import type { ReferencePackageDefinition } from "@boringparts/template-core/reference-package";
+import { createTemplateSourceHandle } from "@boringparts/template-core/template-source";
+import { createGenerator } from "@boringparts/template-generator";
+import { defineNativeReferenceContentArtifact } from "@boringparts/template-workspace-authoring/content-artifact";
 
 const roots: string[] = [];
 

@@ -53,9 +53,9 @@
     },
     "build:template": {
       "dependsOn": [
-        "@ykdz/reference-vike-db#build",
-        "@ykdz/template-core#build",
-        "@ykdz/default-content-authoring#build"
+        "@boringparts/reference-vike-db#build",
+        "@boringparts/template-core#build",
+        "@boringparts/default-content-authoring#build"
       ],
       "outputs": ["template-dist/**"],
       "tags": ["quality:light"]

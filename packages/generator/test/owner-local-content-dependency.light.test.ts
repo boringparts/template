@@ -12,21 +12,21 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-import type { Composition } from "@ykdz/template-core/composition";
+import type { Composition } from "@boringparts/template-core/composition";
 import type {
   ContentIdentity,
   LoadedContentMember,
-} from "@ykdz/template-core/content-identity";
-import type { PackageContribution } from "@ykdz/template-core/package-contribution";
+} from "@boringparts/template-core/content-identity";
+import type { PackageContribution } from "@boringparts/template-core/package-contribution";
 import type {
   PackageDefinition,
   PackageDefinitionId,
-} from "@ykdz/template-core/project-blueprint";
+} from "@boringparts/template-core/project-blueprint";
 import type {
   PackageBinding,
   PresetSelectionDefinition,
   ReferenceDependency,
-} from "@ykdz/template-core/reference-package";
+} from "@boringparts/template-core/reference-package";
 
 import { createGenerator } from "../src/index.ts";
 

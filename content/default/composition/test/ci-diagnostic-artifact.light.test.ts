@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import type { CiDiagnosticArtifactDeclaration } from "@ykdz/default-content-authoring/contracts";
+import type { CiDiagnosticArtifactDeclaration } from "@boringparts/default-content-authoring/contracts";
 import {
   prepareProjectGithubTemplates,
   projectCheckWorkflow,
-} from "@ykdz/reference-workspace-root/project-github";
+} from "@boringparts/reference-workspace-root/project-github";
 
 import { composeCiDiagnosticArtifacts } from "../src/ci-diagnostic-artifact.ts";
 

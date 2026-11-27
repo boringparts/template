@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 
-import type { ContainerCommandRunner } from "@ykdz/template-verification-runtime/development-container-session";
+import type { ContainerCommandRunner } from "@boringparts/template-verification-runtime/development-container-session";
 
 import type { SuccessfulScenarioResult } from "../../../generated-content.ts";
 import {

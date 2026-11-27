@@ -6,9 +6,12 @@ import path from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { inspectTaskGate } from "@ykdz/reference-workspace-root/task-gates";
-import { templateContent, templatePresets } from "@ykdz/template-content";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+import { inspectTaskGate } from "@boringparts/reference-workspace-root/task-gates";
+import {
+  templateContent,
+  templatePresets,
+} from "@boringparts/template-content";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 import { execa } from "execa";
 
 import {
@@ -53,7 +56,7 @@ void describe("Vue-Hono joint E2E static checks", () => {
         path.join(tmpdir(), "template-vue-hono-e2e-static-"),
       );
       const targetRoot = path.join(workspace, "generated-vue-hono");
-      const preset = presetFor("@ykdz/preset-vue-hono-app");
+      const preset = presetFor("@boringparts/preset-vue-hono-app");
 
       try {
         const initialized = await createDefaultGenerator({

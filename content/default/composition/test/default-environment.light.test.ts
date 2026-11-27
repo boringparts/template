@@ -9,8 +9,8 @@ import {
   parseWorkspaceTemplateConfiguration,
   prepareWorkspaceDevelopmentContainerResources,
   projectWorkspaceEditorCustomization,
-} from "@ykdz/reference-workspace-root/environment";
-import { projectDependabotConfig } from "@ykdz/reference-workspace-root/project-github";
+} from "@boringparts/reference-workspace-root/environment";
+import { projectDependabotConfig } from "@boringparts/reference-workspace-root/project-github";
 
 void describe("root environment editor settings composition", () => {
   void it("rejects conflicting settings across resources and reports location and both sources", async () => {
@@ -110,7 +110,7 @@ void describe("root environment editor settings composition", () => {
     for (const invalid of [{}, { features: [] }]) {
       assert.throws(
         () => parseWorkspaceTemplateConfiguration(invalid),
-        /@ykdz\/reference-workspace-root#\.\/environment workspace-template\.json must contain a features object/u,
+        /@boringparts\/reference-workspace-root#\.\/environment workspace-template\.json must contain a features object/u,
       );
     }
 
@@ -119,7 +119,7 @@ void describe("root environment editor settings composition", () => {
         parseWorkspaceTemplateConfiguration({
           features: { node: "bad" },
         }),
-      /@ykdz\/reference-workspace-root#\.\/environment workspace-template\.json features\.node must be an object/u,
+      /@boringparts\/reference-workspace-root#\.\/environment workspace-template\.json features\.node must be an object/u,
     );
   });
 });

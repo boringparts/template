@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
-import { templatePresets } from "@ykdz/template-content";
-import { releaseToolchainSnapshot } from "@ykdz/template-workspace/release-toolchain-snapshot";
+import { templatePresets } from "@boringparts/template-content";
+import { releaseToolchainSnapshot } from "@boringparts/template-workspace/release-toolchain-snapshot";
 
 import { planPreset } from "../../support/preset-planning.ts";
 import type { CliJourney } from "../journey.ts";

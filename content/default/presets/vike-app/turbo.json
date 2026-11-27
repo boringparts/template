@@ -68,12 +68,12 @@
     },
     "build:template": {
       "dependsOn": [
-        "@ykdz/reference-vike-db#build:template",
-        "@ykdz/reference-vike-migrations#build:template",
-        "@ykdz/reference-vike-web#build:template",
-        "@ykdz/template-core#build",
-        "@ykdz/default-content-authoring#build",
-        "@ykdz/template-workspace-authoring#build"
+        "@boringparts/reference-vike-db#build:template",
+        "@boringparts/reference-vike-migrations#build:template",
+        "@boringparts/reference-vike-web#build:template",
+        "@boringparts/template-core#build",
+        "@boringparts/default-content-authoring#build",
+        "@boringparts/template-workspace-authoring#build"
       ],
       "tags": ["work:preparation"],
       "cache": true,

@@ -7,8 +7,8 @@ import { describe, it } from "node:test";
 import {
   assertDependabotContract,
   assertWorkflowContract,
-} from "@ykdz/default-content-verification/workflow-contract";
-import { templatePresets } from "@ykdz/template-content";
+} from "@boringparts/default-content-verification/workflow-contract";
+import { templatePresets } from "@boringparts/template-content";
 import { parse } from "yaml";
 
 import {

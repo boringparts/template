@@ -18,9 +18,9 @@ import {
   contentIdentityKey,
   type ContentIdentity,
   type LoadedContentMember,
-} from "@ykdz/template-core/content-identity";
-import type { PresetSelectionDefinition } from "@ykdz/template-core/reference-package";
-import type { PreparedNativeContentArtifact } from "@ykdz/template-workspace-authoring/content-artifact";
+} from "@boringparts/template-core/content-identity";
+import type { PresetSelectionDefinition } from "@boringparts/template-core/reference-package";
+import type { PreparedNativeContentArtifact } from "@boringparts/template-workspace-authoring/content-artifact";
 import { execa } from "execa";
 
 type NativeMember =
@@ -813,7 +813,7 @@ function generatedCollectionSource(
   const memberType =
     memberTypes.length === 0 ? "never" : memberTypes.join(" | ");
   return [
-    'import { loadContentSource, type LoadedContentSourceMember } from "@ykdz/template-generator/content-source";',
+    'import { loadContentSource, type LoadedContentSourceMember } from "@boringparts/template-generator/content-source";',
     "",
     `export type TemplateContentMember = ${memberType};`,
     "export const templateContent: readonly TemplateContentMember[] = await loadContentSource({",
@@ -844,11 +844,11 @@ function generatedProviderAggregateSource(
   const memberType =
     memberTypes.length === 0 ? "never" : memberTypes.join(" | ");
   return [
-    'import { deriveContentMembers as deriveTemplateMembers } from "@ykdz/template-core/content-identity";',
+    'import { deriveContentMembers as deriveTemplateMembers } from "@boringparts/template-core/content-identity";',
     ...imports,
     "",
     "export { deriveTemplateMembers };",
-    'export type { ContentKind } from "@ykdz/template-core/content-identity";',
+    'export type { ContentKind } from "@boringparts/template-core/content-identity";',
     `export type TemplateContentMember = ${memberType};`,
     'export type TemplatePreset = Extract<TemplateContentMember, { readonly kind: "preset" }>;',
     'export type TemplateReferencePackage = Extract<TemplateContentMember, { readonly kind: "reference" }>;',
@@ -867,7 +867,7 @@ function providerPackageName(namespace: string): string {
     .update(namespace)
     .digest("hex")
     .slice(0, 16);
-  return `@ykdz/template-content-provider-${suffix}`;
+  return `@boringparts/template-content-provider-${suffix}`;
 }
 
 async function createModulePackageRoot(options: {
@@ -1006,7 +1006,7 @@ async function createContentProviderRoot(options: {
     dependencies[owner.artifact.coordinate.name] =
       owner.artifact.coordinate.version;
   }
-  for (const name of ["@ykdz/template-generator"]) {
+  for (const name of ["@boringparts/template-generator"]) {
     const version = options.sdkVersions.get(name);
     if (version === undefined)
       throw new Error(
@@ -1049,7 +1049,7 @@ async function createCollectionInstallRoot(options: {
     dependencies[provider.packageName] = provider.packageVersion;
     packageRoots.set(provider.packageName, provider.installRoot);
   }
-  for (const name of ["@ykdz/template-core"]) {
+  for (const name of ["@boringparts/template-core"]) {
     const packageRoot = options.sdkPackageRoots.get(name);
     const version = options.sdkVersions.get(name);
     if (packageRoot === undefined || version === undefined) {
@@ -1176,7 +1176,7 @@ export async function prepareContentCollection(
 
   const sdkRoots = [
     ...new Set([
-      "@ykdz/template-generator",
+      "@boringparts/template-generator",
       ...(options.additionalSdkRoots ?? []),
       ...owners.flatMap(({ artifact }) =>
         artifact.dependencies

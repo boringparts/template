@@ -8,10 +8,10 @@ import { pathToFileURL } from "node:url";
 import {
   defineReferencePackage,
   type DefaultReferencePackageDefinition,
-} from "@ykdz/default-content-authoring/reference-package";
-import type { JsonValue } from "@ykdz/template-core/json";
-import type { PackageBinding } from "@ykdz/template-core/reference-package";
-import { createTemplateSourceHandle } from "@ykdz/template-core/template-source";
+} from "@boringparts/default-content-authoring/reference-package";
+import type { JsonValue } from "@boringparts/template-core/json";
+import type { PackageBinding } from "@boringparts/template-core/reference-package";
+import { createTemplateSourceHandle } from "@boringparts/template-core/template-source";
 
 await test("root directory path alone does not inject reference package business rules", () => {
   const owner = defineReferencePackage({

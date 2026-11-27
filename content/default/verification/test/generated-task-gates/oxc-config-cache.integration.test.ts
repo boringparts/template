@@ -5,8 +5,11 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-import { templateContent, templatePresets } from "@ykdz/template-content";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+import {
+  templateContent,
+  templatePresets,
+} from "@boringparts/template-content";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 import { execa } from "execa";
 
 import {
@@ -36,7 +39,7 @@ void describe("generated Oxc config cache invalidation", () => {
         path.join(tmpdir(), "template-oxc-config-cache-"),
       );
       const targetRoot = path.join(workspace, "generated-oxc-cache");
-      const preset = presetFor("@ykdz/preset-ts-lib");
+      const preset = presetFor("@boringparts/preset-ts-lib");
       const currentGenerator = createDefaultGenerator({
         content: templateContent,
       });

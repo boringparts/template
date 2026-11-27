@@ -1,11 +1,11 @@
 import type {
   CompositionPackage,
   CompositionPackageEvaluation,
-} from "@ykdz/template-core/composition";
-import type { ContentIdentity } from "@ykdz/template-core/content-identity";
-import type { GenerationRecordSelection } from "@ykdz/template-core/generation-record";
-import type { PackageDefinitionId } from "@ykdz/template-core/project-blueprint";
-import type { CurrentProjectProjectionEntry } from "@ykdz/template-core/project-projection";
+} from "@boringparts/template-core/composition";
+import type { ContentIdentity } from "@boringparts/template-core/content-identity";
+import type { GenerationRecordSelection } from "@boringparts/template-core/generation-record";
+import type { PackageDefinitionId } from "@boringparts/template-core/project-blueprint";
+import type { CurrentProjectProjectionEntry } from "@boringparts/template-core/project-projection";
 
 import type {
   DefaultReferenceContributionFacts,

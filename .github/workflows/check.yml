@@ -118,7 +118,7 @@ jobs:
         id: fixture-prerequisites
         run: |
           docker version --format '{{.Server.Version}}'
-          pnpm --filter @ykdz/default-content-verification exec devcontainer --version
+          pnpm --filter @boringparts/default-content-verification exec devcontainer --version
 
       - name: Prepare shell checks
         run: sudo apt-get update && sudo apt-get install -y shellcheck
@@ -140,11 +140,11 @@ jobs:
       - name: Check Fixture Evidence Health
         id: fixture-evidence-health
         if: always() && steps.package-check.outcome == 'success'
-        run: pnpm --filter @ykdz/default-content-verification run check:evidence-health
+        run: pnpm --filter @boringparts/default-content-verification run check:evidence-health
 
       - name: Build CLI distribution directory
         if: inputs.pack_cli
-        run: pnpm --filter @ykdz/template run build:distribution
+        run: pnpm --filter @boringparts/template run build:distribution
 
       - name: Pack pending release versions
         id: pack
@@ -162,15 +162,15 @@ jobs:
       - name: Verify installed CLI
         if: inputs.pack_cli
         run: |
-          if compgen -G "$RUNNER_TEMP/packed-cli/packages/ykdz-template-*.tgz" > /dev/null; then
-            npm install --prefix "$RUNNER_TEMP/template-consumer" "$RUNNER_TEMP/packed-cli/packages/"ykdz-template-*.tgz
-            TEMPLATE_CLI_JOURNEY_MODE=packed TEMPLATE_CLI_PACKED_BIN="$RUNNER_TEMP/template-consumer/node_modules/.bin/template" pnpm --filter @ykdz/template run test:e2e:packed
+          if compgen -G "$RUNNER_TEMP/packed-cli/packages/boringparts-template-*.tgz" > /dev/null; then
+            npm install --prefix "$RUNNER_TEMP/template-consumer" "$RUNNER_TEMP/packed-cli/packages/"boringparts-template-*.tgz
+            TEMPLATE_CLI_JOURNEY_MODE=packed TEMPLATE_CLI_PACKED_BIN="$RUNNER_TEMP/template-consumer/node_modules/.bin/template" pnpm --filter @boringparts/template run test:e2e:packed
           fi
 
       - name: Clean up test containers
         if: always() && steps.fixture-prerequisites.outcome == 'success'
         run: |
-          fixture_container_ids="$(docker ps -aq --filter label=com.ykdz.template.verification.project)"
+          fixture_container_ids="$(docker ps -aq --filter label=com.boringparts.template.verification.project)"
           if [[ -n "$fixture_container_ids" ]]; then
             readarray -t fixture_containers <<< "$fixture_container_ids"
             docker rm -f "${fixture_containers[@]}"

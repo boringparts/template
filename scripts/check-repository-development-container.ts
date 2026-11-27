@@ -9,7 +9,7 @@ import {
   createDevelopmentContainerSession,
   developmentContainerPnpmStorePath,
   type ContainerCommandRunner,
-} from "@ykdz/template-verification-runtime/development-container-session";
+} from "@boringparts/template-verification-runtime/development-container-session";
 import { execa } from "execa";
 
 import { repositoryDevelopmentEnvironment } from "./repository-environment.ts";
@@ -247,9 +247,9 @@ export async function checkRepositoryDevelopmentContainer(
           "turbo",
           "run",
           "test:browser",
-          "@ykdz/reference-vue-app#test:e2e",
-          "@ykdz/reference-vike-web#test:e2e",
-          "@ykdz/preset-vue-hono-app#test:e2e",
+          "@boringparts/reference-vue-app#test:e2e",
+          "@boringparts/reference-vike-web#test:e2e",
+          "@boringparts/preset-vue-hono-app#test:e2e",
           "--output-logs=errors-only",
         ],
         { cwd: projectDir, stdio: "inherit" },

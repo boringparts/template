@@ -18,70 +18,70 @@ import {
   installContentCollection,
   prepareContentCollection,
   type PreparedContentCollection,
-} from "@ykdz/template-content-artifacts";
-import { loadContentSource } from "@ykdz/template-generator/content-source";
+} from "@boringparts/template-content-artifacts";
+import { loadContentSource } from "@boringparts/template-generator/content-source";
 import { execa } from "execa";
 
 const workspaceRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 const content = await loadContentSource({
-  namespace: "ykdz",
+  namespace: "boringparts",
   resolve: (specifier) => import.meta.resolve(specifier),
   members: [
     {
-      specifier: "@ykdz/reference-workspace-root/template",
-      load: () => import("@ykdz/reference-workspace-root/template"),
+      specifier: "@boringparts/reference-workspace-root/template",
+      load: () => import("@boringparts/reference-workspace-root/template"),
     },
     {
-      specifier: "@ykdz/reference-ts-cli/template",
-      load: () => import("@ykdz/reference-ts-cli/template"),
+      specifier: "@boringparts/reference-ts-cli/template",
+      load: () => import("@boringparts/reference-ts-cli/template"),
     },
     {
-      specifier: "@ykdz/reference-ts-lib/template",
-      load: () => import("@ykdz/reference-ts-lib/template"),
+      specifier: "@boringparts/reference-ts-lib/template",
+      load: () => import("@boringparts/reference-ts-lib/template"),
     },
     {
-      specifier: "@ykdz/reference-tooling-config/template",
-      load: () => import("@ykdz/reference-tooling-config/template"),
+      specifier: "@boringparts/reference-tooling-config/template",
+      load: () => import("@boringparts/reference-tooling-config/template"),
     },
     {
-      specifier: "@ykdz/reference-npm-publication/template",
-      load: () => import("@ykdz/reference-npm-publication/template"),
+      specifier: "@boringparts/reference-npm-publication/template",
+      load: () => import("@boringparts/reference-npm-publication/template"),
     },
     {
-      specifier: "@ykdz/reference-vike-web/template",
-      load: () => import("@ykdz/reference-vike-web/template"),
+      specifier: "@boringparts/reference-vike-web/template",
+      load: () => import("@boringparts/reference-vike-web/template"),
     },
     {
-      specifier: "@ykdz/reference-vike-db/template",
-      load: () => import("@ykdz/reference-vike-db/template"),
+      specifier: "@boringparts/reference-vike-db/template",
+      load: () => import("@boringparts/reference-vike-db/template"),
     },
     {
-      specifier: "@ykdz/reference-vike-migrations/template",
-      load: () => import("@ykdz/reference-vike-migrations/template"),
+      specifier: "@boringparts/reference-vike-migrations/template",
+      load: () => import("@boringparts/reference-vike-migrations/template"),
     },
     {
-      specifier: "@ykdz/preset-ts-cli/template",
-      load: () => import("@ykdz/preset-ts-cli/template"),
+      specifier: "@boringparts/preset-ts-cli/template",
+      load: () => import("@boringparts/preset-ts-cli/template"),
     },
     {
-      specifier: "@ykdz/preset-ts-lib/template",
-      load: () => import("@ykdz/preset-ts-lib/template"),
+      specifier: "@boringparts/preset-ts-lib/template",
+      load: () => import("@boringparts/preset-ts-lib/template"),
     },
     {
-      specifier: "@ykdz/preset-vike-app/template",
-      load: () => import("@ykdz/preset-vike-app/template"),
+      specifier: "@boringparts/preset-vike-app/template",
+      load: () => import("@boringparts/preset-vike-app/template"),
     },
   ],
 });
 const libraryPreset = content.find(
   (member) =>
     member.kind === "preset" &&
-    member.identity.packageName === "@ykdz/preset-ts-lib",
+    member.identity.packageName === "@boringparts/preset-ts-lib",
 );
 const cliPreset = content.find(
   (member) =>
     member.kind === "preset" &&
-    member.identity.packageName === "@ykdz/preset-ts-cli",
+    member.identity.packageName === "@boringparts/preset-ts-cli",
 );
 assert.ok(libraryPreset);
 assert.ok(cliPreset);
@@ -105,8 +105,8 @@ await it(
           "turbo",
           "run",
           "build:template",
-          "--filter=@ykdz/preset-ts-lib",
-          "--filter=@ykdz/preset-ts-cli",
+          "--filter=@boringparts/preset-ts-lib",
+          "--filter=@boringparts/preset-ts-cli",
           "--force",
         ],
         { cwd: workspaceRoot },
@@ -118,7 +118,7 @@ await it(
           "turbo",
           "run",
           "build",
-          "--filter=@ykdz/template-workspace",
+          "--filter=@boringparts/template-workspace",
           "--force",
         ],
         { cwd: workspaceRoot },
@@ -126,8 +126,8 @@ await it(
       prepared = await prepareContentCollection({
         content,
         roots: [libraryPreset, cliPreset],
-        packageName: "@ykdz/template-content",
-        additionalSdkRoots: ["@ykdz/template-workspace"],
+        packageName: "@boringparts/template-content",
+        additionalSdkRoots: ["@boringparts/template-workspace"],
         workspaceRoot,
         root: preparedRoot,
       });
@@ -137,18 +137,20 @@ await it(
           .map((member) => member.identity.packageName)
           .toSorted(),
         [
-          "@ykdz/preset-ts-lib",
-          "@ykdz/preset-ts-cli",
-          "@ykdz/reference-ts-cli",
-          "@ykdz/reference-npm-publication",
-          "@ykdz/reference-ts-lib",
-          "@ykdz/reference-tooling-config",
-          "@ykdz/reference-workspace-root",
+          "@boringparts/preset-ts-lib",
+          "@boringparts/preset-ts-cli",
+          "@boringparts/reference-ts-cli",
+          "@boringparts/reference-npm-publication",
+          "@boringparts/reference-ts-lib",
+          "@boringparts/reference-tooling-config",
+          "@boringparts/reference-workspace-root",
         ].toSorted(),
       );
       const staticManifest = JSON.parse(
         await readFile(
-          fileURLToPath(import.meta.resolve("@ykdz/tooling-config/reference")),
+          fileURLToPath(
+            import.meta.resolve("@boringparts/tooling-config/reference"),
+          ),
           "utf8",
         ),
       ) as { readonly exports: Readonly<Record<string, string>> };
@@ -157,13 +159,16 @@ await it(
       );
       const toolingOwner = prepared.owners.find(
         ({ member }) =>
-          member.identity.packageName === "@ykdz/reference-tooling-config",
+          member.identity.packageName ===
+          "@boringparts/reference-tooling-config",
       );
       assert.ok(toolingOwner);
       for (const [exportPath, resourceTarget] of staticExports) {
         const resourcePath = resourceTarget.slice(2);
         const sourcePath = fileURLToPath(
-          import.meta.resolve(`@ykdz/tooling-config${exportPath.slice(1)}`),
+          import.meta.resolve(
+            `@boringparts/tooling-config${exportPath.slice(1)}`,
+          ),
         );
         const artifactResource:
           | PreparedContentCollection["owners"][number]["artifact"]["resources"][number]
@@ -178,7 +183,7 @@ await it(
         );
       }
       const workspaceSdk = prepared.sdkPackages.find(
-        ({ name }) => name === "@ykdz/template-workspace",
+        ({ name }) => name === "@boringparts/template-workspace",
       );
       assert.ok(workspaceSdk);
       assert.match(workspaceSdk.sha256, /^[0-9a-f]{64}$/u);
@@ -198,11 +203,11 @@ await it(
       await writeFile(
         driverPath,
         [
-          'import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";',
-          'import { templateContent } from "@ykdz/template-content";',
+          'import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";',
+          'import { templateContent } from "@boringparts/template-content";',
           "const [phase, targetRoot] = process.argv.slice(2);",
-          'const libraryPreset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === "@ykdz/preset-ts-lib");',
-          'const cliPreset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === "@ykdz/preset-ts-cli");',
+          'const libraryPreset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === "@boringparts/preset-ts-lib");',
+          'const cliPreset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === "@boringparts/preset-ts-cli");',
           "if (!libraryPreset || !cliPreset) throw new Error('Installed collection is missing ts-lib or ts-cli preset');",
           "const generator = createDefaultGenerator({ content: templateContent });",
           "const result = phase === 'init'",
@@ -259,8 +264,8 @@ await it(
         };
       };
       assert.deepEqual(installedGenerationRecord.composition.identity, {
-        namespace: "ykdz",
-        packageName: "@ykdz/template-workspace",
+        namespace: "boringparts",
+        packageName: "@boringparts/template-workspace",
         exportPath: "./default-composition",
       });
       const generatedToolingManifest = JSON.parse(
@@ -277,11 +282,11 @@ await it(
         Object.fromEntries(staticExports),
       );
       assert.equal(
-        rootManifest.devDependencies["@ykdz/tooling-config"],
+        rootManifest.devDependencies["@boringparts/tooling-config"],
         undefined,
       );
       assert.equal(
-        generatedToolingManifest.devDependencies["@ykdz/tooling-config"],
+        generatedToolingManifest.devDependencies["@boringparts/tooling-config"],
         undefined,
       );
       assert.equal(rootManifest.private, true);
@@ -552,8 +557,8 @@ await it(
           "turbo",
           "run",
           "build:template",
-          "--filter=@ykdz/preset-vike-app",
-          "--filter=@ykdz/preset-ts-lib",
+          "--filter=@boringparts/preset-vike-app",
+          "--filter=@boringparts/preset-ts-lib",
           "--force",
         ],
         { cwd: workspaceRoot },
@@ -565,7 +570,7 @@ await it(
           "turbo",
           "run",
           "build",
-          "--filter=@ykdz/template-workspace",
+          "--filter=@boringparts/template-workspace",
           "--force",
         ],
         { cwd: workspaceRoot },
@@ -574,40 +579,41 @@ await it(
       const vikePreset = content.find(
         (member) =>
           member.kind === "preset" &&
-          member.identity.packageName === "@ykdz/preset-vike-app",
+          member.identity.packageName === "@boringparts/preset-vike-app",
       );
       const libraryPreset = content.find(
         (member) =>
           member.kind === "preset" &&
-          member.identity.packageName === "@ykdz/preset-ts-lib",
+          member.identity.packageName === "@boringparts/preset-ts-lib",
       );
       assert.ok(vikePreset && libraryPreset);
       prepared = await prepareContentCollection({
         content,
         roots: [vikePreset, libraryPreset],
-        packageName: "@ykdz/template-content",
-        additionalSdkRoots: ["@ykdz/template-workspace"],
+        packageName: "@boringparts/template-content",
+        additionalSdkRoots: ["@boringparts/template-workspace"],
         workspaceRoot,
         root: preparedRoot,
       });
       const webOwner = prepared.owners.find(
         ({ member }) =>
           member.kind === "reference" &&
-          member.identity.packageName === "@ykdz/reference-vike-web",
+          member.identity.packageName === "@boringparts/reference-vike-web",
       );
       assert.ok(webOwner);
       for (const owner of prepared.owners.filter(({ member }) =>
         [
-          "@ykdz/reference-vike-web",
-          "@ykdz/reference-vike-db",
-          "@ykdz/reference-vike-migrations",
+          "@boringparts/reference-vike-web",
+          "@boringparts/reference-vike-db",
+          "@boringparts/reference-vike-migrations",
         ].includes(member.identity.packageName),
       )) {
         assert.deepEqual(
           owner.artifact.dependencies.find(
             ({ name }) => name === "typescript-7",
           )?.purposes,
-          owner.member.identity.packageName === "@ykdz/reference-vike-web"
+          owner.member.identity.packageName ===
+            "@boringparts/reference-vike-web"
             ? []
             : ["target"],
         );
@@ -634,7 +640,7 @@ await it(
       assert.equal(webArchiveManifest.dependencies?.vike, undefined);
       assert.ok(!prepared.sdkPackages.some(({ name }) => name === "vike"));
       const workspaceSdk = prepared.sdkPackages.find(
-        ({ name }) => name === "@ykdz/template-workspace",
+        ({ name }) => name === "@boringparts/template-workspace",
       );
       assert.ok(workspaceSdk);
 
@@ -692,9 +698,9 @@ await it(
         [
           'import assert from "node:assert/strict";',
           'import { writeFile } from "node:fs/promises";',
-          'import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";',
-          'import { templateContent } from "@ykdz/template-content";',
-          'const preset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === "@ykdz/preset-vike-app");',
+          'import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";',
+          'import { templateContent } from "@boringparts/template-content";',
+          'const preset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === "@boringparts/preset-vike-app");',
           "assert.ok(preset);",
           'const result = await createDefaultGenerator({ content: templateContent }).init({ targetRoot: process.argv[2], selection: { presets: [{ contentIdentity: preset.identity }] }, conventions: { repositoryName: "packed-vike-demo", defaultPackageScope: "demo" } });',
           'assert.equal(result.status, "success", JSON.stringify(result));',
@@ -718,11 +724,11 @@ await it(
         [
           'import assert from "node:assert/strict";',
           'import { readFile } from "node:fs/promises";',
-          'import { contentIdentityKey } from "@ykdz/template-core/content-identity";',
-          'import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";',
-          'import { templateContent } from "@ykdz/template-content";',
-          'const vikePreset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === "@ykdz/preset-vike-app");',
-          'const libraryPreset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === "@ykdz/preset-ts-lib");',
+          'import { contentIdentityKey } from "@boringparts/template-core/content-identity";',
+          'import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";',
+          'import { templateContent } from "@boringparts/template-content";',
+          'const vikePreset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === "@boringparts/preset-vike-app");',
+          'const libraryPreset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === "@boringparts/preset-ts-lib");',
           "assert.ok(vikePreset && libraryPreset);",
           'const baseline = JSON.parse(await readFile(process.argv[3], "utf8"));',
           'const result = await createDefaultGenerator({ content: templateContent }).add({ repositoryRoot: process.argv[2], preset: libraryPreset.identity, creationInput: { leafName: "extra-library" } });',

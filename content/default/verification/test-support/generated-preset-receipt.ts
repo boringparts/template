@@ -1,6 +1,6 @@
-import type { assertWorkflowContract } from "@ykdz/default-content-verification/workflow-contract";
-import { templateContent } from "@ykdz/template-content";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+import type { assertWorkflowContract } from "@boringparts/default-content-verification/workflow-contract";
+import { templateContent } from "@boringparts/template-content";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 
 export type GeneratedPresetReceipt = Parameters<
   typeof assertWorkflowContract

@@ -16,7 +16,7 @@ import path from "node:path";
 import { afterEach, mock } from "node:test";
 import { isDeepStrictEqual } from "node:util";
 
-import type { ContainerCommandRunner } from "@ykdz/template-verification-runtime/development-container-session";
+import type { ContainerCommandRunner } from "@boringparts/template-verification-runtime/development-container-session";
 import { execa } from "execa";
 
 import { findFixtureEvidenceArchitectureFindings } from "../src/check-fixture-evidence-architecture.ts";

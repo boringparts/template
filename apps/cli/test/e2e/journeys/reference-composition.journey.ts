@@ -13,9 +13,11 @@ import { format } from "oxfmt";
 import type { CliJourney } from "../journey.ts";
 import { requireReferencePresetName } from "../reference-preset.ts";
 
-const libraryPresetName = requireReferencePresetName("@ykdz/reference-ts-lib");
+const libraryPresetName = requireReferencePresetName(
+  "@boringparts/reference-ts-lib",
+);
 const applicationPresetName = requireReferencePresetName(
-  "@ykdz/reference-vue-app",
+  "@boringparts/reference-vue-app",
 );
 
 async function snapshot(root: string, relative = ""): Promise<unknown[]> {

@@ -1,19 +1,19 @@
-import type { Composition } from "@ykdz/template-core/composition";
+import type { Composition } from "@boringparts/template-core/composition";
 import {
   contentIdentityKey,
   type ContentIdentity,
   type LoadedContentMember,
-} from "@ykdz/template-core/content-identity";
-import type { PackageContribution } from "@ykdz/template-core/package-contribution";
+} from "@boringparts/template-core/content-identity";
+import type { PackageContribution } from "@boringparts/template-core/package-contribution";
 import type {
   PackageDefinition,
   PackageDefinitionId,
-} from "@ykdz/template-core/project-blueprint";
+} from "@boringparts/template-core/project-blueprint";
 import type {
   PackageBinding,
   PresetSelectionDefinition,
-} from "@ykdz/template-core/reference-package";
-import { createGenerator } from "@ykdz/template-generator";
+} from "@boringparts/template-core/reference-package";
+import { createGenerator } from "@boringparts/template-generator";
 
 export const guideIdentity: ContentIdentity = {
   namespace: "test-docs",

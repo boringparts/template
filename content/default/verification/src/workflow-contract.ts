@@ -1,4 +1,4 @@
-import type { DependencyMaintenancePolicy } from "@ykdz/default-content-authoring/contracts";
+import type { DependencyMaintenancePolicy } from "@boringparts/default-content-authoring/contracts";
 import { parseDocument, isScalar, visit } from "yaml";
 
 import type { GeneratedScenarioReceipt } from "./generated-content.ts";

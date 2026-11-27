@@ -21,7 +21,7 @@ import {
   type ContainerCommandRunner,
   type DevelopmentContainerSession,
   type ExternalFailureClassification,
-} from "@ykdz/template-verification-runtime/development-container-session";
+} from "@boringparts/template-verification-runtime/development-container-session";
 import { execa } from "execa";
 
 const fixtureEvidenceGates = [

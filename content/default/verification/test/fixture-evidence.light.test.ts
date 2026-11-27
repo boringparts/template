@@ -1,6 +1,6 @@
 import { describe, it, mock } from "node:test";
 
-import { contentIdentityKey } from "@ykdz/template-core/content-identity";
+import { contentIdentityKey } from "@boringparts/template-core/content-identity";
 
 import {
   deriveDeploymentQualityContractIdentity,

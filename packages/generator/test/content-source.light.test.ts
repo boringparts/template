@@ -6,13 +6,13 @@ import { after, describe, it } from "node:test";
 import { pathToFileURL } from "node:url";
 import { fileURLToPath } from "node:url";
 
-import type { Composition } from "@ykdz/template-core/composition";
+import type { Composition } from "@boringparts/template-core/composition";
 import {
   createContentIndex,
   type ContentIdentity,
   type LoadedContentMember,
-} from "@ykdz/template-core/content-identity";
-import type { PackageDefinitionId } from "@ykdz/template-core/project-blueprint";
+} from "@boringparts/template-core/content-identity";
+import type { PackageDefinitionId } from "@boringparts/template-core/project-blueprint";
 
 import { loadContentSource } from "../src/content-source.ts";
 import { createGenerator } from "../src/index.ts";

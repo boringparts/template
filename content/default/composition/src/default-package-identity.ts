@@ -3,7 +3,7 @@ import { isBuiltin } from "node:module";
 import {
   defaultPackageRoles,
   isDefaultPackageRole,
-} from "@ykdz/default-content-authoring/package-role";
+} from "@boringparts/default-content-authoring/package-role";
 import {
   assertProjectBlueprintDraft,
   ProjectBlueprintValidationError,
@@ -13,7 +13,7 @@ import {
   type PackageDefinition,
   type ProjectBlueprint,
   type ProjectBlueprintDraft,
-} from "@ykdz/template-core/project-blueprint";
+} from "@boringparts/template-core/project-blueprint";
 
 const defaultPackagePath = /^[a-z0-9][a-z0-9-]*\/[a-z0-9][a-z0-9-]*$/u;
 const reservedWorkspaceCollections = new Set([
