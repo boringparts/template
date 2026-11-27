@@ -4,6 +4,8 @@ import { createNodeLibPreset } from "./presets/node-lib.ts";
 import { createRustBinPreset } from "./presets/rust-bin.ts";
 import { createTsCliPreset } from "./presets/ts-cli.ts";
 import { createTsLibPreset } from "./presets/ts-lib.ts";
+import { createVueAppPreset } from "./presets/vue-app.ts";
+import { createVueHonoAppPreset } from "./presets/vue-hono-app.ts";
 
 export { resolvePackageDir, resolveTemplateWorkspaceRoots } from "./roots.ts";
 
@@ -16,5 +18,7 @@ export function loadBuiltInPresets(
     createNodeLibPreset(templatesRoot),
     createTsCliPreset(templatesRoot),
     createRustBinPreset(templatesRoot),
+    createVueAppPreset(templatesRoot),
+    createVueHonoAppPreset(templatesRoot),
   ];
 }
