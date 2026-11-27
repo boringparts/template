@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createRequire } from "node:module";
 
-import { nodeCliOutput } from "@ykdz/cli-contract/node";
+import { nodeCliOutput } from "@boringparts/cli-contract/node";
 
 import { cliCommandIdentity } from "./cli-command-identity.ts";
 import { runCli } from "./main.ts";

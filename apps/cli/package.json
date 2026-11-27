@@ -70,10 +70,10 @@
     "build:distribution": "pnpm exec turbo run build --filter=. && node --conditions=source scripts/prepare-distribution.ts"
   },
   "dependencies": {
+    "@boringparts/cli-contract": "catalog:",
     "@boringparts/template-content": "workspace:*",
     "@boringparts/template-core": "workspace:*",
     "@boringparts/template-workspace": "workspace:*",
-    "@ykdz/cli-contract": "catalog:",
     "hosted-git-info": "catalog:",
     "ignore": "catalog:",
     "lru-cache": "catalog:",
@@ -99,7 +99,7 @@
     "typescript-7": "catalog:"
   },
   "bundleDependencies": [
-    "@ykdz/cli-contract",
+    "@boringparts/cli-contract",
     "hosted-git-info",
     "ignore",
     "lru-cache",

@@ -80,6 +80,7 @@ import { composeCiDiagnosticArtifacts } from "./ci-diagnostic-artifact.ts";
 import { assertDefaultProjectBlueprint } from "./default-package-identity.ts";
 import {
   collectGeneratedManifestCatalogReferences,
+  selectMinimumReleaseAgeExclusions,
   selectTemplateDependencyCatalogEntries,
 } from "./dependency-catalog.ts";
 import { PackageLinkValidationError } from "./project-requirements.ts";
@@ -1776,9 +1777,21 @@ export function createDefaultComposition(options: {
         string,
         unknown
       >;
+      const configuredExclusions =
+        installConfiguration.minimumReleaseAgeExclude;
       delete installConfiguration.minimumReleaseAgeExclude;
+      const minimumReleaseAgeExclude =
+        configuredExclusions === undefined
+          ? []
+          : selectMinimumReleaseAgeExclusions(
+              configuredExclusions,
+              new Set(Object.keys(dependencyCatalog)),
+            );
       const workspace = stringifyYaml({
         ...installConfiguration,
+        ...(minimumReleaseAgeExclude.length === 0
+          ? {}
+          : { minimumReleaseAgeExclude }),
         packages,
         catalog: dependencyCatalog,
         overrides,

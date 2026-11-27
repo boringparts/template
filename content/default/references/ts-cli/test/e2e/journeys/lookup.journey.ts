@@ -93,7 +93,7 @@ const journey: CliJourney = {
     }
     assert.partialDeepStrictEqual(JSON.parse(results[5]?.stdout ?? ""), {
       kind: "directory",
-      schemaVersion: "5",
+      schemaVersion: "6",
       command: "cli",
       name: identity.commandName,
       children: [{ command: "lookup", name: "lookup" }],
@@ -106,7 +106,7 @@ const journey: CliJourney = {
     };
     assert.partialDeepStrictEqual(summary, {
       kind: "summary",
-      schemaVersion: "5",
+      schemaVersion: "6",
       command: "lookup",
     });
     assert.deepEqual(
@@ -123,26 +123,26 @@ const journey: CliJourney = {
     assert.equal(results[15]?.stdout, results[1]?.stdout);
     assert.partialDeepStrictEqual(JSON.parse(results[7]?.stdout ?? ""), {
       kind: "input",
-      schemaVersion: "5",
+      schemaVersion: "6",
       command: "lookup",
     });
     assert.partialDeepStrictEqual(JSON.parse(results[8]?.stdout ?? ""), {
       kind: "success",
-      schemaVersion: "5",
+      schemaVersion: "6",
       command: "lookup",
       mode: "structured",
       success: { kind: "data", variants: { found: { exitCode: 0 } } },
     });
     assert.partialDeepStrictEqual(JSON.parse(results[9]?.stdout ?? ""), {
       kind: "failures",
-      schemaVersion: "5",
+      schemaVersion: "6",
       command: "lookup",
       mode: "structured",
       failures: { notFound: { exitCode: 1 } },
     });
     assert.partialDeepStrictEqual(JSON.parse(results[10]?.stdout ?? ""), {
       kind: "wire",
-      schemaVersion: "5",
+      schemaVersion: "6",
       command: "lookup",
       mode: "structured",
     });
