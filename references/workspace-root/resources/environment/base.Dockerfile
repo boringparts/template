@@ -1,0 +1,31 @@
+FROM node:26.13.1-bookworm-slim
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# Cover both users supported by the image so non-interactive commands can run global tools directly.
+ENV PATH="/root/.local/share/pnpm/bin:/home/node/.local/share/pnpm/bin:$PATH"
+COPY --from=ghcr.io/pnpm/pnpm:12.21.0 /opt/pnpm /opt/pnpm
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        bubblewrap \
+        ca-certificates \
+        curl \
+        file \
+        git \
+        iproute2 \
+        jq \
+        openssh-client \
+        procps \
+        python-is-python3 \
+        python3 \
+        ripgrep \
+        unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && git config --system init.defaultBranch main \
+    && for bin in pnpm pn pnpx pnx; do ln -s "/opt/pnpm/pnpm" "/usr/local/bin/$bin"; done \
+    && install -d /pnpm/store/root /root/.local/share/pnpm \
+    && install -d -o node -g node /pnpm/store/node /home/node/.local/share/pnpm \
+    && pnpm config set store-dir /pnpm/store/root --global \
+    && su -s /bin/sh node -c 'pnpm config set store-dir /pnpm/store/node --global'
+
+# Pin the standalone Turborepo version so container builds download release assets directly without hitting unauthenticated GitHub API rate limits.
+RUN curl -fsSL https://turborepo.dev/install | sh -s -- --version 2.11.13 --install-dir /usr/local/bin --no-modify-path
