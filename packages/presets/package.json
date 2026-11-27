@@ -20,7 +20,9 @@
     "typecheck": "tsc -p tsconfig.node.json --noEmit --pretty false"
   },
   "dependencies": {
+    "@boringparts/reference-node-lib": "workspace:*",
     "@boringparts/reference-npm-publication": "workspace:*",
+    "@boringparts/reference-ts-cli": "workspace:*",
     "@boringparts/reference-ts-lib": "workspace:*",
     "@boringparts/reference-workspace-root": "workspace:*",
     "@boringparts/template-engine": "workspace:*",
