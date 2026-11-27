@@ -20,8 +20,12 @@
     "typecheck": "tsc -p tsconfig.node.json --noEmit --pretty false"
   },
   "dependencies": {
+    "@boringparts/reference-hono-api": "workspace:*",
     "@boringparts/reference-npm-publication": "workspace:*",
     "@boringparts/reference-ts-lib": "workspace:*",
+    "@boringparts/reference-vue-app": "workspace:*",
+    "@boringparts/reference-vue-hono-e2e": "workspace:*",
+    "@boringparts/reference-vue-hono-web": "workspace:*",
     "@boringparts/reference-workspace-root": "workspace:*",
     "@boringparts/template-engine": "workspace:*",
     "@boringparts/tooling-config": "workspace:*"
