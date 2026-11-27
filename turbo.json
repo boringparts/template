@@ -81,7 +81,7 @@
       },
       "cli": {
         "dependencies": {
-          "allow": ["engine", "presets", "library", "native"]
+          "allow": ["engine", "presets", "library", "app", "native"]
         }
       },
       "native": {

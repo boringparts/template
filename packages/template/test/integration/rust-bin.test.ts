@@ -152,13 +152,10 @@ void describe("rust-bin preset and polyglot workspace", () => {
           ),
         ) as {
           readonly name: string;
-          readonly exports: Record<string, unknown>;
+          readonly exports?: Record<string, unknown>;
         };
         assert.equal(wrapperPkg.name, `@${spec.dirName}/${spec.crateName}`);
-        assert.equal(
-          Object.hasOwn(wrapperPkg.exports, "./package.json"),
-          false,
-        );
+        assert.equal(wrapperPkg.exports, undefined);
 
         // Root Cargo workspace and verbatim rust-toolchain.toml
         const rootCargo = parseToml(

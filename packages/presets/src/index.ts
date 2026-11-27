@@ -1,6 +1,8 @@
 import type { PresetDefinition } from "@boringparts/template-engine";
 
+import { createNodeLibPreset } from "./presets/node-lib.ts";
 import { createRustBinPreset } from "./presets/rust-bin.ts";
+import { createTsCliPreset } from "./presets/ts-cli.ts";
 import { createTsLibPreset } from "./presets/ts-lib.ts";
 
 export { resolvePackageDir, resolveTemplateWorkspaceRoots } from "./roots.ts";
@@ -9,5 +11,10 @@ export { resolvePackageDir, resolveTemplateWorkspaceRoots } from "./roots.ts";
 export function loadBuiltInPresets(
   templatesRoot?: string,
 ): readonly PresetDefinition[] {
-  return [createTsLibPreset(templatesRoot), createRustBinPreset(templatesRoot)];
+  return [
+    createTsLibPreset(templatesRoot),
+    createNodeLibPreset(templatesRoot),
+    createTsCliPreset(templatesRoot),
+    createRustBinPreset(templatesRoot),
+  ];
 }
