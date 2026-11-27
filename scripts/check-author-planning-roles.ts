@@ -43,7 +43,7 @@ type PlanningRoleContract = {
 
 const publicPlanningContracts: readonly PlanningRoleContract[] = [
   {
-    module: "@ykdz/default-content-authoring/reference-package",
+    module: "@boringparts/default-content-authoring/reference-package",
     names: new Set(["defineReferencePackage"]),
     role: "reference" as const,
     members: [
@@ -54,19 +54,19 @@ const publicPlanningContracts: readonly PlanningRoleContract[] = [
     ],
   },
   {
-    module: "@ykdz/template-core/reference-package",
+    module: "@boringparts/template-core/reference-package",
     names: new Set(["ReferencePackageDefinition"]),
     role: "reference" as const,
     members: ["parseCreationInput", "createDefinition", "evaluate"],
   },
   {
-    module: "@ykdz/default-content-authoring/preset-root-contribution",
+    module: "@boringparts/default-content-authoring/preset-root-contribution",
     names: new Set(["DefaultPresetRootContributionOwner"]),
     role: "preset" as const,
     members: ["compose"],
   },
   {
-    module: "@ykdz/template-core/composition",
+    module: "@boringparts/template-core/composition",
     names: new Set(["Composition"]),
     role: "composition" as const,
     members: ["resolve", "combine"],
@@ -890,7 +890,7 @@ async function packageRootFor(entryFile: string): Promise<string> {
 export async function runAuthorPlanningRoleCheck(
   ownerDirectory?: string,
 ): Promise<void> {
-  const { templateContent } = await import("@ykdz/template-content");
+  const { templateContent } = await import("@boringparts/template-content");
   const roots: PlanningRoleRoot[] = await Promise.all(
     templateContent.map(async (member) => ({
       entryFile: fileURLToPath(member.source.moduleURL),
@@ -899,13 +899,13 @@ export async function runAuthorPlanningRoleCheck(
     })),
   );
   const compositionEntry = fileURLToPath(
-    import.meta.resolve("@ykdz/template-workspace/default-composition"),
+    import.meta.resolve("@boringparts/template-workspace/default-composition"),
   );
   const compositionPackageRoot = await packageRootFor(compositionEntry);
   roots.push({
     entryFile: compositionEntry,
     packageRoot: compositionPackageRoot,
-    identity: "@ykdz/template-workspace#./default-composition",
+    identity: "@boringparts/template-workspace#./default-composition",
   });
 
   if (ownerDirectory !== undefined) {

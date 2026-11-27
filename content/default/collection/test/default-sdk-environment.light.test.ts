@@ -4,21 +4,21 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, it } from "node:test";
 
-import { loadContentSource } from "@ykdz/template-generator/content-source";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+import { loadContentSource } from "@boringparts/template-generator/content-source";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 
 const content = await loadContentSource({
-  namespace: "ykdz",
+  namespace: "boringparts",
   resolve: (specifier) => import.meta.resolve(specifier),
   members: [
-    "@ykdz/reference-workspace-root/template",
-    "@ykdz/reference-vike-web/template",
-    "@ykdz/reference-vike-db/template",
-    "@ykdz/reference-vike-migrations/template",
-    "@ykdz/reference-tooling-config/template",
-    "@ykdz/reference-ts-lib/template",
-    "@ykdz/reference-npm-publication/template",
-    "@ykdz/preset-vike-app/template",
+    "@boringparts/reference-workspace-root/template",
+    "@boringparts/reference-vike-web/template",
+    "@boringparts/reference-vike-db/template",
+    "@boringparts/reference-vike-migrations/template",
+    "@boringparts/reference-tooling-config/template",
+    "@boringparts/reference-ts-lib/template",
+    "@boringparts/reference-npm-publication/template",
+    "@boringparts/preset-vike-app/template",
   ],
 });
 
@@ -33,8 +33,8 @@ const member = (kind: "preset" | "reference", packageName: string) => {
   return found;
 };
 
-const root = member("reference", "@ykdz/reference-workspace-root");
-const preset = member("preset", "@ykdz/preset-vike-app");
+const root = member("reference", "@boringparts/reference-workspace-root");
+const preset = member("preset", "@boringparts/preset-vike-app");
 const conventions = {
   repositoryName: "environment-demo",
   defaultPackageScope: "demo",

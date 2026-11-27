@@ -3,13 +3,13 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { templateContent } from "@ykdz/template-content";
+import { templateContent } from "@boringparts/template-content";
 import {
   prepareContentCollection,
   writeNativeArchiveOverrides,
   type PackedArtifact,
   type PreparedContentCollection,
-} from "@ykdz/template-content-artifacts";
+} from "@boringparts/template-content-artifacts";
 import { execa } from "execa";
 
 type PackageManifest = {
@@ -158,8 +158,8 @@ try {
   prepared = await prepareContentCollection({
     content: templateContent,
     roots: templateContent,
-    packageName: "@ykdz/template-content",
-    additionalSdkRoots: ["@ykdz/template-workspace"],
+    packageName: "@boringparts/template-content",
+    additionalSdkRoots: ["@boringparts/template-workspace"],
     workspaceRoot: await workspaceRoot(),
     root: path.join(temporaryRoot, "content"),
   });

@@ -4,8 +4,8 @@
   "tasks": {
     "build": {
       "dependsOn": [
-        "@ykdz/template-core#build",
-        "@ykdz/reference-ts-lib#build:template"
+        "@boringparts/template-core#build",
+        "@boringparts/reference-ts-lib#build:template"
       ],
       "tags": ["quality:light"],
       "cache": true,
@@ -71,8 +71,8 @@
     },
     "build:template": {
       "dependsOn": [
-        "@ykdz/template-core#build",
-        "@ykdz/reference-ts-lib#build:template"
+        "@boringparts/template-core#build",
+        "@boringparts/reference-ts-lib#build:template"
       ],
       "tags": ["work:preparation"],
       "cache": true,

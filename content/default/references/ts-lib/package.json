@@ -1,5 +1,5 @@
 {
-  "name": "@ykdz/reference-ts-lib",
+  "name": "@boringparts/reference-ts-lib",
   "version": "0.0.0",
   "private": true,
   "files": [
@@ -38,16 +38,16 @@
     "build:template": "rm -rf template-dist && tsc -p tsconfig.template.json --pretty false"
   },
   "dependencies": {
-    "@ykdz/template-core": "workspace:*",
+    "@boringparts/template-core": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@boringparts/default-content-authoring": "workspace:*",
+    "@boringparts/reference-npm-publication": "workspace:*",
+    "@boringparts/reference-tooling-config": "workspace:*",
+    "@boringparts/reference-workspace-root": "workspace:*",
+    "@boringparts/tooling-config": "workspace:*",
     "@types/node": "catalog:",
-    "@ykdz/default-content-authoring": "workspace:*",
-    "@ykdz/reference-npm-publication": "workspace:*",
-    "@ykdz/reference-tooling-config": "workspace:*",
-    "@ykdz/reference-workspace-root": "workspace:*",
-    "@ykdz/tooling-config": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",

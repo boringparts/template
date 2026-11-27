@@ -12,14 +12,14 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, describe, it } from "node:test";
 
-import type { TsCliCreationInput } from "@ykdz/reference-ts-cli/template";
+import type { TsCliCreationInput } from "@boringparts/reference-ts-cli/template";
 import {
   templateContent,
   type TemplatePreset,
   type TemplateReferencePackage,
-} from "@ykdz/template-content";
-import { contentIdentityKey } from "@ykdz/template-core/content-identity";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+} from "@boringparts/template-content";
+import { contentIdentityKey } from "@boringparts/template-core/content-identity";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 
 type WorkspaceCreationInput = TsCliCreationInput & {
   readonly leafName?: string;
@@ -110,15 +110,15 @@ function requirePresetMember(packageName: string): TemplatePreset {
   return member;
 }
 
-const libraryMember = requireReferenceMember("@ykdz/reference-ts-lib");
-const tsCliMember = requireReferenceMember("@ykdz/reference-ts-cli");
-const rustBinMember = requireReferenceMember("@ykdz/reference-rust-bin");
-const vueAppMember = requireReferenceMember("@ykdz/reference-vue-app");
-const tsLibPreset = requirePresetMember("@ykdz/preset-ts-lib");
-const tsCliPreset = requirePresetMember("@ykdz/preset-ts-cli");
-const rustBinPreset = requirePresetMember("@ykdz/preset-rust-bin");
-const vikeAppPreset = requirePresetMember("@ykdz/preset-vike-app");
-const vueAppPreset = requirePresetMember("@ykdz/preset-vue-app");
+const libraryMember = requireReferenceMember("@boringparts/reference-ts-lib");
+const tsCliMember = requireReferenceMember("@boringparts/reference-ts-cli");
+const rustBinMember = requireReferenceMember("@boringparts/reference-rust-bin");
+const vueAppMember = requireReferenceMember("@boringparts/reference-vue-app");
+const tsLibPreset = requirePresetMember("@boringparts/preset-ts-lib");
+const tsCliPreset = requirePresetMember("@boringparts/preset-ts-cli");
+const rustBinPreset = requirePresetMember("@boringparts/preset-rust-bin");
+const vikeAppPreset = requirePresetMember("@boringparts/preset-vike-app");
+const vueAppPreset = requirePresetMember("@boringparts/preset-vue-app");
 
 const temporaryDirectories: string[] = [];
 
@@ -434,7 +434,7 @@ void describe("public template content collection", () => {
     }
     const consumerRecord = result.generationRecord.packages.find(
       ({ contentIdentity }) =>
-        contentIdentity.packageName === "@ykdz/reference-ts-cli",
+        contentIdentity.packageName === "@boringparts/reference-ts-cli",
     );
     const providerRecord = result.generationRecord.packages.find(
       ({ contentIdentity }) =>

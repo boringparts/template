@@ -1,5 +1,5 @@
 {
-  "name": "@ykdz/template-generator",
+  "name": "@boringparts/template-generator",
   "version": "0.0.0",
   "private": true,
   "files": [
@@ -29,7 +29,7 @@
     "test:integration": "node --test --test-concurrency=1 --test-timeout=300000 'test/**/*.integration.test.ts'"
   },
   "dependencies": {
-    "@ykdz/template-core": "workspace:*"
+    "@boringparts/template-core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

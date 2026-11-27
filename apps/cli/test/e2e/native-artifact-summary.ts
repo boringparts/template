@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { TemplateContentMember } from "@ykdz/template-content";
+import type { TemplateContentMember } from "@boringparts/template-content";
 
 export function summarizeNativeArtifacts(
   content: readonly TemplateContentMember[],

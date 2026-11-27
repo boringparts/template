@@ -17,7 +17,7 @@ import { it } from "node:test";
 import {
   createDevelopmentContainerSession,
   type ContainerCommandRunner,
-} from "@ykdz/template-verification-runtime/development-container-session";
+} from "@boringparts/template-verification-runtime/development-container-session";
 import { execa } from "execa";
 
 import {
@@ -824,7 +824,7 @@ void it(
       assert.equal(report.scenarioSet, "init");
       assert.equal(
         report.reproductionCommand,
-        "pnpm --filter @ykdz/default-content-verification check:generated",
+        "pnpm --filter @boringparts/default-content-verification check:generated",
       );
       assert.equal(report.generatedWorkspace, workspace);
       assert.match(report.failure.message, /\[REDACTED\]/u);

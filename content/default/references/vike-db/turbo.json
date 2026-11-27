@@ -26,8 +26,8 @@
     },
     "lint": {
       "dependsOn": [
-        "@ykdz/template-core#build",
-        "@ykdz/default-content-authoring#build",
+        "@boringparts/template-core#build",
+        "@boringparts/default-content-authoring#build",
         "^lint"
       ],
       "outputs": [],
@@ -35,8 +35,8 @@
     },
     "lint:fix": {
       "dependsOn": [
-        "@ykdz/template-core#build",
-        "@ykdz/default-content-authoring#build"
+        "@boringparts/template-core#build",
+        "@boringparts/default-content-authoring#build"
       ],
       "cache": false,
       "tags": ["work:repair"]
@@ -53,8 +53,8 @@
     },
     "build:template": {
       "dependsOn": [
-        "@ykdz/template-core#build",
-        "@ykdz/default-content-authoring#build"
+        "@boringparts/template-core#build",
+        "@boringparts/default-content-authoring#build"
       ],
       "outputs": ["template-dist/**"],
       "tags": ["quality:light"]

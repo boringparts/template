@@ -1,5 +1,5 @@
 {
-  "name": "@ykdz/template-environment",
+  "name": "@boringparts/template-environment",
   "version": "0.0.0",
   "private": true,
   "files": [
@@ -23,11 +23,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
   },
   "dependencies": {
-    "@ykdz/template-core": "workspace:*"
+    "@boringparts/template-core": "workspace:*"
   },
   "devDependencies": {
+    "@boringparts/tooling-config": "workspace:*",
     "@types/node": "catalog:",
-    "@ykdz/tooling-config": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",

@@ -81,7 +81,7 @@ void it("executes project commands in an owned container session and records lif
     );
     assert.ok(
       cleanupQuery?.args.some((arg) =>
-        arg.startsWith("label=com.ykdz.template.verification.project="),
+        arg.startsWith("label=com.boringparts.template.verification.project="),
       ),
     );
   } finally {

@@ -3,11 +3,11 @@ import { lstat, readFile } from "node:fs/promises";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
-import type { Composition } from "@ykdz/template-core/composition";
+import type { Composition } from "@boringparts/template-core/composition";
 import type {
   CompositionPackage,
   CompositionPackageEvaluation,
-} from "@ykdz/template-core/composition";
+} from "@boringparts/template-core/composition";
 import {
   assertContentIdentity,
   contentIdentityKey,
@@ -16,34 +16,34 @@ import {
   type ContentIdentity,
   type ContentSelector,
   type LoadedContentMember,
-} from "@ykdz/template-core/content-identity";
+} from "@boringparts/template-core/content-identity";
 import {
   assertGenerationRecordMatchesBlueprint,
   parseGenerationRecordStructure,
   type GenerationRecord,
   type GenerationRecordPackage,
   type GenerationRecordSelection,
-} from "@ykdz/template-core/generation-record";
+} from "@boringparts/template-core/generation-record";
 import {
   assertJsonValue,
   printCanonicalJson,
   type JsonValue,
-} from "@ykdz/template-core/json";
+} from "@boringparts/template-core/json";
 import {
   projectPackageContributions,
   type PackageContribution,
-} from "@ykdz/template-core/package-contribution";
+} from "@boringparts/template-core/package-contribution";
 import type {
   BlueprintPackageIdentityIssue,
   PackageDefinition,
   PackageDefinitionId,
   PersistedPackageDefinition,
   ProjectBlueprint,
-} from "@ykdz/template-core/project-blueprint";
+} from "@boringparts/template-core/project-blueprint";
 import {
   assertProjectBlueprint,
   ProjectBlueprintValidationError,
-} from "@ykdz/template-core/project-blueprint";
+} from "@boringparts/template-core/project-blueprint";
 import {
   commitProjectProjectionPlan,
   planProjectProjections,
@@ -57,7 +57,7 @@ import {
   type ProjectProjectionPathPrecondition,
   type ProjectProjectionReconciliation,
   type ProjectProjectionSource,
-} from "@ykdz/template-core/project-projection";
+} from "@boringparts/template-core/project-projection";
 import type {
   PreparedReference,
   PackageBinding,
@@ -67,7 +67,7 @@ import type {
   SelectionDependencyBindingTarget,
   PresetSelectionDefinition,
   PresetSelectionRequest,
-} from "@ykdz/template-core/reference-package";
+} from "@boringparts/template-core/reference-package";
 
 import { resolveReferenceDependencyIdentity } from "./owner-local-reference.ts";
 
@@ -81,11 +81,11 @@ type CompositionDefinitionLike = Composition<
   unknown
 >;
 
-export type { GenerationRecord } from "@ykdz/template-core/generation-record";
+export type { GenerationRecord } from "@boringparts/template-core/generation-record";
 export {
   generationRecordSchema,
   parseGenerationRecordStructure,
-} from "@ykdz/template-core/generation-record";
+} from "@boringparts/template-core/generation-record";
 export const generatorMetadataPaths = Object.freeze({
   blueprint: ".template/blueprint.json",
   generationRecord: ".template/generation.json",
@@ -93,8 +93,8 @@ export const generatorMetadataPaths = Object.freeze({
 export type {
   ReferencePackage,
   ReferencePackageDefinition,
-} from "@ykdz/template-core/reference-package";
-export type { Composition } from "@ykdz/template-core/composition";
+} from "@boringparts/template-core/reference-package";
+export type { Composition } from "@boringparts/template-core/composition";
 export { resolveReferenceDependencyIdentity } from "./owner-local-reference.ts";
 
 type RuntimeReferenceDefinition = ReferencePackageDefinition<

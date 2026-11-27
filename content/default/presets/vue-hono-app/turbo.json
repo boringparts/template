@@ -4,9 +4,9 @@
   "tasks": {
     "build": {
       "dependsOn": [
-        "@ykdz/template-core#build",
-        "@ykdz/reference-hono-api#build:template",
-        "@ykdz/reference-vue-hono-web#build:template"
+        "@boringparts/template-core#build",
+        "@boringparts/reference-hono-api#build:template",
+        "@boringparts/reference-vue-hono-web#build:template"
       ],
       "tags": ["quality:light"],
       "cache": true,
@@ -56,9 +56,9 @@
     },
     "test:e2e": {
       "dependsOn": [
-        "@ykdz/reference-hono-api#build",
-        "@ykdz/reference-vue-hono-web#build",
-        "@ykdz/reference-vue-hono-web#browser:prepare"
+        "@boringparts/reference-hono-api#build",
+        "@boringparts/reference-vue-hono-web#build",
+        "@boringparts/reference-vue-hono-web#browser:prepare"
       ],
       "tags": ["quality:heavy"],
       "cache": false,
@@ -76,9 +76,9 @@
     },
     "build:template": {
       "dependsOn": [
-        "@ykdz/template-core#build",
-        "@ykdz/reference-hono-api#build:template",
-        "@ykdz/reference-vue-hono-web#build:template"
+        "@boringparts/template-core#build",
+        "@boringparts/reference-hono-api#build:template",
+        "@boringparts/reference-vue-hono-web#build:template"
       ],
       "tags": ["work:preparation"],
       "cache": true,

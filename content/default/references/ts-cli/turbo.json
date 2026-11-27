@@ -4,11 +4,11 @@
   "tasks": {
     "build:template": {
       "dependsOn": [
-        "@ykdz/template-core#build",
-        "@ykdz/default-content-authoring#build",
-        "@ykdz/reference-npm-publication#build:template",
-        "@ykdz/reference-workspace-root#build:template",
-        "@ykdz/reference-tooling-config#build:template"
+        "@boringparts/template-core#build",
+        "@boringparts/default-content-authoring#build",
+        "@boringparts/reference-npm-publication#build:template",
+        "@boringparts/reference-workspace-root#build:template",
+        "@boringparts/reference-tooling-config#build:template"
       ],
       "inputs": [],
       "outputs": ["template-dist/**"],

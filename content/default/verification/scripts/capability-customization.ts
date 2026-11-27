@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import formatterConfig from "@ykdz/tooling-config/oxfmt";
+import formatterConfig from "@boringparts/tooling-config/oxfmt";
 import { format } from "oxfmt";
 
 import type { SuccessfulScenarioResult } from "../src/generated-content.ts";
@@ -17,7 +17,7 @@ function applications(result: SuccessfulScenarioResult) {
     result.generationRecord.packages
       .filter(
         (item) =>
-          item.contentIdentity.packageName === "@ykdz/reference-vue-app",
+          item.contentIdentity.packageName === "@boringparts/reference-vue-app",
       )
       .map((item) => item.packageDefinitionId),
   );

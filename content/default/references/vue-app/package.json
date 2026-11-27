@@ -1,5 +1,5 @@
 {
-  "name": "@ykdz/reference-vue-app",
+  "name": "@boringparts/reference-vue-app",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -38,12 +38,16 @@
     "test": "vitest run --project=node --reporter=agent --silent=passed-only --fsModuleCachePath=node_modules/.vitest-cache/node"
   },
   "dependencies": {
+    "@boringparts/template-core": "workspace:*",
     "@vue/devtools-api": "catalog:",
-    "@ykdz/template-core": "workspace:*",
     "pinia": "catalog:",
     "vue": "catalog:"
   },
   "devDependencies": {
+    "@boringparts/default-content-authoring": "workspace:*",
+    "@boringparts/reference-tooling-config": "workspace:*",
+    "@boringparts/reference-workspace-root": "workspace:*",
+    "@boringparts/tooling-config": "workspace:*",
     "@playwright/test": "catalog:",
     "@tailwindcss/vite": "catalog:",
     "@types/node": "catalog:",
@@ -51,10 +55,6 @@
     "@vitejs/plugin-vue": "catalog:",
     "@vitest/browser-playwright": "catalog:",
     "@vue/tsconfig": "catalog:",
-    "@ykdz/default-content-authoring": "workspace:*",
-    "@ykdz/reference-tooling-config": "workspace:*",
-    "@ykdz/reference-workspace-root": "workspace:*",
-    "@ykdz/tooling-config": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "playwright": "catalog:",

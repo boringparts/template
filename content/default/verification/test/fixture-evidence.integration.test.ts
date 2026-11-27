@@ -1,7 +1,7 @@
 import { describe, it, mock } from "node:test";
 
-import { contentIdentityKey } from "@ykdz/template-core/content-identity";
-import type { ContentIdentity } from "@ykdz/template-core/content-identity";
+import { contentIdentityKey } from "@boringparts/template-core/content-identity";
+import type { ContentIdentity } from "@boringparts/template-core/content-identity";
 
 import { findFixtureEvidenceArchitectureFindings } from "../src/check-fixture-evidence-architecture.ts";
 import {
@@ -68,17 +68,18 @@ const applicableFocusedScenarioCount = async (): Promise<number> => {
       .map(({ basePackageName }) => basePackageName)
       .toSorted(),
     [
-      "@ykdz/preset-ts-cli",
-      "@ykdz/preset-ts-lib",
-      "@ykdz/preset-vike-app",
-      "@ykdz/preset-vue-app",
-      "@ykdz/preset-vue-hono-app",
+      "@boringparts/preset-ts-cli",
+      "@boringparts/preset-ts-lib",
+      "@boringparts/preset-vike-app",
+      "@boringparts/preset-vue-app",
+      "@boringparts/preset-vue-hono-app",
     ],
   );
   assert.ok(
     applicableScenarios.every(
       ({ providerPackageName, linkFrom }) =>
-        providerPackageName === "@ykdz/preset-ts-lib" && linkFrom.length === 1,
+        providerPackageName === "@boringparts/preset-ts-lib" &&
+        linkFrom.length === 1,
     ),
   );
   return applicableScenarios.length;
@@ -691,18 +692,18 @@ void describe("Fixture Verification Evidence", () => {
                 .map(({ scenario }) => scenario.base.identity.packageName)
                 .toSorted(),
               [
-                "@ykdz/preset-ts-cli",
-                "@ykdz/preset-ts-lib",
-                "@ykdz/preset-vike-app",
-                "@ykdz/preset-vue-app",
-                "@ykdz/preset-vue-hono-app",
+                "@boringparts/preset-ts-cli",
+                "@boringparts/preset-ts-lib",
+                "@boringparts/preset-vike-app",
+                "@boringparts/preset-vue-app",
+                "@boringparts/preset-vue-hono-app",
               ],
             );
             assert.ok(
               renderedScenarios.every(
                 ({ scenario, linkFrom }) =>
                   scenario.addition?.identity.packageName ===
-                    "@ykdz/preset-ts-lib" && linkFrom.length === 1,
+                    "@boringparts/preset-ts-lib" && linkFrom.length === 1,
               ),
             );
           }

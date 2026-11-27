@@ -17,57 +17,57 @@ import {
   installContentCollection,
   prepareContentCollection,
   type PreparedContentCollection,
-} from "@ykdz/template-content-artifacts";
-import { loadContentSource } from "@ykdz/template-generator/content-source";
+} from "@boringparts/template-content-artifacts";
+import { loadContentSource } from "@boringparts/template-generator/content-source";
 import { execa } from "execa";
 
 import { unprivilegedProcessOptions } from "../test-support/unprivileged-process.ts";
 
 const workspaceRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 const content = await loadContentSource({
-  namespace: "ykdz",
+  namespace: "boringparts",
   resolve: (specifier) => import.meta.resolve(specifier),
   members: [
     {
-      specifier: "@ykdz/reference-workspace-root/template",
-      load: () => import("@ykdz/reference-workspace-root/template"),
+      specifier: "@boringparts/reference-workspace-root/template",
+      load: () => import("@boringparts/reference-workspace-root/template"),
     },
     {
-      specifier: "@ykdz/reference-tooling-config/template",
-      load: () => import("@ykdz/reference-tooling-config/template"),
+      specifier: "@boringparts/reference-tooling-config/template",
+      load: () => import("@boringparts/reference-tooling-config/template"),
     },
     {
-      specifier: "@ykdz/reference-hono-api/template",
-      load: () => import("@ykdz/reference-hono-api/template"),
+      specifier: "@boringparts/reference-hono-api/template",
+      load: () => import("@boringparts/reference-hono-api/template"),
     },
     {
-      specifier: "@ykdz/reference-vue-hono-web/template",
-      load: () => import("@ykdz/reference-vue-hono-web/template"),
+      specifier: "@boringparts/reference-vue-hono-web/template",
+      load: () => import("@boringparts/reference-vue-hono-web/template"),
     },
     {
-      specifier: "@ykdz/reference-vue-app/template",
-      load: () => import("@ykdz/reference-vue-app/template"),
+      specifier: "@boringparts/reference-vue-app/template",
+      load: () => import("@boringparts/reference-vue-app/template"),
     },
     {
-      specifier: "@ykdz/preset-vue-hono-app/template",
-      load: () => import("@ykdz/preset-vue-hono-app/template"),
+      specifier: "@boringparts/preset-vue-hono-app/template",
+      load: () => import("@boringparts/preset-vue-hono-app/template"),
     },
     {
-      specifier: "@ykdz/preset-vue-app/template",
-      load: () => import("@ykdz/preset-vue-app/template"),
+      specifier: "@boringparts/preset-vue-app/template",
+      load: () => import("@boringparts/preset-vue-app/template"),
     },
   ],
 });
 const preset = content.find(
   (member) =>
     member.kind === "preset" &&
-    member.identity.packageName === "@ykdz/preset-vue-hono-app",
+    member.identity.packageName === "@boringparts/preset-vue-hono-app",
 );
 assert.ok(preset);
 const vuePreset = content.find(
   (member) =>
     member.kind === "preset" &&
-    member.identity.packageName === "@ykdz/preset-vue-app",
+    member.identity.packageName === "@boringparts/preset-vue-app",
 );
 assert.ok(vuePreset);
 
@@ -127,8 +127,8 @@ void it(
       prepared = await prepareContentCollection({
         content,
         roots: [preset, vuePreset],
-        packageName: "@ykdz/template-content",
-        additionalSdkRoots: ["@ykdz/template-workspace"],
+        packageName: "@boringparts/template-content",
+        additionalSdkRoots: ["@boringparts/template-workspace"],
         workspaceRoot,
         root: preparedRoot,
       });
@@ -137,19 +137,19 @@ void it(
           .map((member) => member.identity.packageName)
           .toSorted(),
         [
-          "@ykdz/preset-vue-hono-app",
-          "@ykdz/preset-vue-app",
-          "@ykdz/reference-hono-api",
-          "@ykdz/reference-tooling-config",
-          "@ykdz/reference-vue-app",
-          "@ykdz/reference-vue-hono-web",
-          "@ykdz/reference-workspace-root",
+          "@boringparts/preset-vue-hono-app",
+          "@boringparts/preset-vue-app",
+          "@boringparts/reference-hono-api",
+          "@boringparts/reference-tooling-config",
+          "@boringparts/reference-vue-app",
+          "@boringparts/reference-vue-hono-web",
+          "@boringparts/reference-workspace-root",
         ].toSorted(),
       );
 
       await installContentCollection(prepared, consumerRoot);
       const workspaceSdk = prepared.sdkPackages.find(
-        ({ name }) => name === "@ykdz/template-workspace",
+        ({ name }) => name === "@boringparts/template-workspace",
       );
       assert.ok(workspaceSdk);
       await execa("pnpm", ["add", workspaceSdk.tarball], {
@@ -178,13 +178,13 @@ void it(
         [
           'import assert from "node:assert/strict";',
           'import { chmod, readFile, readdir, stat, writeFile } from "node:fs/promises";',
-          'import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";',
-          'import { templateContent } from "@ykdz/template-content";',
+          'import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";',
+          'import { templateContent } from "@boringparts/template-content";',
           "const [phase, targetRoot, snapshotPath, resultPath, authorRootsPath] = process.argv.slice(2);",
           'const vueOnly = phase.startsWith("vue-");',
           'const initialize = phase.endsWith("init");',
-          'const presetName = vueOnly ? "@ykdz/preset-vue-app" : "@ykdz/preset-vue-hono-app";',
-          'const additionName = vueOnly ? "@ykdz/reference-vue-app" : "@ykdz/reference-hono-api";',
+          'const presetName = vueOnly ? "@boringparts/preset-vue-app" : "@boringparts/preset-vue-hono-app";',
+          'const additionName = vueOnly ? "@boringparts/reference-vue-app" : "@boringparts/reference-hono-api";',
           'const additionInput = vueOnly ? { leafName: "portal", packagePath: "apps/portal" } : { leafName: "support-api", packagePath: "apps/support-api" };',
           'for (const root of JSON.parse(await readFile(authorRootsPath, "utf8"))) await assert.rejects(readdir(root), { code: "EACCES" });',
           'const preset = templateContent.find((member) => member.kind === "preset" && member.identity.packageName === presetName);',

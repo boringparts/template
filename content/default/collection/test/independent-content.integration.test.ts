@@ -15,10 +15,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   installContentCollection,
   prepareContentCollection,
-} from "@ykdz/template-content-artifacts";
-import { createTemplateSourceHandle } from "@ykdz/template-core/template-source";
-import { loadContentSource } from "@ykdz/template-generator/content-source";
-import { defineNativeContentArtifact } from "@ykdz/template-workspace-authoring/content-artifact";
+} from "@boringparts/template-content-artifacts";
+import { createTemplateSourceHandle } from "@boringparts/template-core/template-source";
+import { loadContentSource } from "@boringparts/template-generator/content-source";
+import { defineNativeContentArtifact } from "@boringparts/template-workspace-authoring/content-artifact";
 import { execa } from "execa";
 
 import { unprivilegedProcessOptions } from "../test-support/unprivileged-process.ts";
@@ -148,8 +148,8 @@ void it("carries only the explicit execution closure for an arbitrary content co
       collectionVersion: "1.0.0",
     });
     assert.deepEqual(prepared.sdkPackages.map(({ name }) => name).sort(), [
-      "@ykdz/template-core",
-      "@ykdz/template-generator",
+      "@boringparts/template-core",
+      "@boringparts/template-generator",
     ]);
     await installContentCollection(prepared, consumer);
     const driver = path.join(consumer, "driver.mjs");
@@ -162,7 +162,7 @@ void it("carries only the explicit execution closure for an arbitrary content co
         'await assert.rejects(readdir(process.argv[2]), { code: "EACCES" });',
         'assert.equal(templateContent[0].alias, "neutral");',
         'assert.equal(await templateContent[0].definition.unselectedResource(), "complete resource declaration\\n");',
-        'for (const name of ["@ykdz/template-workspace-authoring/content-artifact", "never-install-target-application"]) { assert.throws(() => import.meta.resolve(name)); }',
+        'for (const name of ["@boringparts/template-workspace-authoring/content-artifact", "never-install-target-application"]) { assert.throws(() => import.meta.resolve(name)); }',
       ].join("\n"),
     );
     await chmod(root, 0o755);

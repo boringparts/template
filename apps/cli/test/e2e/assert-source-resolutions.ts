@@ -2,10 +2,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const publicSourceResolutions = [
-  ["@ykdz/template", "/apps/cli/src/main.ts"],
-  ["@ykdz/template-content", "/content/default/collection/src/index.ts"],
-  ["@ykdz/template-core/project-blueprint", "/src/project-blueprint.ts"],
-  ["@ykdz/template-core/generation-record", "/src/generation-record.ts"],
+  ["@boringparts/template", "/apps/cli/src/main.ts"],
+  ["@boringparts/template-content", "/content/default/collection/src/index.ts"],
+  ["@boringparts/template-core/project-blueprint", "/src/project-blueprint.ts"],
+  ["@boringparts/template-core/generation-record", "/src/generation-record.ts"],
 ] as const;
 
 function portablePath(value: string): string {

@@ -19,17 +19,17 @@ import path from "node:path";
 import { after, describe, it } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import type { DefaultReferencePackageDefinition } from "@ykdz/default-content-authoring/reference-package";
-import { templateContent } from "@ykdz/template-content";
+import type { DefaultReferencePackageDefinition } from "@boringparts/default-content-authoring/reference-package";
+import { templateContent } from "@boringparts/template-content";
 import {
   installContentCollection,
   prepareContentCollection,
   writeContentCollectionEvidence,
   writeNativeArchiveOverrides,
   type PreparedContentCollection,
-} from "@ykdz/template-content-artifacts";
-import { contentIdentityKey } from "@ykdz/template-core/content-identity";
-import { resolveReferenceDependencyIdentity } from "@ykdz/template-generator";
+} from "@boringparts/template-content-artifacts";
+import { contentIdentityKey } from "@boringparts/template-core/content-identity";
+import { resolveReferenceDependencyIdentity } from "@boringparts/template-generator";
 import { execa } from "execa";
 
 import { createAuthoredContentFixture } from "../test-support/authored-content-fixture.ts";
@@ -87,7 +87,8 @@ async function buildNativeAuthoredContent(
 ) {
   const rootOwner = prepared.owners.find(
     (owner) =>
-      owner.member.identity.packageName === "@ykdz/reference-workspace-root",
+      owner.member.identity.packageName ===
+      "@boringparts/reference-workspace-root",
   );
   assert.ok(
     rootOwner,
@@ -362,8 +363,8 @@ void describe("native content artifact installation chain", () => {
     const prepared = await prepareContentCollection({
       content: templateContent,
       roots: [preset],
-      packageName: "@ykdz/template-content",
-      additionalSdkRoots: ["@ykdz/template-workspace"],
+      packageName: "@boringparts/template-content",
+      additionalSdkRoots: ["@boringparts/template-workspace"],
       workspaceRoot,
       root: buildRoot,
     });
@@ -373,11 +374,11 @@ void describe("native content artifact installation chain", () => {
     assert.deepEqual(
       prepared.members.map((member) => member.identity.packageName).sort(),
       [
-        "@ykdz/preset-ts-lib",
-        "@ykdz/reference-npm-publication",
-        "@ykdz/reference-ts-lib",
-        "@ykdz/reference-tooling-config",
-        "@ykdz/reference-workspace-root",
+        "@boringparts/preset-ts-lib",
+        "@boringparts/reference-npm-publication",
+        "@boringparts/reference-ts-lib",
+        "@boringparts/reference-tooling-config",
+        "@boringparts/reference-workspace-root",
       ].sort(),
     );
 
@@ -406,7 +407,7 @@ void describe("native content artifact installation chain", () => {
     const installedPackage = path.join(
       consumerRoot,
       "node_modules",
-      "@ykdz",
+      "@boringparts",
       "template-content",
     );
     const resultPath = path.join(projectRoot, "result.json");
@@ -421,9 +422,9 @@ void describe("native content artifact installation chain", () => {
       [
         'import assert from "node:assert/strict";',
         'import { chmod, readdir, readFile, stat, writeFile } from "node:fs/promises";',
-        'import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";',
+        'import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";',
         "",
-        'import { templateContent } from "@ykdz/template-content";',
+        'import { templateContent } from "@boringparts/template-content";',
         "",
         "const targetRoot = process.argv[2];",
         "const resultPath = process.argv[3];",
@@ -432,7 +433,7 @@ void describe("native content artifact installation chain", () => {
         "const generator = createDefaultGenerator({ content: templateContent });",
         "const initialized = await generator.init({",
         "  targetRoot,",
-        '  selection: { presets: [{ contentIdentity: { alias: "ts-lib", namespace: "ykdz" } }] },',
+        '  selection: { presets: [{ contentIdentity: { alias: "ts-lib", namespace: "boringparts" } }] },',
         '  conventions: { repositoryName: "packed-library", defaultPackageScope: "packed-library" },',
         "});",
         'assert.equal(initialized.status, "success", JSON.stringify(initialized));',
@@ -443,10 +444,10 @@ void describe("native content artifact installation chain", () => {
         "const userFile = `${targetRoot}/user-owned.txt`;",
         'await writeFile(userFile, "keep the initialized workspace\\n", { mode: 0o640 });',
         "await chmod(userFile, 0o640);",
-        'const library = templateContent.find((member) => member.kind === "reference" && member.identity.packageName === "@ykdz/reference-ts-lib");',
-        'const configuration = templateContent.find((member) => member.kind === "reference" && member.identity.packageName === "@ykdz/reference-tooling-config");',
-        'const libraryRecord = initialized.generationRecord.packages.find((record) => record.contentIdentity.packageName === "@ykdz/reference-ts-lib");',
-        'const configurationRecord = initialized.generationRecord.packages.find((record) => record.contentIdentity.packageName === "@ykdz/reference-tooling-config");',
+        'const library = templateContent.find((member) => member.kind === "reference" && member.identity.packageName === "@boringparts/reference-ts-lib");',
+        'const configuration = templateContent.find((member) => member.kind === "reference" && member.identity.packageName === "@boringparts/reference-tooling-config");',
+        'const libraryRecord = initialized.generationRecord.packages.find((record) => record.contentIdentity.packageName === "@boringparts/reference-ts-lib");',
+        'const configurationRecord = initialized.generationRecord.packages.find((record) => record.contentIdentity.packageName === "@boringparts/reference-tooling-config");',
         "assert.ok(library && configuration && libraryRecord && configurationRecord);",
         "assert.equal(library.source.moduleURL.includes(process.argv[5]), false);",
         "assert.equal(library.source.manifestURL.includes(process.argv[5]), false);",
@@ -458,7 +459,7 @@ void describe("native content artifact installation chain", () => {
         'const generated = await readFile(`${targetRoot}/${libraryDefinition.path}/src/index.ts`, "utf8");',
         "const replayGenerator = createDefaultGenerator({ content: templateContent });",
         "assert.notStrictEqual(replayGenerator, generator);",
-        'const addition = await replayGenerator.add({ repositoryRoot: targetRoot, contentIdentity: { alias: "library", namespace: "ykdz" }, creationInput: { leafName: "fresh-library" } });',
+        'const addition = await replayGenerator.add({ repositoryRoot: targetRoot, contentIdentity: { alias: "library", namespace: "boringparts" }, creationInput: { leafName: "fresh-library" } });',
         'assert.equal(addition.status, "success", JSON.stringify(addition));',
         'if (addition.status !== "success") process.exit(3);',
         "for (const previous of initializedPackages) { const current = addition.generationRecord.packages.find((record) => record.packageDefinitionId === previous.packageDefinitionId); assert.ok(current); assert.deepEqual(current.dependencyBindings, previous.dependencyBindings); }",
@@ -538,13 +539,13 @@ void describe("native content artifact installation chain", () => {
       result.generationRecord.selections.flatMap(({ presetIdentity }) =>
         presetIdentity === null ? [] : [presetIdentity.packageName],
       ),
-      ["@ykdz/preset-ts-lib"],
+      ["@boringparts/preset-ts-lib"],
     );
     assert.equal(result.addition.status, "success");
     assert.ok(
       result.addition.generationRecord.packages.filter(
         ({ contentIdentity }) =>
-          contentIdentity.packageName === "@ykdz/reference-ts-lib",
+          contentIdentity.packageName === "@boringparts/reference-ts-lib",
       ).length >= 2,
     );
     assert.ok(
@@ -605,7 +606,7 @@ void describe("native content artifact installation chain", () => {
         'import { readFile, readdir } from "node:fs/promises";',
         'const authorRoots = JSON.parse(await readFile(process.argv[2], "utf8"));',
         'for (const root of authorRoots) await assert.rejects(readdir(root), { code: "EACCES" });',
-        'await import("@ykdz/template-content");',
+        'await import("@boringparts/template-content");',
       ].join("\n"),
     );
     const targetBeforeMissingSdk = await snapshotTree(targetRoot);
@@ -615,7 +616,7 @@ void describe("native content artifact installation chain", () => {
       ...new Set(
         await Promise.all(
           closure.packages
-            .filter(({ name }) => name === "@ykdz/template-generator")
+            .filter(({ name }) => name === "@boringparts/template-generator")
             .map(async ({ path: packagePath }) => await realpath(packagePath)),
         ),
       ),
@@ -670,7 +671,7 @@ void describe("native content artifact installation chain", () => {
     assert.match(missingSdkExecution.stderr, /ERR_MODULE_NOT_FOUND/u);
     assert.match(
       missingSdkExecution.stderr,
-      /Cannot find package '@ykdz\/template-generator' imported from .*template-content-provider/su,
+      /Cannot find package '@boringparts\/template-generator' imported from .*template-content-provider/su,
     );
     assert.deepEqual(await snapshotTree(targetRoot), targetBeforeMissingSdk);
     assert.deepEqual(await snapshotTree(projectRoot), projectBeforeMissingSdk);
@@ -734,8 +735,8 @@ void describe("native content artifact installation chain", () => {
       const prepared = await prepareContentCollection({
         content: templateContent,
         roots: [preset],
-        packageName: "@ykdz/template-content",
-        additionalSdkRoots: ["@ykdz/template-workspace"],
+        packageName: "@boringparts/template-content",
+        additionalSdkRoots: ["@boringparts/template-workspace"],
         workspaceRoot,
         root: await temporaryRoot(`preset-${preset.alias}-`),
         sdkArchives,
@@ -780,7 +781,7 @@ void describe("native content artifact installation chain", () => {
       const installedCollection = path.join(
         consumerRoot,
         "node_modules",
-        "@ykdz",
+        "@boringparts",
         "template-content",
       );
       const driverPath = path.join(installedCollection, "preset-driver.mjs");
@@ -795,9 +796,9 @@ void describe("native content artifact installation chain", () => {
         [
           'import assert from "node:assert/strict";',
           'import { chmod, readdir, readFile, stat, writeFile } from "node:fs/promises";',
-          'import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";',
+          'import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";',
           "",
-          'import { templateContent } from "@ykdz/template-content";',
+          'import { templateContent } from "@boringparts/template-content";',
           "",
           'const authorRoots = JSON.parse(await readFile(process.argv[3], "utf8"));',
           'for (const root of authorRoots) await assert.rejects(readdir(root), { code: "EACCES" });',
@@ -905,11 +906,11 @@ void describe("native content artifact installation chain", () => {
       assert.equal(afterInitWorkspace.mtimeMs, workspaceTime);
 
       const replayPackageByPreset = new Map([
-        ["ts-cli", "@ykdz/reference-ts-cli"],
-        ["rust-bin", "@ykdz/reference-rust-bin"],
-        ["vue-app", "@ykdz/reference-vue-app"],
-        ["vue-hono-app", "@ykdz/reference-vue-app"],
-        ["vike-app", "@ykdz/reference-vue-app"],
+        ["ts-cli", "@boringparts/reference-ts-cli"],
+        ["rust-bin", "@boringparts/reference-rust-bin"],
+        ["vue-app", "@boringparts/reference-vue-app"],
+        ["vue-hono-app", "@boringparts/reference-vue-app"],
+        ["vike-app", "@boringparts/reference-vue-app"],
       ]);
       const replayPackageName = replayPackageByPreset.get(preset.alias);
       assert.ok(
@@ -936,7 +937,7 @@ void describe("native content artifact installation chain", () => {
 
           workspaceRoot,
           packageName: `@fixture/replay-${preset.alias}`,
-          additionalSdkRoots: ["@ykdz/template-workspace"],
+          additionalSdkRoots: ["@boringparts/template-workspace"],
           collectionVersion: prepared.collection.version,
           root: await temporaryRoot(`preset-${preset.alias}-replay-build-`),
           sdkArchives,
@@ -954,7 +955,7 @@ void describe("native content artifact installation chain", () => {
       const replayInstalledCollection = path.join(
         replayConsumerRoot,
         "node_modules",
-        alreadyPrepared ? "@ykdz" : "@fixture",
+        alreadyPrepared ? "@boringparts" : "@fixture",
         alreadyPrepared ? "template-content" : `replay-${preset.alias}`,
       );
       const replayDriverPath = path.join(
@@ -1002,7 +1003,7 @@ void describe("native content artifact installation chain", () => {
         [
           'import assert from "node:assert/strict";',
           'import { readdir, readFile, stat, writeFile } from "node:fs/promises";',
-          'import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";',
+          'import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";',
           "",
           `import { templateContent } from "${replayPrepared.collection.name}";`,
           "",
@@ -1129,10 +1130,11 @@ void describe("native content artifact installation chain", () => {
       if (preset.alias === "rust-bin") {
         const rustOwner = prepared.owners.find(
           (owner) =>
-            owner.member.identity.packageName === "@ykdz/reference-rust-bin",
+            owner.member.identity.packageName ===
+            "@boringparts/reference-rust-bin",
         );
         const installedRust = closure.packages.find(
-          ({ name }) => name === "@ykdz/reference-rust-bin",
+          ({ name }) => name === "@boringparts/reference-rust-bin",
         );
         assert.ok(rustOwner && installedRust);
         assert.ok(
@@ -1160,13 +1162,13 @@ void describe("native content artifact installation chain", () => {
           [
             'import assert from "node:assert/strict";',
             'import { readdir, readFile, writeFile } from "node:fs/promises";',
-            'import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";',
+            'import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";',
             "",
-            'import { templateContent } from "@ykdz/template-content";',
+            'import { templateContent } from "@boringparts/template-content";',
             'const authorRoots = JSON.parse(await readFile(process.argv[3], "utf8"));',
             'for (const root of authorRoots) await assert.rejects(readdir(root), { code: "EACCES" });',
             "const generator = createDefaultGenerator({ content: templateContent });",
-            'const result = await generator.add({ repositoryRoot: process.argv[2], contentIdentity: { alias: "binary", namespace: "ykdz" }, creationInput: { leafName: "second-app" } });',
+            'const result = await generator.add({ repositoryRoot: process.argv[2], contentIdentity: { alias: "binary", namespace: "boringparts" }, creationInput: { leafName: "second-app" } });',
             "await writeFile(process.argv[4], JSON.stringify({ status: result.status, phase: result.phase, errorMessage: result.error?.message }));",
           ].join("\n"),
         );
@@ -1219,7 +1221,7 @@ void describe("native content artifact installation chain", () => {
         assert.equal(missingResourceEvidence.phase, "preparation");
         assert.match(
           missingResourceEvidence.errorMessage,
-          /@ykdz\/reference-rust-bin\/native\/Cargo\.toml/u,
+          /@boringparts\/reference-rust-bin\/native\/Cargo\.toml/u,
         );
         assert.deepEqual(
           await snapshotTree(targetRoot),
@@ -1308,20 +1310,24 @@ void describe("native content artifact installation chain", () => {
     const entries = references.map((member) => ({ member }));
     const vueHonoWeb = references.find(
       (member) =>
-        member.identity.packageName === "@ykdz/reference-vue-hono-web",
+        member.identity.packageName === "@boringparts/reference-vue-hono-web",
     );
     const honoApi = references.find(
-      (member) => member.identity.packageName === "@ykdz/reference-hono-api",
+      (member) =>
+        member.identity.packageName === "@boringparts/reference-hono-api",
     );
     const vikeWeb = references.find(
-      (member) => member.identity.packageName === "@ykdz/reference-vike-web",
+      (member) =>
+        member.identity.packageName === "@boringparts/reference-vike-web",
     );
     const vikeDatabase = references.find(
-      (member) => member.identity.packageName === "@ykdz/reference-vike-db",
+      (member) =>
+        member.identity.packageName === "@boringparts/reference-vike-db",
     );
     const vikeMigrations = references.find(
       (member) =>
-        member.identity.packageName === "@ykdz/reference-vike-migrations",
+        member.identity.packageName ===
+        "@boringparts/reference-vike-migrations",
     );
     assert.ok(
       vueHonoWeb && honoApi && vikeWeb && vikeDatabase && vikeMigrations,
@@ -1353,8 +1359,8 @@ void describe("native content artifact installation chain", () => {
     const prepared = await prepareContentCollection({
       content: templateContent,
       roots: references,
-      packageName: "@ykdz/template-content",
-      additionalSdkRoots: ["@ykdz/template-workspace"],
+      packageName: "@boringparts/template-content",
+      additionalSdkRoots: ["@boringparts/template-workspace"],
       workspaceRoot,
       root: await temporaryRoot("reference-content-"),
       sdkArchives: firstPartyPrepared.sdkPackages,
@@ -1371,7 +1377,7 @@ void describe("native content artifact installation chain", () => {
     assert.equal(prepared.owners.length, 12);
     const vueAppOwner = prepared.owners.find(
       (owner) =>
-        owner.member.identity.packageName === "@ykdz/reference-vue-app",
+        owner.member.identity.packageName === "@boringparts/reference-vue-app",
     );
     assert.ok(vueAppOwner);
     const vueAppNativeList = await execa(
@@ -1427,7 +1433,7 @@ void describe("native content artifact installation chain", () => {
     await writeFile(
       publicTypesPath,
       [
-        'import { templateContent, templateReferencePackages, type ContentKind, type TemplateContentMember, type TemplateReferencePackage } from "@ykdz/template-content";',
+        'import { templateContent, templateReferencePackages, type ContentKind, type TemplateContentMember, type TemplateReferencePackage } from "@boringparts/template-content";',
         "const kind: ContentKind = templateContent[0]!.kind;",
         "const members: readonly TemplateContentMember[] = templateContent;",
         "const references: readonly TemplateReferencePackage[] = templateReferencePackages;",
@@ -1454,7 +1460,7 @@ void describe("native content artifact installation chain", () => {
     const installedCollection = path.join(
       consumerRoot,
       "node_modules",
-      "@ykdz",
+      "@boringparts",
       "template-content",
     );
     const driverPath = path.join(installedCollection, "references-driver.mjs");
@@ -1479,11 +1485,11 @@ void describe("native content artifact installation chain", () => {
       [
         'import assert from "node:assert/strict";',
         'import { access, mkdir, readdir, readFile, writeFile } from "node:fs/promises";',
-        'import { contentIdentityKey } from "@ykdz/template-core/content-identity";',
-        'import { resolveReferenceDependencyIdentity } from "@ykdz/template-generator";',
-        'import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";',
+        'import { contentIdentityKey } from "@boringparts/template-core/content-identity";',
+        'import { resolveReferenceDependencyIdentity } from "@boringparts/template-generator";',
+        'import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";',
         "",
-        'import { deriveTemplateMembers, templateContent } from "@ykdz/template-content";',
+        'import { deriveTemplateMembers, templateContent } from "@boringparts/template-content";',
         "const targetBase = process.argv[2];",
         'const authorRoots = JSON.parse(await readFile(process.argv[3], "utf8"));',
         'const entries = JSON.parse(await readFile(process.argv[4], "utf8"));',
@@ -1516,14 +1522,14 @@ void describe("native content artifact installation chain", () => {
         "  await access(targetRoot);",
         "  results.push({ identity: entry.identity, roots, generationRecord: initialized.generationRecord, packagePaths: initialized.blueprint.packages.map(({ path }) => path) });",
         "}",
-        'const web = entries.find((entry) => entry.identity.packageName === "@ykdz/reference-vue-hono-web");',
+        'const web = entries.find((entry) => entry.identity.packageName === "@boringparts/reference-vue-hono-web");',
         "assert.ok(web);",
         "const missingContentTarget = `${targetBase}/missing-content-provider`;",
-        'const missingContent = templateContent.filter((member) => member.identity.packageName !== "@ykdz/reference-hono-api");',
+        'const missingContent = templateContent.filter((member) => member.identity.packageName !== "@boringparts/reference-hono-api");',
         'const missingProvider = await createDefaultGenerator({ content: missingContent }).init({ targetRoot: missingContentTarget, selection: { roots: [{ nodeIdentity: "workspace-root", contentIdentity: defaultRoot.identity }, { nodeIdentity: "entry", contentIdentity: web.identity }] }, conventions: { repositoryName: "missing-content", defaultPackageScope: "missing-content", todo: false } });',
         'assert.equal(missingProvider.status, "operation-failure");',
         'assert.equal(missingProvider.phase, "preparation");',
-        'assert.ok(missingProvider.error.message.includes("@ykdz/reference-hono-api/template"));',
+        'assert.ok(missingProvider.error.message.includes("@boringparts/reference-hono-api/template"));',
         'await assert.rejects(access(missingContentTarget), { code: "ENOENT" });',
         "await writeFile(process.argv[5], JSON.stringify({ results, missingProvider: { status: missingProvider.status, phase: missingProvider.phase, error: missingProvider.error.message } }));",
       ].join("\n"),
@@ -1591,7 +1597,8 @@ void describe("native content artifact installation chain", () => {
       );
     }
     const vueHonoResult = result.results.find(
-      ({ identity }) => identity.packageName === "@ykdz/reference-vue-hono-web",
+      ({ identity }) =>
+        identity.packageName === "@boringparts/reference-vue-hono-web",
     );
     assert.ok(vueHonoResult);
     assert.equal(result.missingProvider.status, "operation-failure");
@@ -1666,7 +1673,7 @@ void describe("native content artifact installation chain", () => {
     const nodeTypesVersion =
       firstPartyPrepared.resolvedVersions.get("@types/node");
     const workspaceSdkVersion = firstPartyPrepared.resolvedVersions.get(
-      "@ykdz/template-workspace",
+      "@boringparts/template-workspace",
     );
     assert.ok(typescriptVersion);
     assert.ok(nodeTypesVersion);
@@ -1686,7 +1693,7 @@ void describe("native content artifact installation chain", () => {
         nodeTypes: nodeTypesVersion,
       },
       featureNativeDevDependencies: {
-        "@ykdz/template-workspace": workspaceSdkVersion,
+        "@boringparts/template-workspace": workspaceSdkVersion,
         typescript: "6.0.3",
       },
       featureTemplatePrelude: [
@@ -1696,7 +1703,7 @@ void describe("native content artifact installation chain", () => {
       ],
       featureTemplateDependencies: [
         {
-          name: "@ykdz/template-workspace",
+          name: "@boringparts/template-workspace",
           purpose: "template-execution",
         },
         { name: "typescript", purpose: "template-execution" },
@@ -1796,13 +1803,13 @@ void describe("native content artifact installation chain", () => {
     const defaultRoot = templateContent.find(
       (member) =>
         member.kind === "reference" &&
-        member.identity.packageName === "@ykdz/reference-workspace-root",
+        member.identity.packageName === "@boringparts/reference-workspace-root",
     );
     assert.ok(defaultRoot);
     const defaultToolingConfig = templateContent.find(
       (member) =>
         member.kind === "reference" &&
-        member.identity.packageName === "@ykdz/reference-tooling-config",
+        member.identity.packageName === "@boringparts/reference-tooling-config",
     );
     assert.ok(defaultToolingConfig);
     const contentMembers = [...content, defaultRoot, defaultToolingConfig];
@@ -1817,7 +1824,7 @@ void describe("native content artifact installation chain", () => {
 
       workspaceRoot,
       packageName: "@fixture/authored-content",
-      additionalSdkRoots: ["@ykdz/template-workspace"],
+      additionalSdkRoots: ["@boringparts/template-workspace"],
       collectionVersion: collectionManifest.version,
       root: buildRoot,
       sdkArchives: firstPartyPrepared.sdkPackages,
@@ -1831,8 +1838,8 @@ void describe("native content artifact installation chain", () => {
         "@fixture/feature",
         "@fixture/preset",
         "@fixture/tooling-config",
-        "@ykdz/reference-tooling-config",
-        "@ykdz/reference-workspace-root",
+        "@boringparts/reference-tooling-config",
+        "@boringparts/reference-workspace-root",
       ].sort(),
     );
     const featureOwner = prepared.owners.find(
@@ -1859,7 +1866,7 @@ void describe("native content artifact installation chain", () => {
     assert.ok(
       presetOwner.artifact.dependencies.some(
         (dependency) =>
-          dependency.name === "@ykdz/template-workspace-authoring" &&
+          dependency.name === "@boringparts/template-workspace-authoring" &&
           dependency.purposes.includes("template-execution"),
       ),
       "Authored preset artifact should declare the authoring SDK required to run its definition",
@@ -1923,8 +1930,8 @@ void describe("native content artifact installation chain", () => {
       [
         'import assert from "node:assert/strict";',
         'import { chmod, lstat, readdir, readFile, readlink, stat, writeFile } from "node:fs/promises";',
-        'import { contentIdentityKey } from "@ykdz/template-core/content-identity";',
-        'import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";',
+        'import { contentIdentityKey } from "@boringparts/template-core/content-identity";',
+        'import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";',
         "",
         'import { templateContent } from "@fixture/authored-content";',
         "",
@@ -1952,7 +1959,7 @@ void describe("native content artifact installation chain", () => {
         "  assert.equal(member.source.manifestURL.includes(process.argv[5]), false);",
         "}",
         "const generator = createDefaultGenerator({ content: templateContent });",
-        'const defaultRoot = templateContent.find((member) => member.kind === "reference" && member.identity.packageName === "@ykdz/reference-workspace-root");',
+        'const defaultRoot = templateContent.find((member) => member.kind === "reference" && member.identity.packageName === "@boringparts/reference-workspace-root");',
         "assert.ok(defaultRoot);",
         "const initialized = await generator.init({",
         "  targetRoot,",
@@ -2219,7 +2226,7 @@ void describe("native content artifact installation chain", () => {
     assert.ok(
       Object.hasOwn(
         presetManifest.dependencies ?? {},
-        "@ykdz/template-workspace-authoring",
+        "@boringparts/template-workspace-authoring",
       ),
     );
     for (const archive of [
@@ -2256,7 +2263,7 @@ void describe("native content artifact installation chain", () => {
       ...new Set(
         await Promise.all(
           installed
-            .filter(({ name }) => name === "@ykdz/template-generator")
+            .filter(({ name }) => name === "@boringparts/template-generator")
             .map(async ({ path: packagePath }) => await realpath(packagePath)),
         ),
       ),
@@ -2306,7 +2313,7 @@ void describe("native content artifact installation chain", () => {
     assert.match(missingDependencyResult.stderr, /ERR_MODULE_NOT_FOUND/u);
     assert.match(
       missingDependencyResult.stderr,
-      /Cannot find package '@ykdz\/template-generator' imported from .*template-content-provider/su,
+      /Cannot find package '@boringparts\/template-generator' imported from .*template-content-provider/su,
     );
     assert.deepEqual(
       await snapshotTree(targetRoot),
@@ -2331,7 +2338,7 @@ void describe("native content artifact installation chain", () => {
       [
         'import assert from "node:assert/strict";',
         'import { readdir, readFile, writeFile } from "node:fs/promises";',
-        'import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";',
+        'import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";',
         "",
         'import { templateContent } from "@fixture/authored-content";',
         'const authorRoots = JSON.parse(await readFile(process.argv[5], "utf8"));',
@@ -2521,13 +2528,13 @@ void describe("native content artifact installation chain", () => {
     const defaultRoot = templateContent.find(
       (member) =>
         member.kind === "reference" &&
-        member.identity.packageName === "@ykdz/reference-workspace-root",
+        member.identity.packageName === "@boringparts/reference-workspace-root",
     );
     assert.ok(defaultRoot);
     const defaultToolingConfig = templateContent.find(
       (member) =>
         member.kind === "reference" &&
-        member.identity.packageName === "@ykdz/reference-tooling-config",
+        member.identity.packageName === "@boringparts/reference-tooling-config",
     );
     assert.ok(defaultToolingConfig);
     const members = [
@@ -2554,7 +2561,7 @@ void describe("native content artifact installation chain", () => {
 
       workspaceRoot,
       packageName: "@fixture/multi-source-content",
-      additionalSdkRoots: ["@ykdz/template-workspace"],
+      additionalSdkRoots: ["@boringparts/template-workspace"],
       collectionVersion: "1.0.0",
       root: await temporaryRoot("multi-source-content-"),
       sdkArchives: firstPartyPrepared.sdkPackages,
@@ -2640,8 +2647,8 @@ void describe("native content artifact installation chain", () => {
       [
         'import assert from "node:assert/strict";',
         'import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";',
-        'import { contentIdentityKey } from "@ykdz/template-core/content-identity";',
-        'import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";',
+        'import { contentIdentityKey } from "@boringparts/template-core/content-identity";',
+        'import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";',
         "",
         'import { templateContent } from "@fixture/multi-source-content";',
         'const { targetRoot, identities, versions, markers } = JSON.parse(await readFile(process.argv[2], "utf8"));',
@@ -2738,7 +2745,7 @@ void describe("native content artifact installation chain", () => {
       ...new Map(
         closure.packages
           .filter(({ name }) =>
-            name.startsWith("@ykdz/template-content-provider-"),
+            name.startsWith("@boringparts/template-content-provider-"),
           )
           .map((provider) => [provider.path, provider]),
       ).values(),

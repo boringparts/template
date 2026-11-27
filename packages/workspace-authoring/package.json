@@ -1,5 +1,5 @@
 {
-  "name": "@ykdz/template-workspace-authoring",
+  "name": "@boringparts/template-workspace-authoring",
   "version": "0.0.0",
   "private": true,
   "files": [
@@ -42,15 +42,15 @@
     "typescript": "catalog:public-cli-runtime"
   },
   "devDependencies": {
+    "@boringparts/template-core": "workspace:*",
+    "@boringparts/tooling-config": "workspace:*",
     "@types/node": "catalog:",
-    "@ykdz/template-core": "workspace:*",
-    "@ykdz/tooling-config": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",
     "typescript-7": "catalog:"
   },
   "peerDependencies": {
-    "@ykdz/template-core": "workspace:*"
+    "@boringparts/template-core": "workspace:*"
   }
 }

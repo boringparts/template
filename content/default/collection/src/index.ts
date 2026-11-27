@@ -1,87 +1,87 @@
-import { loadContentSource } from "@ykdz/template-generator/content-source";
-export { deriveContentMembers as deriveTemplateMembers } from "@ykdz/template-core/content-identity";
+import { loadContentSource } from "@boringparts/template-generator/content-source";
+export { deriveContentMembers as deriveTemplateMembers } from "@boringparts/template-core/content-identity";
 
 /** Registers all selectable content once and loads each member from its native public entry point. */
 export const templateContent = await loadContentSource({
-  namespace: "ykdz",
+  namespace: "boringparts",
   resolve: (specifier) => import.meta.resolve(specifier),
   members: [
     {
-      specifier: "@ykdz/reference-workspace-root/template",
-      load: () => import("@ykdz/reference-workspace-root/template"),
+      specifier: "@boringparts/reference-workspace-root/template",
+      load: () => import("@boringparts/reference-workspace-root/template"),
     },
     {
-      specifier: "@ykdz/reference-ts-lib/template",
-      load: () => import("@ykdz/reference-ts-lib/template"),
+      specifier: "@boringparts/reference-ts-lib/template",
+      load: () => import("@boringparts/reference-ts-lib/template"),
     },
     {
-      specifier: "@ykdz/reference-npm-publication/template",
-      load: () => import("@ykdz/reference-npm-publication/template"),
+      specifier: "@boringparts/reference-npm-publication/template",
+      load: () => import("@boringparts/reference-npm-publication/template"),
     },
     {
-      specifier: "@ykdz/reference-tooling-config/template",
-      load: () => import("@ykdz/reference-tooling-config/template"),
+      specifier: "@boringparts/reference-tooling-config/template",
+      load: () => import("@boringparts/reference-tooling-config/template"),
     },
     {
-      specifier: "@ykdz/preset-ts-lib/template",
-      load: () => import("@ykdz/preset-ts-lib/template"),
+      specifier: "@boringparts/preset-ts-lib/template",
+      load: () => import("@boringparts/preset-ts-lib/template"),
     },
     {
-      specifier: "@ykdz/reference-ts-cli/template",
-      load: () => import("@ykdz/reference-ts-cli/template"),
+      specifier: "@boringparts/reference-ts-cli/template",
+      load: () => import("@boringparts/reference-ts-cli/template"),
     },
     {
-      specifier: "@ykdz/preset-ts-cli/template",
-      load: () => import("@ykdz/preset-ts-cli/template"),
+      specifier: "@boringparts/preset-ts-cli/template",
+      load: () => import("@boringparts/preset-ts-cli/template"),
     },
     {
-      specifier: "@ykdz/reference-rust-bin/template",
-      load: () => import("@ykdz/reference-rust-bin/template"),
+      specifier: "@boringparts/reference-rust-bin/template",
+      load: () => import("@boringparts/reference-rust-bin/template"),
     },
     {
-      specifier: "@ykdz/preset-rust-bin/template",
-      load: () => import("@ykdz/preset-rust-bin/template"),
+      specifier: "@boringparts/preset-rust-bin/template",
+      load: () => import("@boringparts/preset-rust-bin/template"),
     },
     {
-      specifier: "@ykdz/reference-vue-app/template",
-      load: () => import("@ykdz/reference-vue-app/template"),
+      specifier: "@boringparts/reference-vue-app/template",
+      load: () => import("@boringparts/reference-vue-app/template"),
     },
     {
-      specifier: "@ykdz/preset-vue-app/template",
-      load: () => import("@ykdz/preset-vue-app/template"),
+      specifier: "@boringparts/preset-vue-app/template",
+      load: () => import("@boringparts/preset-vue-app/template"),
     },
     {
-      specifier: "@ykdz/reference-hono-api/template",
-      load: () => import("@ykdz/reference-hono-api/template"),
+      specifier: "@boringparts/reference-hono-api/template",
+      load: () => import("@boringparts/reference-hono-api/template"),
     },
     {
-      specifier: "@ykdz/reference-vue-hono-web/template",
-      load: () => import("@ykdz/reference-vue-hono-web/template"),
+      specifier: "@boringparts/reference-vue-hono-web/template",
+      load: () => import("@boringparts/reference-vue-hono-web/template"),
     },
     {
-      specifier: "@ykdz/preset-vue-hono-app/template",
-      load: () => import("@ykdz/preset-vue-hono-app/template"),
+      specifier: "@boringparts/preset-vue-hono-app/template",
+      load: () => import("@boringparts/preset-vue-hono-app/template"),
     },
     {
-      specifier: "@ykdz/reference-vike-web/template",
-      load: () => import("@ykdz/reference-vike-web/template"),
+      specifier: "@boringparts/reference-vike-web/template",
+      load: () => import("@boringparts/reference-vike-web/template"),
     },
     {
-      specifier: "@ykdz/reference-vike-db/template",
-      load: () => import("@ykdz/reference-vike-db/template"),
+      specifier: "@boringparts/reference-vike-db/template",
+      load: () => import("@boringparts/reference-vike-db/template"),
     },
     {
-      specifier: "@ykdz/reference-vike-migrations/template",
-      load: () => import("@ykdz/reference-vike-migrations/template"),
+      specifier: "@boringparts/reference-vike-migrations/template",
+      load: () => import("@boringparts/reference-vike-migrations/template"),
     },
     {
-      specifier: "@ykdz/preset-vike-app/template",
-      load: () => import("@ykdz/preset-vike-app/template"),
+      specifier: "@boringparts/preset-vike-app/template",
+      load: () => import("@boringparts/preset-vike-app/template"),
     },
   ],
 });
 
-export type { ContentKind } from "@ykdz/template-core/content-identity";
+export type { ContentKind } from "@boringparts/template-core/content-identity";
 export type TemplateContentMember = (typeof templateContent)[number];
 export type TemplatePreset = Extract<
   TemplateContentMember,

@@ -90,17 +90,17 @@ export type ReleaseToolchainSnapshot = typeof releaseToolchainSnapshot;
 
 await Promise.all([
   sendToOwner(
-    "@ykdz/template-workspace",
+    "@boringparts/template-workspace",
     "sync:release-toolchain-snapshot",
     toolchainSnapshot,
   ),
   sendToOwner(
-    "@ykdz/template-workspace",
+    "@boringparts/template-workspace",
     "sync:policy-snapshot",
     workspaceSnapshot,
   ),
   sendToOwner(
-    "@ykdz/template-workspace-authoring",
+    "@boringparts/template-workspace-authoring",
     "sync:resource-ignore-snapshot",
     resourceIgnoreSnapshot,
   ),

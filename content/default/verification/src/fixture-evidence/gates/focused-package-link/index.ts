@@ -6,8 +6,8 @@ import { fileURLToPath } from "node:url";
 import type {
   PackageDefinition,
   PersistedPackageDefinition,
-} from "@ykdz/template-core/project-blueprint";
-import type { ContainerCommandRunner } from "@ykdz/template-verification-runtime/development-container-session";
+} from "@boringparts/template-core/project-blueprint";
+import type { ContainerCommandRunner } from "@boringparts/template-verification-runtime/development-container-session";
 
 import type { GeneratedScenarioReceipt } from "../../../generated-content.ts";
 import {

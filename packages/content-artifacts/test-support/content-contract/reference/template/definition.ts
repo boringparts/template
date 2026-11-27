@@ -1,9 +1,9 @@
 import { fileURLToPath } from "node:url";
 
-import type { PackageContribution } from "@ykdz/template-core/package-contribution";
-import type { ReferencePackageDefinition } from "@ykdz/template-core/reference-package";
-import { createTemplateSourceHandle } from "@ykdz/template-core/template-source";
-import { defineNativeReferenceContentArtifact } from "@ykdz/template-workspace-authoring/content-artifact";
+import type { PackageContribution } from "@boringparts/template-core/package-contribution";
+import type { ReferencePackageDefinition } from "@boringparts/template-core/reference-package";
+import { createTemplateSourceHandle } from "@boringparts/template-core/template-source";
+import { defineNativeReferenceContentArtifact } from "@boringparts/template-workspace-authoring/content-artifact";
 
 import manifest from "../package.json" with { type: "json" };
 import { referenceRevision } from "./revision.ts";
@@ -153,7 +153,7 @@ export const referencePackage = defineNativeReferenceContentArtifact(
         mode: 0o644,
       },
     ],
-    executionDependencies: ["@ykdz/template-workspace-authoring"],
+    executionDependencies: ["@boringparts/template-workspace-authoring"],
     prepareFacts(resources) {
       return {
         revision: referenceRevision.prepared,

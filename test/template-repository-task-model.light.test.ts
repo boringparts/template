@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { describe, it } from "node:test";
 
-import { inspectTaskGate } from "@ykdz/reference-workspace-root/task-gates";
+import { inspectTaskGate } from "@boringparts/reference-workspace-root/task-gates";
 import { execa } from "execa";
 import { parse } from "yaml";
 
@@ -118,14 +118,19 @@ void describe("Template Repository native task model", () => {
       directory.data.packages.items.map(({ name, tags }) => [name, tags]),
     );
     for (const [name, tag] of [
-      ["@ykdz/template", "template-cli"],
-      ["@ykdz/default-content-verification", "default-content-verification"],
-      ["@ykdz/template-core", "template-core"],
-      ["@ykdz/template-workspace", "template-workspace"],
+      ["@boringparts/template", "template-cli"],
+      [
+        "@boringparts/default-content-verification",
+        "default-content-verification",
+      ],
+      ["@boringparts/template-core", "template-core"],
+      ["@boringparts/template-workspace", "template-workspace"],
     ] as const)
       assert.ok(packageTags.get(name)?.includes(tag));
-    assert.ok(packageTags.has("@ykdz/reference-tooling-config"));
-    assert.ok(packageTags.get("@ykdz/tooling-config")?.includes("native"));
+    assert.ok(packageTags.has("@boringparts/reference-tooling-config"));
+    assert.ok(
+      packageTags.get("@boringparts/tooling-config")?.includes("native"),
+    );
 
     for (const task of nativeTaskByName(directory).values()) {
       if (task.command !== null) {
@@ -144,10 +149,10 @@ void describe("Template Repository native task model", () => {
       buildPlan.tasks.map((task) => [task.taskId, task]),
     );
     const buildIds = [
-      "@ykdz/template#build",
-      "@ykdz/default-content-verification#build",
-      "@ykdz/template-core#build",
-      "@ykdz/template-workspace#build",
+      "@boringparts/template#build",
+      "@boringparts/default-content-verification#build",
+      "@boringparts/template-core#build",
+      "@boringparts/template-workspace#build",
     ];
     for (const taskId of buildIds) {
       const task = buildTasks.get(taskId);
@@ -165,45 +170,51 @@ void describe("Template Repository native task model", () => {
         ),
       );
     }
-    const configBuild = buildTasks.get("@ykdz/reference-tooling-config#build");
+    const configBuild = buildTasks.get(
+      "@boringparts/reference-tooling-config#build",
+    );
     assert.ok(configBuild);
     assert.equal(configBuild.command, "<NONEXISTENT>");
     assert.deepEqual(configBuild.resolvedTaskDefinition.dependsOn, []);
     assert.deepEqual(
-      nativeTaskByName(directory).get("@ykdz/reference-tooling-config#build")
-        ?.tags,
+      nativeTaskByName(directory).get(
+        "@boringparts/reference-tooling-config#build",
+      )?.tags,
       [],
     );
-    const staticConfigBuild = buildTasks.get("@ykdz/tooling-config#build");
+    const staticConfigBuild = buildTasks.get(
+      "@boringparts/tooling-config#build",
+    );
     assert.ok(staticConfigBuild);
     assert.equal(staticConfigBuild.command, "<NONEXISTENT>");
     assert.deepEqual(staticConfigBuild.resolvedTaskDefinition.dependsOn, []);
     assert.deepEqual(
-      nativeTaskByName(directory).get("@ykdz/tooling-config#build")?.tags,
+      nativeTaskByName(directory).get("@boringparts/tooling-config#build")
+        ?.tags,
       [],
     );
     for (const [consumer, dependencies] of [
       [
-        "@ykdz/template#build",
+        "@boringparts/template#build",
         [
-          "@ykdz/reference-tooling-config#build",
-          "@ykdz/template-content#build",
-          "@ykdz/template-core#build",
-          "@ykdz/template-workspace#build",
-          "@ykdz/tooling-config#build",
+          "@boringparts/reference-tooling-config#build",
+          "@boringparts/template-content#build",
+          "@boringparts/template-core#build",
+          "@boringparts/template-workspace#build",
+          "@boringparts/tooling-config#build",
         ],
       ],
       [
-        "@ykdz/default-content-verification#build",
+        "@boringparts/default-content-verification#build",
         [
-          "@ykdz/reference-ts-cli#build",
-          "@ykdz/template-content#build",
-          "@ykdz/template-core#build",
-          "@ykdz/template-generator#build",
-          "@ykdz/template-workspace#build",
-          "@ykdz/template-workspace-authoring#build",
-          "@ykdz/reference-workspace-root#build",
-          "@ykdz/tooling-config#build",
+          "@boringparts/reference-ts-cli#build",
+          "@boringparts/template-content#build",
+          "@boringparts/template-core#build",
+          "@boringparts/template-generator#build",
+          "@boringparts/template-workspace#build",
+          "@boringparts/template-workspace-authoring#build",
+          "@boringparts/reference-workspace-root#build",
+          "@boringparts/tooling-config#build",
         ],
       ],
     ] as const)
@@ -213,7 +224,7 @@ void describe("Template Repository native task model", () => {
           `${consumer} is missing ${dependency}`,
         );
     assert.deepEqual(
-      buildTasks.get("@ykdz/template-core#build")?.dependencies,
+      buildTasks.get("@boringparts/template-core#build")?.dependencies,
       [],
     );
   });
@@ -284,16 +295,17 @@ void describe("Template Repository native task model", () => {
     assert.deepStrictEqual(nativeTasks.get("//#check")?.tags, [
       "quality:entry",
     ]);
-    assert.deepStrictEqual(nativeTasks.get("@ykdz/template#test")?.tags, [
-      "quality:light",
-    ]);
     assert.deepStrictEqual(
-      nativeTasks.get("@ykdz/template#test:e2e:source")?.tags,
+      nativeTasks.get("@boringparts/template#test")?.tags,
+      ["quality:light"],
+    );
+    assert.deepStrictEqual(
+      nativeTasks.get("@boringparts/template#test:e2e:source")?.tags,
       ["quality:conditional"],
     );
     assert.deepStrictEqual(
       nativeTasks.get(
-        "@ykdz/default-content-verification#check:evidence-health",
+        "@boringparts/default-content-verification#check:evidence-health",
       )?.tags,
       ["quality:conditional"],
     );
@@ -312,16 +324,19 @@ void describe("Template Repository native task model", () => {
     assert.ok(taskIds.includes("//#typecheck"));
     assert.ok(taskIds.includes("//#test"));
     assert.ok(!taskIds.includes("//#test:e2e"));
-    assert.ok(taskIds.includes("@ykdz/template-core#format:check"));
-    assert.ok(taskIds.includes("@ykdz/template-core#typecheck"));
-    assert.ok(taskIds.includes("@ykdz/template-workspace#test"));
-    assert.ok(taskIds.includes("@ykdz/default-content-verification#test"));
+    assert.ok(taskIds.includes("@boringparts/template-core#format:check"));
+    assert.ok(taskIds.includes("@boringparts/template-core#typecheck"));
+    assert.ok(taskIds.includes("@boringparts/template-workspace#test"));
+    assert.ok(
+      taskIds.includes("@boringparts/default-content-verification#test"),
+    );
     assert.ok(
       !actionGraph.tasks
         .find(
-          ({ taskId }) => taskId === "@ykdz/default-content-verification#lint",
+          ({ taskId }) =>
+            taskId === "@boringparts/default-content-verification#lint",
         )
-        ?.dependencies.includes("@ykdz/template-core#build"),
+        ?.dependencies.includes("@boringparts/template-core#build"),
     );
     assert.strictEqual(
       taskIds.some((taskId) => taskId.includes("transit")),
@@ -336,69 +351,69 @@ void describe("Template Repository native task model", () => {
 
     for (const [lintTaskId, fixTaskId, dependencyId] of [
       [
-        "@ykdz/template#lint",
-        "@ykdz/template#lint:fix",
-        "@ykdz/template-content-artifacts#build",
+        "@boringparts/template#lint",
+        "@boringparts/template#lint:fix",
+        "@boringparts/template-content-artifacts#build",
       ],
       [
-        "@ykdz/template-content#lint",
-        "@ykdz/template-content#lint:fix",
-        "@ykdz/template-content-artifacts#build",
+        "@boringparts/template-content#lint",
+        "@boringparts/template-content#lint:fix",
+        "@boringparts/template-content-artifacts#build",
       ],
       [
-        "@ykdz/template-content-artifacts#lint",
-        "@ykdz/template-content-artifacts#lint:fix",
-        "@ykdz/template-content-artifacts#build",
+        "@boringparts/template-content-artifacts#lint",
+        "@boringparts/template-content-artifacts#lint:fix",
+        "@boringparts/template-content-artifacts#build",
       ],
       [
-        "@ykdz/reference-workspace-root#lint",
-        "@ykdz/reference-workspace-root#lint:fix",
-        "@ykdz/template-environment#build",
+        "@boringparts/reference-workspace-root#lint",
+        "@boringparts/reference-workspace-root#lint:fix",
+        "@boringparts/template-environment#build",
       ],
       [
-        "@ykdz/reference-workspace-root#lint",
-        "@ykdz/reference-workspace-root#lint:fix",
-        "@ykdz/template-core#build",
+        "@boringparts/reference-workspace-root#lint",
+        "@boringparts/reference-workspace-root#lint:fix",
+        "@boringparts/template-core#build",
       ],
       [
-        "@ykdz/reference-workspace-root#lint",
-        "@ykdz/reference-workspace-root#lint:fix",
-        "@ykdz/default-content-authoring#build",
+        "@boringparts/reference-workspace-root#lint",
+        "@boringparts/reference-workspace-root#lint:fix",
+        "@boringparts/default-content-authoring#build",
       ],
       [
-        "@ykdz/reference-vike-web#lint",
-        "@ykdz/reference-vike-web#lint:fix",
-        "@ykdz/reference-vike-db#build",
+        "@boringparts/reference-vike-web#lint",
+        "@boringparts/reference-vike-web#lint:fix",
+        "@boringparts/reference-vike-db#build",
       ],
       [
-        "@ykdz/reference-vike-web#lint",
-        "@ykdz/reference-vike-web#lint:fix",
-        "@ykdz/template-core#build",
+        "@boringparts/reference-vike-web#lint",
+        "@boringparts/reference-vike-web#lint:fix",
+        "@boringparts/template-core#build",
       ],
       [
-        "@ykdz/reference-vike-web#lint",
-        "@ykdz/reference-vike-web#lint:fix",
-        "@ykdz/default-content-authoring#build",
+        "@boringparts/reference-vike-web#lint",
+        "@boringparts/reference-vike-web#lint:fix",
+        "@boringparts/default-content-authoring#build",
       ],
       [
-        "@ykdz/reference-vike-migrations#lint",
-        "@ykdz/reference-vike-migrations#lint:fix",
-        "@ykdz/reference-vike-db#build",
+        "@boringparts/reference-vike-migrations#lint",
+        "@boringparts/reference-vike-migrations#lint:fix",
+        "@boringparts/reference-vike-db#build",
       ],
       [
-        "@ykdz/reference-vike-migrations#lint",
-        "@ykdz/reference-vike-migrations#lint:fix",
-        "@ykdz/template-core#build",
+        "@boringparts/reference-vike-migrations#lint",
+        "@boringparts/reference-vike-migrations#lint:fix",
+        "@boringparts/template-core#build",
       ],
       [
-        "@ykdz/reference-vike-migrations#lint",
-        "@ykdz/reference-vike-migrations#lint:fix",
-        "@ykdz/default-content-authoring#build",
+        "@boringparts/reference-vike-migrations#lint",
+        "@boringparts/reference-vike-migrations#lint:fix",
+        "@boringparts/default-content-authoring#build",
       ],
       [
-        "@ykdz/reference-vue-hono-web#lint",
-        "@ykdz/reference-vue-hono-web#lint:fix",
-        "@ykdz/reference-hono-api#build",
+        "@boringparts/reference-vue-hono-web#lint",
+        "@boringparts/reference-vue-hono-web#lint:fix",
+        "@boringparts/reference-hono-api#build",
       ],
     ] as const) {
       assert.ok(
@@ -416,13 +431,25 @@ void describe("Template Repository native task model", () => {
     }
 
     for (const [lintTaskId, upstreamLintId] of [
-      ["//#lint", "@ykdz/template-core#lint"],
-      ["//#lint", "@ykdz/default-content-authoring#lint"],
-      ["@ykdz/template#lint", "@ykdz/template-workspace#lint"],
-      ["@ykdz/default-content-verification#lint", "@ykdz/template-core#lint"],
-      ["@ykdz/reference-vike-web#lint", "@ykdz/reference-vike-db#lint"],
-      ["@ykdz/reference-vike-migrations#lint", "@ykdz/reference-vike-db#lint"],
-      ["@ykdz/reference-vue-hono-web#lint", "@ykdz/reference-hono-api#lint"],
+      ["//#lint", "@boringparts/template-core#lint"],
+      ["//#lint", "@boringparts/default-content-authoring#lint"],
+      ["@boringparts/template#lint", "@boringparts/template-workspace#lint"],
+      [
+        "@boringparts/default-content-verification#lint",
+        "@boringparts/template-core#lint",
+      ],
+      [
+        "@boringparts/reference-vike-web#lint",
+        "@boringparts/reference-vike-db#lint",
+      ],
+      [
+        "@boringparts/reference-vike-migrations#lint",
+        "@boringparts/reference-vike-db#lint",
+      ],
+      [
+        "@boringparts/reference-vue-hono-web#lint",
+        "@boringparts/reference-hono-api#lint",
+      ],
     ] as const) {
       assert.ok(
         lintGraph.tasks
@@ -433,14 +460,17 @@ void describe("Template Repository native task model", () => {
     }
 
     for (const [taskId, dependencyId] of [
-      ["@ykdz/template#typecheck", "@ykdz/template-content-artifacts#build"],
       [
-        "@ykdz/template-content#typecheck",
-        "@ykdz/template-content-artifacts#build",
+        "@boringparts/template#typecheck",
+        "@boringparts/template-content-artifacts#build",
       ],
       [
-        "@ykdz/template-content-artifacts#typecheck",
-        "@ykdz/template-content-artifacts#build",
+        "@boringparts/template-content#typecheck",
+        "@boringparts/template-content-artifacts#build",
+      ],
+      [
+        "@boringparts/template-content-artifacts#typecheck",
+        "@boringparts/template-content-artifacts#build",
       ],
     ] as const) {
       assert.ok(
@@ -481,10 +511,10 @@ void describe("Template Repository native task model", () => {
     assert.strictEqual(executableTemplateChecks.length, 1);
     assert.strictEqual(
       executableTemplateChecks[0]?.taskId,
-      "@ykdz/default-content-verification#check:templates",
+      "@boringparts/default-content-verification#check:templates",
     );
     assert.ok(!taskIds.includes("//#test"));
-    assert.ok(!taskIds.includes("@ykdz/template#build"));
+    assert.ok(!taskIds.includes("@boringparts/template#build"));
 
     const requiredTasks = [
       "check:generated",
@@ -506,7 +536,7 @@ void describe("Template Repository native task model", () => {
     assert.deepStrictEqual(
       registryGraph.tasks.map((task) => task.taskId).sort(),
       requiredTasks
-        .map((name) => `@ykdz/default-content-verification#${name}`)
+        .map((name) => `@boringparts/default-content-verification#${name}`)
         .sort(),
     );
     for (const task of registryGraph.tasks)
@@ -521,7 +551,7 @@ void describe("Template Repository native task model", () => {
     };
     assert.deepStrictEqual(
       matrixGraph.tasks.map((task) => task.taskId),
-      ["@ykdz/default-content-verification#diagnose:matrix"],
+      ["@boringparts/default-content-verification#diagnose:matrix"],
     );
   });
 
@@ -538,10 +568,10 @@ void describe("Template Repository native task model", () => {
 
     assert.ok(!taskIds.includes("//#build"));
     for (const packageName of [
-      "@ykdz/template",
-      "@ykdz/default-content-verification",
-      "@ykdz/template-core",
-      "@ykdz/template-workspace",
+      "@boringparts/template",
+      "@boringparts/default-content-verification",
+      "@boringparts/template-core",
+      "@boringparts/template-workspace",
     ]) {
       assert.ok(taskIds.includes(`${packageName}#build`));
     }
@@ -563,7 +593,7 @@ void describe("Template Repository native task model", () => {
         "turbo",
         "run",
         "build",
-        "--filter=@ykdz/template",
+        "--filter=@boringparts/template",
         "--dry-run=json",
       ],
       { reject: true },
@@ -573,9 +603,9 @@ void describe("Template Repository native task model", () => {
         readonly tasks: readonly { readonly taskId: string }[];
       }
     ).tasks.map(({ taskId }) => taskId);
-    assert.ok(tasks.includes("@ykdz/template#build"));
-    assert.ok(tasks.includes("@ykdz/template-core#build"));
-    assert.ok(tasks.includes("@ykdz/template-workspace#build"));
+    assert.ok(tasks.includes("@boringparts/template#build"));
+    assert.ok(tasks.includes("@boringparts/template-core#build"));
+    assert.ok(tasks.includes("@boringparts/template-workspace#build"));
   });
 
   void it("keeps source journeys free of build artifacts while formal tarballs verify compiled CLI consumption", async () => {
@@ -585,19 +615,20 @@ void describe("Template Repository native task model", () => {
     const source = await runTurboDryRun(
       "test",
       "test:e2e:source",
-      "--filter=@ykdz/template",
+      "--filter=@boringparts/template",
     );
     assert.ok(source.tasks.every((task) => !task.taskId.endsWith("#build")));
-    assert.deepEqual(directory.get("@ykdz/template#test:e2e:source")?.tags, [
-      "quality:conditional",
-    ]);
     assert.deepEqual(
-      directory.get("@ykdz/template#test:e2e:distribution")?.tags,
+      directory.get("@boringparts/template#test:e2e:source")?.tags,
+      ["quality:conditional"],
+    );
+    assert.deepEqual(
+      directory.get("@boringparts/template#test:e2e:distribution")?.tags,
       ["quality:conditional"],
     );
     assert.equal(
       root.scripts["test:e2e:cli"],
-      "pnpm --filter @ykdz/template run test:e2e:resolution && pnpm --filter @ykdz/template run test:e2e:source",
+      "pnpm --filter @boringparts/template run test:e2e:resolution && pnpm --filter @boringparts/template run test:e2e:source",
     );
     assert.deepEqual(directory.get("//#test:e2e:cli")?.tags, ["quality:heavy"]);
     const gate = inspectTaskGate(
@@ -615,7 +646,7 @@ void describe("Template Repository native task model", () => {
       cliJourney.tasks.map((task) => task.taskId),
     );
     assert.ok(cliJourneyTaskIds.has("//#test:e2e:cli"));
-    assert.ok(!cliJourneyTaskIds.has("@ykdz/template#build"));
+    assert.ok(!cliJourneyTaskIds.has("@boringparts/template#build"));
     assert.ok(cli.scripts["test:e2e:source"]?.includes("--conditions=source"));
     assert.ok(
       !cli.scripts["test:e2e:distribution"]?.includes("--conditions=source"),
@@ -624,9 +655,9 @@ void describe("Template Repository native task model", () => {
 
   void it("compiles each Vike reference template project once in the light gate while keeping independent typecheck", async () => {
     const vikeReferences = [
-      "@ykdz/reference-vike-web",
-      "@ykdz/reference-vike-db",
-      "@ykdz/reference-vike-migrations",
+      "@boringparts/reference-vike-web",
+      "@boringparts/reference-vike-db",
+      "@boringparts/reference-vike-migrations",
     ] as const;
 
     const gate = inspectTaskGate(

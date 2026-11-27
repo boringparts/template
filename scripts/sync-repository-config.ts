@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { projectTomlStringValues } from "@ykdz/template-core/toml";
+import { projectTomlStringValues } from "@boringparts/template-core/toml";
 import ts from "typescript";
 
 import { repositoryDevelopmentEnvironment } from "./repository-environment.ts";
@@ -151,14 +151,17 @@ export async function planRepositoryConfiguration(
     throw new Error(derived.diagnostics.join("\n"));
   const resolve = createRequire(path.join(repositoryRoot, "package.json"));
   const ownerTargets = await Promise.all([
-    prepareOwnerTarget(resolve, "@ykdz/template/repository-configuration"),
     prepareOwnerTarget(
       resolve,
-      "@ykdz/reference-ts-cli/repository-configuration",
+      "@boringparts/template/repository-configuration",
     ),
     prepareOwnerTarget(
       resolve,
-      "@ykdz/reference-rust-bin/repository-configuration",
+      "@boringparts/reference-ts-cli/repository-configuration",
+    ),
+    prepareOwnerTarget(
+      resolve,
+      "@boringparts/reference-rust-bin/repository-configuration",
     ),
   ]);
   const partialOutputs = [

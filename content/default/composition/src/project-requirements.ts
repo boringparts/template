@@ -1,4 +1,4 @@
-import type { PackageDefinition } from "@ykdz/template-core/project-blueprint";
+import type { PackageDefinition } from "@boringparts/template-core/project-blueprint";
 
 /** Explicit package link requested via stable node identity; linkability is enforced by workspace policy. */
 export type PackageLinkRequirement = {

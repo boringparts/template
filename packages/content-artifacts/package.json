@@ -1,5 +1,5 @@
 {
-  "name": "@ykdz/template-content-artifacts",
+  "name": "@boringparts/template-content-artifacts",
   "version": "0.0.0",
   "private": true,
   "files": [
@@ -22,14 +22,14 @@
     "test:integration": "node --test --test-concurrency=1 --test-timeout=300000 'test/content-contract.integration.test.ts'"
   },
   "dependencies": {
-    "@ykdz/template-core": "workspace:*",
-    "@ykdz/template-workspace-authoring": "workspace:*",
+    "@boringparts/template-core": "workspace:*",
+    "@boringparts/template-workspace-authoring": "workspace:*",
     "execa": "catalog:"
   },
   "devDependencies": {
+    "@boringparts/template-generator": "workspace:*",
+    "@boringparts/tooling-config": "workspace:*",
     "@types/node": "catalog:",
-    "@ykdz/template-generator": "workspace:*",
-    "@ykdz/tooling-config": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",

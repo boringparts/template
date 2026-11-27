@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-import { assertWorkflowContract } from "@ykdz/default-content-verification/workflow-contract";
-import { templatePresets } from "@ykdz/template-content";
+import { assertWorkflowContract } from "@boringparts/default-content-verification/workflow-contract";
+import { templatePresets } from "@boringparts/template-content";
 import { parse } from "yaml";
 
 import {

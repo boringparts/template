@@ -11,20 +11,20 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, describe, it } from "node:test";
 
-import type { LoadedContentMember } from "@ykdz/template-core/content-identity";
-import { definePreset } from "@ykdz/template-core/preset-definition";
-import { loadContentSource } from "@ykdz/template-generator/content-source";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
-import { releaseToolchainSnapshot } from "@ykdz/template-workspace/release-toolchain-snapshot";
+import type { LoadedContentMember } from "@boringparts/template-core/content-identity";
+import { definePreset } from "@boringparts/template-core/preset-definition";
+import { loadContentSource } from "@boringparts/template-generator/content-source";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
+import { releaseToolchainSnapshot } from "@boringparts/template-workspace/release-toolchain-snapshot";
 
 const content = await loadContentSource({
-  namespace: "ykdz",
+  namespace: "boringparts",
   resolve: (specifier) => import.meta.resolve(specifier),
   members: [
-    "@ykdz/reference-workspace-root/template",
-    "@ykdz/reference-rust-bin/template",
-    "@ykdz/reference-tooling-config/template",
-    "@ykdz/preset-rust-bin/template",
+    "@boringparts/reference-workspace-root/template",
+    "@boringparts/reference-rust-bin/template",
+    "@boringparts/reference-tooling-config/template",
+    "@boringparts/preset-rust-bin/template",
   ],
 });
 
@@ -39,9 +39,9 @@ const member = (kind: "preset" | "reference", packageName: string) => {
   return found;
 };
 
-const rust = member("reference", "@ykdz/reference-rust-bin");
-const root = member("reference", "@ykdz/reference-workspace-root");
-const rustPreset = member("preset", "@ykdz/preset-rust-bin");
+const rust = member("reference", "@boringparts/reference-rust-bin");
+const root = member("reference", "@boringparts/reference-workspace-root");
+const rustPreset = member("preset", "@boringparts/preset-rust-bin");
 const aliasOnlyRustPresetDefinition = definePreset({
   metadata: {
     alias: "rust-alias-only",
@@ -59,15 +59,15 @@ const aliasOnlyRustPreset: LoadedContentMember<
   "preset"
 > = {
   identity: {
-    namespace: "ykdz",
-    packageName: "@ykdz/preset-rust-alias-only",
+    namespace: "boringparts",
+    packageName: "@boringparts/preset-rust-alias-only",
     exportPath: "./template",
   },
   kind: "preset",
   alias: aliasOnlyRustPresetDefinition.metadata.alias,
   definition: aliasOnlyRustPresetDefinition,
   source: {
-    specifier: "@ykdz/preset-rust-alias-only/template",
+    specifier: "@boringparts/preset-rust-alias-only/template",
     moduleURL: import.meta.url,
     manifestURL: import.meta.url,
   },

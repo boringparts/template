@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
 
-import type { SharedRootContribution } from "@ykdz/default-content-authoring/contracts";
+import type { SharedRootContribution } from "@boringparts/default-content-authoring/contracts";
 import {
   composeCheckWorkflow,
   composeSharedRootFiles,
-} from "@ykdz/template-workspace/shared-root-files";
+} from "@boringparts/template-workspace/shared-root-files";
 import { parse as parseYaml } from "yaml";
 
 function compose(declarations: readonly SharedRootContribution[]) {

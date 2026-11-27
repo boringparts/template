@@ -8,7 +8,7 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 
-import { templatePresets } from "@ykdz/template-content";
+import { templatePresets } from "@boringparts/template-content";
 import { parse as parseYaml } from "yaml";
 
 import { planPreset } from "../../support/preset-planning.ts";

@@ -5,11 +5,11 @@ import { fileURLToPath } from "node:url";
 import type {
   PreparedReference,
   ResourceFileSnapshot,
-} from "@ykdz/template-core/reference-package";
+} from "@boringparts/template-core/reference-package";
 import {
   resolveTemplateSource,
   type TemplateSourceHandle,
-} from "@ykdz/template-core/template-source";
+} from "@boringparts/template-core/template-source";
 
 export type NativeContentManifest = Readonly<Record<string, unknown>> & {
   readonly name: string;

@@ -1,5 +1,5 @@
 {
-  "name": "@ykdz/default-content-verification",
+  "name": "@boringparts/default-content-verification",
   "private": true,
   "type": "module",
   "exports": {
@@ -30,22 +30,22 @@
     "check:capabilities": "node --conditions=source src/check-fixture-evidence-architecture.ts && node --conditions=source src/check-generated-registry.ts capabilities"
   },
   "dependencies": {
-    "@ykdz/default-content-authoring": "workspace:*",
-    "@ykdz/reference-ts-cli": "workspace:*",
-    "@ykdz/template-content": "workspace:*",
-    "@ykdz/template-core": "workspace:*",
-    "@ykdz/template-generator": "workspace:*",
-    "@ykdz/template-verification-runtime": "workspace:*",
-    "@ykdz/template-workspace": "workspace:*",
-    "@ykdz/template-workspace-authoring": "workspace:*",
+    "@boringparts/default-content-authoring": "workspace:*",
+    "@boringparts/reference-ts-cli": "workspace:*",
+    "@boringparts/template-content": "workspace:*",
+    "@boringparts/template-core": "workspace:*",
+    "@boringparts/template-generator": "workspace:*",
+    "@boringparts/template-verification-runtime": "workspace:*",
+    "@boringparts/template-workspace": "workspace:*",
+    "@boringparts/template-workspace-authoring": "workspace:*",
     "execa": "catalog:",
     "yaml": "catalog:"
   },
   "devDependencies": {
+    "@boringparts/reference-workspace-root": "workspace:*",
+    "@boringparts/tooling-config": "workspace:*",
     "@devcontainers/cli": "catalog:",
     "@types/node": "catalog:",
-    "@ykdz/reference-workspace-root": "workspace:*",
-    "@ykdz/tooling-config": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "semver": "catalog:",

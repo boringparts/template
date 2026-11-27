@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-import { templatePresets } from "@ykdz/template-content";
-import { releaseToolchainSnapshot } from "@ykdz/template-workspace/release-toolchain-snapshot";
+import { templatePresets } from "@boringparts/template-content";
+import { releaseToolchainSnapshot } from "@boringparts/template-workspace/release-toolchain-snapshot";
 
 import {
   runAddPackage,

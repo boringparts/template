@@ -1,5 +1,5 @@
-import { templateContent } from "@ykdz/template-content";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+import { templateContent } from "@boringparts/template-content";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 
 import type { GeneratedScenarioRuntime } from "./generated-content.ts";
 

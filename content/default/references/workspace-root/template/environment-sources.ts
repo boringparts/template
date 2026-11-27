@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 
-import { createTemplateSourceHandle } from "@ykdz/template-core/template-source";
+import { createTemplateSourceHandle } from "@boringparts/template-core/template-source";
 
 function source(path: string) {
   return createTemplateSourceHandle(

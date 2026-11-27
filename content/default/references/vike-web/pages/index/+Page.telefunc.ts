@@ -1,4 +1,5 @@
-import { createTodo, listTodos } from "@ykdz/reference-vike-db/queries/todos";
+import { createTodo } from "@boringparts/reference-vike-db/queries/todos";
+import { listTodos } from "@boringparts/reference-vike-db/queries/todos";
 import { getContext } from "telefunc";
 
 export async function onLoadTodos() {

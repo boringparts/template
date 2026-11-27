@@ -1,14 +1,14 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { DefaultWorkspaceConventions } from "@ykdz/default-content-authoring/reference-package";
+import type { DefaultWorkspaceConventions } from "@boringparts/default-content-authoring/reference-package";
 import {
   contentIdentityKey,
   type ContentIdentity,
   type LoadedContentMember,
-} from "@ykdz/template-core/content-identity";
-import type { JsonValue } from "@ykdz/template-core/json";
-import type { PresetSelectionDefinition } from "@ykdz/template-core/reference-package";
+} from "@boringparts/template-core/content-identity";
+import type { JsonValue } from "@boringparts/template-core/json";
+import type { PresetSelectionDefinition } from "@boringparts/template-core/reference-package";
 
 export type ChecksPreset = LoadedContentMember<
   PresetSelectionDefinition & {
@@ -33,12 +33,12 @@ export type GeneratedScenarioRuntime = {
     | ChecksPreset
     | LoadedContentMember<unknown, "reference">
   )[];
-  readonly createDefaultGenerator: typeof import("@ykdz/template-workspace/default-generation").createDefaultGenerator;
+  readonly createDefaultGenerator: typeof import("@boringparts/template-workspace/default-generation").createDefaultGenerator;
 };
 
 type DefaultGenerator = ReturnType<
-  typeof import("@ykdz/template-workspace/default-generation").createDefaultGenerator<
-    typeof import("@ykdz/template-content").templateContent
+  typeof import("@boringparts/template-workspace/default-generation").createDefaultGenerator<
+    typeof import("@boringparts/template-content").templateContent
   >
 >;
 type DefaultGeneratorResult = Awaited<ReturnType<DefaultGenerator["init"]>>;

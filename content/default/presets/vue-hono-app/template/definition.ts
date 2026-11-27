@@ -1,21 +1,21 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import type { DefaultPresetRootContributionOwner } from "@ykdz/default-content-authoring/preset-root-contribution";
-import { referencePackage as api } from "@ykdz/reference-hono-api/template";
+import type { DefaultPresetRootContributionOwner } from "@boringparts/default-content-authoring/preset-root-contribution";
+import { referencePackage as api } from "@boringparts/reference-hono-api/template";
 import {
   honoApiDependencyKey,
   referencePackage as web,
-} from "@ykdz/reference-vue-hono-web/template";
+} from "@boringparts/reference-vue-hono-web/template";
 import {
   definePreset,
   presetOwnerFromManifest,
-} from "@ykdz/template-core/preset-definition";
+} from "@boringparts/template-core/preset-definition";
 import {
   createTemplateSourceHandle,
   resolveTemplateSource,
-} from "@ykdz/template-core/template-source";
-import { defineNativeContentArtifact } from "@ykdz/template-workspace-authoring/content-artifact";
+} from "@boringparts/template-core/template-source";
+import { defineNativeContentArtifact } from "@boringparts/template-workspace-authoring/content-artifact";
 
 import presetPackage from "../package.json" with { type: "json" };
 import {
@@ -77,7 +77,7 @@ const nativePreset = defineNativeContentArtifact(
       ),
       mode: 0o644,
     })),
-    executionDependencies: ["@ykdz/template-workspace-authoring"],
+    executionDependencies: ["@boringparts/template-workspace-authoring"],
   },
 );
 

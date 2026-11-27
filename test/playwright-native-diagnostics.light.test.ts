@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { templateReferencePackages } from "@ykdz/template-content";
+import { templateReferencePackages } from "@boringparts/template-content";
 import ts from "typescript";
 
 function property(
@@ -77,8 +77,8 @@ function maintainedPlaywrightConfiguration(name: string) {
 
 void describe("maintained Playwright diagnostic configuration", () => {
   for (const configuration of [
-    maintainedPlaywrightConfiguration("@ykdz/reference-vue-app"),
-    maintainedPlaywrightConfiguration("@ykdz/reference-vike-web"),
+    maintainedPlaywrightConfiguration("@boringparts/reference-vue-app"),
+    maintainedPlaywrightConfiguration("@boringparts/reference-vike-web"),
   ]) {
     void it("uses native failure diagnostics in the prepared resource", async () => {
       const { sourcePath, sourceText } = configuration;

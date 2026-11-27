@@ -12,13 +12,13 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, describe, it } from "node:test";
 
-import { templateContent } from "@ykdz/template-content";
+import { templateContent } from "@boringparts/template-content";
 import {
   contentIdentityKey,
   createContentIndex,
   type ContentIdentity,
-} from "@ykdz/template-core/content-identity";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+} from "@boringparts/template-core/content-identity";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 
 import {
   createAuthoredContentFixture,
@@ -304,7 +304,7 @@ void describe("external specifier collection through default composition and pub
       },
       featureTemplateDependencies: [
         {
-          name: "@ykdz/default-content-authoring",
+          name: "@boringparts/default-content-authoring",
           purpose: "template-execution",
         },
         { name: "@fixture/tooling-config", purpose: "target" },
@@ -378,7 +378,7 @@ void describe("external specifier collection through default composition and pub
       assert.equal(
         Object.hasOwn(
           manifest.devDependencies ?? {},
-          "@ykdz/default-content-authoring",
+          "@boringparts/default-content-authoring",
         ),
         false,
       );

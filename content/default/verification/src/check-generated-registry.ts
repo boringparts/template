@@ -4,14 +4,14 @@ import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { contentIdentityKey } from "@ykdz/template-core/content-identity";
+import { contentIdentityKey } from "@boringparts/template-core/content-identity";
 import {
   containerCleanupTimeoutMilliseconds,
   containerCommandTimeoutMilliseconds,
   deriveDevelopmentContainerBuildIdentity,
   type ContainerCommandRunner,
   type DevelopmentContainerDependencyCaches,
-} from "@ykdz/template-verification-runtime/development-container-session";
+} from "@boringparts/template-verification-runtime/development-container-session";
 import { execa } from "execa";
 
 import {
@@ -77,14 +77,15 @@ type GeneratedScenarioSet =
   | "capabilities";
 
 const scenarioSetReproductionCommands: Record<GeneratedScenarioSet, string> = {
-  init: "pnpm --filter @ykdz/default-content-verification check:generated",
+  init: "pnpm --filter @boringparts/default-content-verification check:generated",
   "package-addition-matrix":
-    "pnpm --filter @ykdz/default-content-verification diagnose:matrix",
-  focused: "pnpm --filter @ykdz/default-content-verification check:focused",
+    "pnpm --filter @boringparts/default-content-verification diagnose:matrix",
+  focused:
+    "pnpm --filter @boringparts/default-content-verification check:focused",
   deployment:
-    "pnpm --filter @ykdz/default-content-verification check:deployment",
+    "pnpm --filter @boringparts/default-content-verification check:deployment",
   capabilities:
-    "pnpm --filter @ykdz/default-content-verification check:capabilities",
+    "pnpm --filter @boringparts/default-content-verification check:capabilities",
 };
 
 const fixtureFailureReportName = "fixture-failure.json";
@@ -514,26 +515,28 @@ export async function generatedScenariosFor(
     case "deployment":
       return deriveInitializationScenarios(runtime).filter(
         (scenario) =>
-          scenario.base.identity.namespace === "ykdz" &&
-          scenario.base.identity.packageName === "@ykdz/preset-vike-app",
+          scenario.base.identity.namespace === "boringparts" &&
+          scenario.base.identity.packageName === "@boringparts/preset-vike-app",
       );
     case "capabilities":
       return [
         ...deriveInitializationScenarios(runtime).filter(
           (scenario) =>
-            scenario.base.identity.namespace === "ykdz" &&
-            scenario.base.identity.packageName === "@ykdz/preset-vue-hono-app",
+            scenario.base.identity.namespace === "boringparts" &&
+            scenario.base.identity.packageName ===
+              "@boringparts/preset-vue-hono-app",
         ),
         ...deriveFixtureMatrix(runtime).filter(
           ({ base, addition }) =>
-            (base.identity.namespace === "ykdz" &&
-              base.identity.packageName === "@ykdz/preset-ts-lib" &&
-              ["@ykdz/preset-rust-bin", "@ykdz/preset-vue-app"].includes(
-                addition?.identity.packageName ?? "",
-              )) ||
-            (base.identity.namespace === "ykdz" &&
-              base.identity.packageName === "@ykdz/preset-vue-app" &&
-              addition?.identity.packageName === "@ykdz/preset-vue-app"),
+            (base.identity.namespace === "boringparts" &&
+              base.identity.packageName === "@boringparts/preset-ts-lib" &&
+              [
+                "@boringparts/preset-rust-bin",
+                "@boringparts/preset-vue-app",
+              ].includes(addition?.identity.packageName ?? "")) ||
+            (base.identity.namespace === "boringparts" &&
+              base.identity.packageName === "@boringparts/preset-vue-app" &&
+              addition?.identity.packageName === "@boringparts/preset-vue-app"),
         ),
       ];
   }
@@ -631,8 +634,8 @@ async function runScenario(
       await initializeFixtureGitRepository({ repositoryRoot: projectDir, run });
       if (
         mode === "capabilities" &&
-        scenario.base.identity.namespace === "ykdz" &&
-        scenario.base.identity.packageName === "@ykdz/preset-vue-app"
+        scenario.base.identity.namespace === "boringparts" &&
+        scenario.base.identity.packageName === "@boringparts/preset-vue-app"
       )
         customization = await customizeVueApplication(
           initialization,
@@ -651,8 +654,8 @@ async function runScenario(
   const initialization = receipt.initialization;
   if (
     mode === "capabilities" &&
-    scenario.addition?.identity.namespace === "ykdz" &&
-    scenario.addition.identity.packageName === "@ykdz/preset-vue-app"
+    scenario.addition?.identity.namespace === "boringparts" &&
+    scenario.addition.identity.packageName === "@boringparts/preset-vue-app"
   )
     await verifyVueApplicationCombination({
       initialization,

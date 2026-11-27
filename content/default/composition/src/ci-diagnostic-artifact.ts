@@ -1,4 +1,4 @@
-import type { CiDiagnosticArtifactDeclaration } from "@ykdz/default-content-authoring/contracts";
+import type { CiDiagnosticArtifactDeclaration } from "@boringparts/default-content-authoring/contracts";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

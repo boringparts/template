@@ -23,7 +23,7 @@ import {
   type ProjectProjectionPathPrecondition,
   type ProjectProjectionSource,
   type StructuredIdentitySetPolicy,
-} from "@ykdz/template-core/project-projection";
+} from "@boringparts/template-core/project-projection";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();

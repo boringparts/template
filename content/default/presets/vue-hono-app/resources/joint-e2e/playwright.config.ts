@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const apiPackageName = "@ykdz/reference-hono-api";
-const webPackageName = "@ykdz/reference-vue-hono-web";
+const apiPackageName = "@boringparts/reference-hono-api";
+const webPackageName = "@boringparts/reference-vue-hono-web";
 
 const apiPort = process.env.PLAYWRIGHT_API_PORT ?? "0";
 const webPort = process.env.PLAYWRIGHT_WEB_PORT ?? "0";

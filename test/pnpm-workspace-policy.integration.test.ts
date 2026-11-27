@@ -12,8 +12,8 @@ import path from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { templatePresets } from "@ykdz/template-content";
-import { renderGeneratedPnpmWorkspaceYaml } from "@ykdz/template-workspace/dependency-catalog";
+import { templatePresets } from "@boringparts/template-content";
+import { renderGeneratedPnpmWorkspaceYaml } from "@boringparts/template-workspace/dependency-catalog";
 import { execa } from "execa";
 
 const packageManagerPin = "pnpm@12.8.1";
@@ -26,7 +26,7 @@ async function generateNodeOnlyProject(prefix: string): Promise<string> {
   const workspace = await mkdtemp(path.join(tmpdir(), prefix));
   const projectDir = path.join(workspace, "demo-lib");
   const nodeOnlyPreset = templatePresets.find(
-    (preset) => preset.identity.packageName === "@ykdz/preset-ts-lib",
+    (preset) => preset.identity.packageName === "@boringparts/preset-ts-lib",
   );
   if (nodeOnlyPreset === undefined) {
     throw new Error(

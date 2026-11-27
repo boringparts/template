@@ -1,5 +1,5 @@
-import type { RustToolchainRequirement } from "@ykdz/default-content-authoring/contracts";
-import { projectTomlStringValues } from "@ykdz/template-core/toml";
+import type { RustToolchainRequirement } from "@boringparts/default-content-authoring/contracts";
+import { projectTomlStringValues } from "@boringparts/template-core/toml";
 import { parse } from "smol-toml";
 
 export type { RustToolchainRequirement };

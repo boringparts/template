@@ -17,17 +17,17 @@ type TurboBoundaries = {
 const packages = {
   core: {
     directory: "packages/core",
-    name: "@ykdz/template-core",
+    name: "@boringparts/template-core",
     mayImport: [] as const,
   },
   cli: {
     directory: "apps/cli",
-    name: "@ykdz/template",
+    name: "@boringparts/template",
     mayImport: ["core"] as const,
   },
   checks: {
     directory: "content/default/verification",
-    name: "@ykdz/default-content-verification",
+    name: "@boringparts/default-content-verification",
     mayImport: ["core"] as const,
   },
 } as const;

@@ -1,5 +1,8 @@
-import { templateContent, templatePresets } from "@ykdz/template-content";
-import { createContentIndex } from "@ykdz/template-core/content-identity";
+import {
+  templateContent,
+  templatePresets,
+} from "@boringparts/template-content";
+import { createContentIndex } from "@boringparts/template-core/content-identity";
 
 /**
  * Finds the alias of an add-capable preset in the public content collection

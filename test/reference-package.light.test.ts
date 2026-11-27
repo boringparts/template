@@ -8,8 +8,8 @@ import { pathToFileURL } from "node:url";
 import {
   defineReferencePackage,
   type ReferencePackageManifest,
-} from "@ykdz/default-content-authoring/reference-package";
-import type { PackageBinding } from "@ykdz/template-core/reference-package";
+} from "@boringparts/default-content-authoring/reference-package";
+import type { PackageBinding } from "@boringparts/template-core/reference-package";
 
 type Fixture = {
   readonly source: string;

@@ -1,9 +1,9 @@
-import { referencePackage } from "@ykdz/reference-ts-lib/template";
+import { referencePackage } from "@boringparts/reference-ts-lib/template";
 import {
   definePreset,
   presetOwnerFromManifest,
-} from "@ykdz/template-core/preset-definition";
-import { defineNativeContentArtifact } from "@ykdz/template-workspace-authoring/content-artifact";
+} from "@boringparts/template-core/preset-definition";
+import { defineNativeContentArtifact } from "@boringparts/template-workspace-authoring/content-artifact";
 
 import presetPackage from "../package.json" with { type: "json" };
 
@@ -25,6 +25,6 @@ export const preset = defineNativeContentArtifact(
     manifest: presetPackage,
     resourceRoot: new URL("../", import.meta.url),
     exportPath: "./template",
-    executionDependencies: ["@ykdz/template-workspace-authoring"],
+    executionDependencies: ["@boringparts/template-workspace-authoring"],
   },
 );

@@ -1,19 +1,19 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { contentIdentityKey } from "@ykdz/template-core/content-identity";
-import type { GenerationRecord } from "@ykdz/template-core/generation-record";
+import { contentIdentityKey } from "@boringparts/template-core/content-identity";
+import type { GenerationRecord } from "@boringparts/template-core/generation-record";
 import {
   type BlueprintPackageIdentityIssue,
   validateProjectBlueprint,
   type ProjectBlueprint,
-} from "@ykdz/template-core/project-blueprint";
+} from "@boringparts/template-core/project-blueprint";
 import {
   type ProjectProjectionAction,
   type ProjectProjectionConflict,
   type ProjectProjectionSource,
-} from "@ykdz/template-core/project-projection";
-import { releaseToolchainSnapshot } from "@ykdz/template-workspace/release-toolchain-snapshot";
+} from "@boringparts/template-core/project-projection";
+import { releaseToolchainSnapshot } from "@boringparts/template-workspace/release-toolchain-snapshot";
 
 import {
   validateInitializationInput,

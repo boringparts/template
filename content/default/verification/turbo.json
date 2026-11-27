@@ -141,11 +141,11 @@
     },
     "check:templates": {
       "dependsOn": [
-        "@ykdz/template-content#build",
-        "@ykdz/template-core#build",
-        "@ykdz/default-content-authoring#build",
-        "@ykdz/template-generator#build",
-        "@ykdz/template-workspace#build"
+        "@boringparts/template-content#build",
+        "@boringparts/template-core#build",
+        "@boringparts/default-content-authoring#build",
+        "@boringparts/template-generator#build",
+        "@boringparts/template-workspace#build"
       ],
       "tags": ["quality:light"],
       "cache": true,
@@ -155,11 +155,11 @@
     },
     "check:templates:github-yaml": {
       "dependsOn": [
-        "@ykdz/template-content#build",
-        "@ykdz/template-core#build",
-        "@ykdz/default-content-authoring#build",
-        "@ykdz/template-generator#build",
-        "@ykdz/template-workspace#build"
+        "@boringparts/template-content#build",
+        "@boringparts/template-core#build",
+        "@boringparts/default-content-authoring#build",
+        "@boringparts/template-generator#build",
+        "@boringparts/template-workspace#build"
       ],
       "tags": ["quality:light"],
       "cache": true,

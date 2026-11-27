@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import type { DefaultPresetPackageEvaluation } from "@ykdz/default-content-authoring/preset-root-contribution";
-import { honoApiDependencyKey } from "@ykdz/reference-vue-hono-web/template";
-import type { CompositionPackage } from "@ykdz/template-core/composition";
-import type { ContentIdentity } from "@ykdz/template-core/content-identity";
-import type { PackageDefinitionId } from "@ykdz/template-core/project-blueprint";
+import type { DefaultPresetPackageEvaluation } from "@boringparts/default-content-authoring/preset-root-contribution";
+import { honoApiDependencyKey } from "@boringparts/reference-vue-hono-web/template";
+import type { CompositionPackage } from "@boringparts/template-core/composition";
+import type { ContentIdentity } from "@boringparts/template-core/content-identity";
+import type { PackageDefinitionId } from "@boringparts/template-core/project-blueprint";
 
 import { preset } from "../template/definition.ts";
 
@@ -13,8 +13,8 @@ const { compose: composeVueHonoJointE2e, prepare: prepareJointE2eResources } =
   preset.rootContribution;
 
 const ownerIdentity: ContentIdentity = {
-  namespace: "ykdz",
-  packageName: "@ykdz/preset-vue-hono-app",
+  namespace: "boringparts",
+  packageName: "@boringparts/preset-vue-hono-app",
   exportPath: "./template",
 };
 
@@ -39,7 +39,7 @@ function packageInstance(options: {
   return {
     packageDefinitionId: options.id,
     contentIdentity: {
-      namespace: "ykdz",
+      namespace: "boringparts",
       packageName: options.packageName,
       exportPath: "./template",
     },
@@ -98,21 +98,21 @@ function selectedPackages(
 function validSelection() {
   const root = packageInstance({
     id: rootId,
-    packageName: "@ykdz/reference-workspace-root",
+    packageName: "@boringparts/reference-workspace-root",
     name: "demo",
     path: ".",
     role: "native-package",
   });
   const api = packageInstance({
     id: apiId,
-    packageName: "@ykdz/reference-hono-api",
+    packageName: "@boringparts/reference-hono-api",
     name: "@demo/api",
     path: "apps/api",
     role: "runtime-service",
   });
   const web = packageInstance({
     id: webId,
-    packageName: "@ykdz/reference-vue-hono-web",
+    packageName: "@boringparts/reference-vue-hono-web",
     name: "@demo/web",
     path: "apps/web",
     role: "runtime-service",
@@ -291,7 +291,7 @@ void describe("Vue-Hono preset joint E2E composition", () => {
           ({ path }) => path === "resources/joint-e2e/playwright.config.ts",
         )!.content,
       ),
-      /@ykdz\/reference-hono-api/u,
+      /@boringparts\/reference-hono-api/u,
     );
     assert.match(
       new TextDecoder().decode(

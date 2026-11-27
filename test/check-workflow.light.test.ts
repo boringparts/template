@@ -238,7 +238,7 @@ void describe("Fixture Verification Evidence check workflow", () => {
       name: "Validate Fixture Gate Prerequisites",
       run: [
         "docker version --format '{{.Server.Version}}'",
-        "pnpm --filter @ykdz/default-content-verification exec devcontainer --version",
+        "pnpm --filter @boringparts/default-content-verification exec devcontainer --version",
         "",
       ].join("\n"),
     });
@@ -376,7 +376,7 @@ void describe("Fixture Verification Evidence check workflow", () => {
       {
         name: "Check Fixture Evidence Health",
         if: "always() && steps.package-check.outcome == 'success'",
-        run: "pnpm --filter @ykdz/default-content-verification run check:evidence-health",
+        run: "pnpm --filter @boringparts/default-content-verification run check:evidence-health",
       },
     );
 
@@ -466,7 +466,7 @@ void describe("Fixture Verification Evidence check workflow", () => {
     const cleanupIndex = steps.findIndex(
       (step) =>
         step.run?.includes(
-          "docker ps -aq --filter label=com.ykdz.template.verification.project",
+          "docker ps -aq --filter label=com.boringparts.template.verification.project",
         ) && step.run.includes('docker rm -f "${fixture_containers[@]}"'),
     );
     const restoreIndex = steps.findIndex(

@@ -14,8 +14,8 @@ void describe("Vue-Hono joint browser E2E config", () => {
     assert.deepStrictEqual(
       webServers.map((server: { command: string }) => server.command),
       [
-        "pnpm --filter @ykdz/reference-hono-api --fail-if-no-match run start",
-        "pnpm --filter @ykdz/reference-vue-hono-web --fail-if-no-match run preview --host 127.0.0.1 --strictPort",
+        "pnpm --filter @boringparts/reference-hono-api --fail-if-no-match run start",
+        "pnpm --filter @boringparts/reference-vue-hono-web --fail-if-no-match run preview --host 127.0.0.1 --strictPort",
       ],
     );
     assert.strictEqual(config.use?.trace, "retain-on-failure");

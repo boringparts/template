@@ -4,8 +4,8 @@
   "tasks": {
     "build": {
       "dependsOn": [
-        "@ykdz/template-core#build",
-        "@ykdz/template-workspace-authoring#build"
+        "@boringparts/template-core#build",
+        "@boringparts/template-workspace-authoring#build"
       ],
       "tags": ["quality:light"],
       "cache": true,
@@ -54,7 +54,7 @@
       "persistent": false
     },
     "test:integration": {
-      "dependsOn": ["build", "@ykdz/template-generator#build"],
+      "dependsOn": ["build", "@boringparts/template-generator#build"],
       "tags": ["quality:heavy"],
       "cache": false,
       "inputs": ["$TURBO_DEFAULT$"],

@@ -1,5 +1,5 @@
 {
-  "extends": "@ykdz/tooling-config/base.json",
+  "extends": "@boringparts/tooling-config/base.json",
   "compilerOptions": {
     "erasableSyntaxOnly": true,
     "module": "esnext",

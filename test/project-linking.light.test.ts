@@ -16,11 +16,11 @@ import { pathToFileURL } from "node:url";
 import {
   defineReferencePackage,
   type DefaultRootDeclarationData,
-} from "@ykdz/default-content-authoring/reference-package";
-import { templateContent } from "@ykdz/template-content";
-import type { LoadedContentMember } from "@ykdz/template-core/content-identity";
-import type { PackageDefinitionId } from "@ykdz/template-core/project-blueprint";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+} from "@boringparts/default-content-authoring/reference-package";
+import { templateContent } from "@boringparts/template-content";
+import type { LoadedContentMember } from "@boringparts/template-core/content-identity";
+import type { PackageDefinitionId } from "@boringparts/template-core/project-blueprint";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 import { parse as parseYaml } from "yaml";
 
 type PackageLinkIssue =

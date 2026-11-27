@@ -1,5 +1,5 @@
 {
-  "name": "@ykdz/template-core",
+  "name": "@boringparts/template-core",
   "version": "0.0.0",
   "private": true,
   "files": [
@@ -30,9 +30,9 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@boringparts/tooling-config": "workspace:*",
     "@types/eslint": "catalog:",
     "@types/node": "catalog:",
-    "@ykdz/tooling-config": "workspace:*",
     "execa": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",

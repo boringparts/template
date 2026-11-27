@@ -1,5 +1,5 @@
 {
-  "name": "@ykdz/reference-vike-migrations",
+  "name": "@boringparts/reference-vike-migrations",
   "private": true,
   "files": [
     "drizzle.config.ts",
@@ -30,17 +30,17 @@
     "build:template": "rm -rf template-dist && tsc -p tsconfig.template.json --pretty false"
   },
   "dependencies": {
-    "@ykdz/reference-vike-db": "workspace:*",
+    "@boringparts/reference-vike-db": "workspace:*",
     "drizzle-kit": "catalog:",
     "drizzle-orm": "catalog:"
   },
   "devDependencies": {
+    "@boringparts/default-content-authoring": "workspace:*",
+    "@boringparts/reference-tooling-config": "workspace:*",
+    "@boringparts/reference-workspace-root": "workspace:*",
+    "@boringparts/template-core": "workspace:*",
+    "@boringparts/tooling-config": "workspace:*",
     "@types/node": "catalog:",
-    "@ykdz/default-content-authoring": "workspace:*",
-    "@ykdz/reference-tooling-config": "workspace:*",
-    "@ykdz/reference-workspace-root": "workspace:*",
-    "@ykdz/template-core": "workspace:*",
-    "@ykdz/tooling-config": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",

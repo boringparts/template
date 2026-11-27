@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import {
   parseRustToolchainDeclaration,
   projectRustToolchainDeclaration,
-} from "@ykdz/reference-rust-bin/template";
+} from "@boringparts/reference-rust-bin/template";
 
 void describe("Rust toolchain shared facts", () => {
   void it("parses channel and components while preserving the raw declaration", () => {

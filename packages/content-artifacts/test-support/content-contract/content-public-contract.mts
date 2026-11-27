@@ -1,10 +1,10 @@
+import type { Composition } from "@boringparts/template-core/composition";
+import type { PackageDefinitionId } from "@boringparts/template-core/project-blueprint";
+import { createGenerator } from "@boringparts/template-generator";
 import {
   deriveTemplateMembers,
   templateContent,
 } from "@fixture/content-contract";
-import type { Composition } from "@ykdz/template-core/composition";
-import type { PackageDefinitionId } from "@ykdz/template-core/project-blueprint";
-import { createGenerator } from "@ykdz/template-generator";
 
 const derived = deriveTemplateMembers(templateContent);
 const reference = derived.referencePackages.find(

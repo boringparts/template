@@ -1,26 +1,26 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { JsonValue } from "@ykdz/template-core/json";
-import { assertJsonValue } from "@ykdz/template-core/json";
+import type { JsonValue } from "@boringparts/template-core/json";
+import { assertJsonValue } from "@boringparts/template-core/json";
 import type {
   PackageContribution,
   PackageContributionFile,
-} from "@ykdz/template-core/package-contribution";
-import type { ProjectProjectionReconciliation } from "@ykdz/template-core/project-projection";
+} from "@boringparts/template-core/package-contribution";
+import type { ProjectProjectionReconciliation } from "@boringparts/template-core/project-projection";
 import type {
   PackageBinding,
   ReferenceDependency,
   ReferencePackageDefinition,
   ResourceFileSnapshot,
-} from "@ykdz/template-core/reference-package";
-import { createTemplateSourceHandle } from "@ykdz/template-core/template-source";
+} from "@boringparts/template-core/reference-package";
+import { createTemplateSourceHandle } from "@boringparts/template-core/template-source";
 import {
   defineNativeReferenceContentArtifact,
   type NativeContentArtifactResource,
-} from "@ykdz/template-workspace-authoring/content-artifact";
-import { mapPackageNamesInJson } from "@ykdz/template-workspace-authoring/package-name-projection";
-import { mapTypeScriptModuleSpecifiers } from "@ykdz/template-workspace-authoring/typescript-module-specifiers";
+} from "@boringparts/template-workspace-authoring/content-artifact";
+import { mapPackageNamesInJson } from "@boringparts/template-workspace-authoring/package-name-projection";
+import { mapTypeScriptModuleSpecifiers } from "@boringparts/template-workspace-authoring/typescript-module-specifiers";
 import { parse, type ParseError } from "jsonc-parser";
 
 import type {

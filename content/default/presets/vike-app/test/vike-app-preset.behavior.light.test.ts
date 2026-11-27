@@ -12,51 +12,51 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, describe, it } from "node:test";
 
-import { databaseDependencyKey as migrationsDatabaseDependencyKey } from "@ykdz/reference-vike-migrations/template";
-import { databaseDependencyKey as webDatabaseDependencyKey } from "@ykdz/reference-vike-web/template";
+import { databaseDependencyKey as migrationsDatabaseDependencyKey } from "@boringparts/reference-vike-migrations/template";
+import { databaseDependencyKey as webDatabaseDependencyKey } from "@boringparts/reference-vike-web/template";
 import {
   contentIdentityKey,
   type LoadedContentMember,
-} from "@ykdz/template-core/content-identity";
-import { loadContentSource } from "@ykdz/template-generator/content-source";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+} from "@boringparts/template-core/content-identity";
+import { loadContentSource } from "@boringparts/template-generator/content-source";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 import { parse as parseYaml } from "yaml";
 
 const content = await loadContentSource({
-  namespace: "ykdz",
+  namespace: "boringparts",
   resolve: (specifier) => import.meta.resolve(specifier),
   members: [
     {
-      specifier: "@ykdz/reference-workspace-root/template",
-      load: () => import("@ykdz/reference-workspace-root/template"),
+      specifier: "@boringparts/reference-workspace-root/template",
+      load: () => import("@boringparts/reference-workspace-root/template"),
     },
     {
-      specifier: "@ykdz/reference-vike-web/template",
-      load: () => import("@ykdz/reference-vike-web/template"),
+      specifier: "@boringparts/reference-vike-web/template",
+      load: () => import("@boringparts/reference-vike-web/template"),
     },
     {
-      specifier: "@ykdz/reference-vike-db/template",
-      load: () => import("@ykdz/reference-vike-db/template"),
+      specifier: "@boringparts/reference-vike-db/template",
+      load: () => import("@boringparts/reference-vike-db/template"),
     },
     {
-      specifier: "@ykdz/reference-vike-migrations/template",
-      load: () => import("@ykdz/reference-vike-migrations/template"),
+      specifier: "@boringparts/reference-vike-migrations/template",
+      load: () => import("@boringparts/reference-vike-migrations/template"),
     },
     {
-      specifier: "@ykdz/reference-tooling-config/template",
-      load: () => import("@ykdz/reference-tooling-config/template"),
+      specifier: "@boringparts/reference-tooling-config/template",
+      load: () => import("@boringparts/reference-tooling-config/template"),
     },
     {
-      specifier: "@ykdz/reference-ts-lib/template",
-      load: () => import("@ykdz/reference-ts-lib/template"),
+      specifier: "@boringparts/reference-ts-lib/template",
+      load: () => import("@boringparts/reference-ts-lib/template"),
     },
     {
-      specifier: "@ykdz/reference-npm-publication/template",
-      load: () => import("@ykdz/reference-npm-publication/template"),
+      specifier: "@boringparts/reference-npm-publication/template",
+      load: () => import("@boringparts/reference-npm-publication/template"),
     },
     {
-      specifier: "@ykdz/preset-vike-app/template",
-      load: () => import("@ykdz/preset-vike-app/template"),
+      specifier: "@boringparts/preset-vike-app/template",
+      load: () => import("@boringparts/preset-vike-app/template"),
     },
   ],
 });
@@ -79,7 +79,7 @@ function member(
 }
 
 function withVikeWebRole(role: string): readonly LoadedContentMember[] {
-  const webMember = member("reference", "@ykdz/reference-vike-web");
+  const webMember = member("reference", "@boringparts/reference-vike-web");
   const definition = webMember.definition as Record<string, unknown>;
   const createWebDefinition = definition.createDefinition as (
     input: unknown,
@@ -100,8 +100,8 @@ function withVikeWebRole(role: string): readonly LoadedContentMember[] {
   );
 }
 
-const preset = member("preset", "@ykdz/preset-vike-app");
-const library = member("reference", "@ykdz/reference-ts-lib");
+const preset = member("preset", "@boringparts/preset-vike-app");
+const library = member("reference", "@boringparts/reference-ts-lib");
 const conventions = {
   repositoryName: "demo",
   defaultPackageScope: "demo",

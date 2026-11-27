@@ -13,14 +13,14 @@ import path from "node:path";
 import { it, type TestContext } from "node:test";
 import { pathToFileURL } from "node:url";
 
-import { defineReferencePackage } from "@ykdz/default-content-authoring/reference-package";
+import { defineReferencePackage } from "@boringparts/default-content-authoring/reference-package";
 import {
   templateContent,
   templatePresets,
   templateReferencePackages,
-} from "@ykdz/template-content";
-import type { LoadedContentMember } from "@ykdz/template-core/content-identity";
-import { createDefaultGenerator } from "@ykdz/template-workspace/default-generation";
+} from "@boringparts/template-content";
+import type { LoadedContentMember } from "@boringparts/template-core/content-identity";
+import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 
 type TestReference = ReturnType<typeof defineReferencePackage>;
 
@@ -193,7 +193,7 @@ void it("generates ts-lib sources from its owned resource snapshot and binds sha
 
   assert.equal(result.status, "success", JSON.stringify(result));
   if (result.status !== "success") return;
-  const library = referenceMember("@ykdz/reference-ts-lib");
+  const library = referenceMember("@boringparts/reference-ts-lib");
   const prepared = library.definition.prepare({ excludedPackagePaths: [] });
   const source = prepared.resources.find(
     (resource) => resource.path === "src/index.ts",
@@ -205,7 +205,7 @@ void it("generates ts-lib sources from its owned resource snapshot and binds sha
   );
   const libraryPackage = result.generationRecord.packages.find(
     ({ contentIdentity }) =>
-      contentIdentity.packageName === "@ykdz/reference-ts-lib",
+      contentIdentity.packageName === "@boringparts/reference-ts-lib",
   );
   assert.ok(libraryPackage);
   const toolingConfigId = libraryPackage.dependencyBindings["tooling-config"];
@@ -214,7 +214,7 @@ void it("generates ts-lib sources from its owned resource snapshot and binds sha
     result.generationRecord.packages.find(
       ({ packageDefinitionId }) => packageDefinitionId === toolingConfigId,
     )?.contentIdentity.packageName,
-    "@ykdz/reference-tooling-config",
+    "@boringparts/reference-tooling-config",
   );
   assert.equal(
     (await stat(path.join(targetRoot, "packages/lib/src/index.ts"))).mode &

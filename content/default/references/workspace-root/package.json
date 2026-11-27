@@ -1,5 +1,5 @@
 {
-  "name": "@ykdz/reference-workspace-root",
+  "name": "@boringparts/reference-workspace-root",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -38,12 +38,12 @@
     "boundaries": "turbo boundaries"
   },
   "devDependencies": {
+    "@boringparts/default-content-authoring": "workspace:*",
+    "@boringparts/reference-tooling-config": "workspace:../tooling-config",
+    "@boringparts/template-core": "workspace:*",
+    "@boringparts/template-environment": "workspace:*",
+    "@boringparts/tooling-config": "workspace:*",
     "@types/node": "catalog:",
-    "@ykdz/default-content-authoring": "workspace:*",
-    "@ykdz/reference-tooling-config": "workspace:../tooling-config",
-    "@ykdz/template-core": "workspace:*",
-    "@ykdz/template-environment": "workspace:*",
-    "@ykdz/tooling-config": "workspace:*",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",

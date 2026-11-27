@@ -28,7 +28,10 @@ void it("installed neutral content initializes a non-npm root and child packages
       cwd: packageRoot,
     });
     const dependencies: Record<string, string> = {};
-    for (const name of ["@ykdz/template-core", "@ykdz/template-generator"]) {
+    for (const name of [
+      "@boringparts/template-core",
+      "@boringparts/template-generator",
+    ]) {
       const { stdout } = await run(
         "pnpm",
         ["--filter", name, "pack", "--json", "--pack-destination", archives],
@@ -50,7 +53,7 @@ void it("installed neutral content initializes a non-npm root and child packages
     );
     await writeFile(
       path.join(consumer, "pnpm-workspace.yaml"),
-      `packages: []\noverrides:\n  "@ykdz/template-core": ${JSON.stringify(dependencies["@ykdz/template-core"])}\n`,
+      `packages: []\noverrides:\n  "@boringparts/template-core": ${JSON.stringify(dependencies["@boringparts/template-core"])}\n`,
     );
     await run("pnpm", ["install"], { cwd: consumer });
     const tree = await run(
@@ -60,7 +63,7 @@ void it("installed neutral content initializes a non-npm root and child packages
     );
     assert.doesNotMatch(
       tree.stdout,
-      /@ykdz\/(?:template-workspace|template-content|template-environment|reference-|preset-)/u,
+      /@boringparts\/(?:template-workspace|template-content|template-environment|reference-|preset-)/u,
     );
     const support = path.join(consumer, "support");
     const compiled = path.join(consumer, "compiled");
@@ -99,11 +102,11 @@ void it("installed neutral content initializes a non-npm root and child packages
         'import assert from "node:assert/strict";',
         'import { access, chmod, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";',
         'import { boundApiIdentity, boundPresetIdentity, boundWebIdentity, createDocumentationEngine, extensionIdentity, glossaryIdentity, guideIdentity, indexIdentity, presetIdentity, sharedAdditionPresetIdentity } from "./compiled/documentation.js";',
-        'import { commitProjectProjectionPlan, planProjectProjections, readProjectProjectionCurrent } from "@ykdz/template-core/project-projection";',
+        'import { commitProjectProjectionPlan, planProjectProjections, readProjectProjectionCurrent } from "@boringparts/template-core/project-projection";',
         "const [phase, root, forbidden] = process.argv.slice(2);",
         'const target = phase === "init-history-dependency" || phase === "add-history-extension" ? `${root}-history` : phase === "init-direct-reversed" ? `${root}-direct-reversed` : phase === "init-dependency-only" || phase === "add-explicit-glossary" ? `${root}-dependency-only` : phase === "init-new-shared" || phase === "add-new-shared" ? `${root}-new-shared` : phase === "init-bound-preset" || phase === "add-bound-preset" ? `${root}-bound-preset` : phase === "init-bound-preset-corrupt" || phase === "reject-bound-preset-binding" ? `${root}-bound-preset-corrupt` : phase.startsWith("init-direct-bound-") || phase.startsWith("add-direct-bound-") ? `${root}-direct-bound` : phase.includes("direct") ? `${root}-direct` : phase.includes("preset") ? `${root}-preset` : phase === "conflict" ? `${root}-conflict` : phase === "old-format" ? `${root}-old-format` : phase === "invalid-relations" ? `${root}-invalid-relations` : ["empty-target", "dry-run", "dry-run-empty-target", "dry-run-non-empty-target", "non-empty-target"].includes(phase) ? `${root}-${phase}` : `${root}-sdk`;',
         'await assert.rejects(readFile(forbidden), { code: "ERR_ACCESS_DENIED" });',
-        'for (const specifier of ["@ykdz/template-generator", "@ykdz/template-core/content-identity"]) assert.ok(import.meta.resolve(specifier).startsWith(new URL("./", import.meta.url).href));',
+        'for (const specifier of ["@boringparts/template-generator", "@boringparts/template-core/content-identity"]) assert.ok(import.meta.resolve(specifier).startsWith(new URL("./", import.meta.url).href));',
         'const createEngine = () => createDocumentationEngine({ author: "installed-author" });',
         'const directSelection = { roots: [{ nodeIdentity: "index", contentIdentity: indexIdentity }, { nodeIdentity: "guide", contentIdentity: guideIdentity, creationInput: { leafName: "overview" } }, { nodeIdentity: "glossary", contentIdentity: glossaryIdentity }] };',
         'const reversedDirectSelection = { roots: [{ nodeIdentity: "index", contentIdentity: indexIdentity }, { nodeIdentity: "glossary", contentIdentity: glossaryIdentity }, { nodeIdentity: "guide", contentIdentity: guideIdentity, creationInput: { leafName: "overview" } }] };',

@@ -4,8 +4,8 @@
   "tasks": {
     "build": {
       "dependsOn": [
-        "@ykdz/template-core#build",
-        "@ykdz/template-workspace-authoring#build"
+        "@boringparts/template-core#build",
+        "@boringparts/template-workspace-authoring#build"
       ],
       "tags": ["quality:light"],
       "cache": true,
