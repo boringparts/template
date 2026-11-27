@@ -17,6 +17,7 @@ import { defineReferencePackage } from "@boringparts/default-content-authoring/r
 import type { LoadedContentMember } from "@boringparts/template-core/content-identity";
 import { loadContentSource } from "@boringparts/template-generator/content-source";
 import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
+import { parse as parseYaml } from "yaml";
 
 const content = await loadContentSource({
   namespace: "boringparts",
@@ -206,6 +207,14 @@ void describe("TypeScript CLI public preset", () => {
         rootManifest.scripts["publication:pack"],
         /turbo run build/u,
       );
+      const workspaceYaml = parseYaml(
+        await readFile(path.join(targetRoot, "pnpm-workspace.yaml"), "utf8"),
+      ) as {
+        readonly minimumReleaseAgeExclude?: readonly string[];
+      };
+      assert.deepStrictEqual(workspaceYaml.minimumReleaseAgeExclude, [
+        "@boringparts/cli-contract",
+      ]);
     }
   });
 
@@ -227,6 +236,15 @@ void describe("TypeScript CLI public preset", () => {
         initialized.status,
         "success",
         JSON.stringify(initialized),
+      );
+      const initialWorkspaceYaml = parseYaml(
+        await readFile(path.join(targetRoot, "pnpm-workspace.yaml"), "utf8"),
+      ) as {
+        readonly minimumReleaseAgeExclude?: readonly string[];
+      };
+      assert.strictEqual(
+        initialWorkspaceYaml.minimumReleaseAgeExclude,
+        undefined,
       );
       const rootManifest = await readManifest(targetRoot, ".");
       rootManifest.scripts["user:note"] = "node --version";

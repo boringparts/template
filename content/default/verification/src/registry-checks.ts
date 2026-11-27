@@ -14,6 +14,8 @@ import {
 } from "@boringparts/template-core/project-projection";
 import {
   loadTemplateDependencyCatalog,
+  loadTemplateMinimumReleaseAgeExclusions,
+  selectMinimumReleaseAgeExclusions,
   selectTemplateDependencyCatalogEntries,
 } from "@boringparts/template-workspace/dependency-catalog";
 import { readRustToolchainChannelFromToml } from "@boringparts/template-workspace/rust-toolchain-facts";
@@ -379,6 +381,24 @@ export async function validatePlanDependencyCatalog(
   ) {
     throw new Error(
       `${scenarioId}: generated dependency catalog does not match actual manifest references`,
+    );
+  }
+  const expectedExclusions = selectMinimumReleaseAgeExclusions(
+    loadTemplateMinimumReleaseAgeExclusions(),
+    new Set(Object.keys(expected)),
+  );
+  const actualExclusions = isRecord(workspaceValue)
+    ? workspaceValue.minimumReleaseAgeExclude
+    : undefined;
+  if (expectedExclusions.length === 0) {
+    if (actualExclusions !== undefined) {
+      throw new Error(
+        `${scenarioId}: generated minimumReleaseAgeExclude must be omitted when no excluded dependency is selected`,
+      );
+    }
+  } else if (!isDeepStrictEqual(actualExclusions, expectedExclusions)) {
+    throw new Error(
+      `${scenarioId}: generated minimumReleaseAgeExclude ${JSON.stringify(actualExclusions)} does not match expected ${JSON.stringify(expectedExclusions)}`,
     );
   }
 }

@@ -4,6 +4,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+
 import {
   deriveInitializationScenarios,
   materializeGeneratedScenario,
@@ -43,6 +45,85 @@ void describe("real generator receipt checks", () => {
           runtime: sourceGeneratedScenarioRuntime,
         }),
         /does not match the default workspace owner facts/u,
+      );
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
+
+  void it("validates filtered minimumReleaseAgeExclude alignment in generated pnpm-workspace.yaml", async () => {
+    const workspace = await mkdtemp(
+      path.join(tmpdir(), "template-generated-release-age-exclude-"),
+    );
+    try {
+      const scenarios = deriveInitializationScenarios(
+        sourceGeneratedScenarioRuntime,
+      );
+      const tsCliScenario = scenarios.find(
+        (candidate) => candidate.base.definition.metadata.alias === "ts-cli",
+      );
+      const tsLibScenario = scenarios.find(
+        (candidate) => candidate.base.definition.metadata.alias === "ts-lib",
+      );
+      assert.ok(tsCliScenario);
+      assert.ok(tsLibScenario);
+
+      const cliReceipt = await materializeGeneratedScenario({
+        runtime: sourceGeneratedScenarioRuntime,
+        scenario: tsCliScenario,
+        workspace,
+      });
+      if (cliReceipt.status !== "generated") {
+        throw new Error("ts-cli initialization must be applicable");
+      }
+      await validateGeneratedScenarioReceipt({
+        receipt: cliReceipt,
+        runtime: sourceGeneratedScenarioRuntime,
+      });
+      const cliWorkspacePath = path.join(
+        cliReceipt.projectDir,
+        "pnpm-workspace.yaml",
+      );
+      const cliWorkspace = parseYaml(
+        await readFile(cliWorkspacePath, "utf8"),
+      ) as Record<string, unknown>;
+      delete cliWorkspace.minimumReleaseAgeExclude;
+      await writeFile(cliWorkspacePath, stringifyYaml(cliWorkspace));
+      await assert.rejects(
+        validateGeneratedScenarioReceipt({
+          receipt: cliReceipt,
+          runtime: sourceGeneratedScenarioRuntime,
+        }),
+        /minimumReleaseAgeExclude/u,
+      );
+
+      const libReceipt = await materializeGeneratedScenario({
+        runtime: sourceGeneratedScenarioRuntime,
+        scenario: tsLibScenario,
+        workspace,
+      });
+      if (libReceipt.status !== "generated") {
+        throw new Error("ts-lib initialization must be applicable");
+      }
+      await validateGeneratedScenarioReceipt({
+        receipt: libReceipt,
+        runtime: sourceGeneratedScenarioRuntime,
+      });
+      const libWorkspacePath = path.join(
+        libReceipt.projectDir,
+        "pnpm-workspace.yaml",
+      );
+      const libWorkspace = parseYaml(
+        await readFile(libWorkspacePath, "utf8"),
+      ) as Record<string, unknown>;
+      libWorkspace.minimumReleaseAgeExclude = ["@boringparts/cli-contract"];
+      await writeFile(libWorkspacePath, stringifyYaml(libWorkspace));
+      await assert.rejects(
+        validateGeneratedScenarioReceipt({
+          receipt: libReceipt,
+          runtime: sourceGeneratedScenarioRuntime,
+        }),
+        /minimumReleaseAgeExclude/u,
       );
     } finally {
       await rm(workspace, { recursive: true, force: true });

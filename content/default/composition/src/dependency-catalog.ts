@@ -1,4 +1,7 @@
-import { dependencyCatalogSnapshot } from "./workspace-policy-snapshot.ts";
+import {
+  dependencyCatalogSnapshot,
+  workspaceInstallPolicySnapshot,
+} from "./workspace-policy-snapshot.ts";
 
 export type TemplateDependencyCatalog = Record<string, string>;
 
@@ -44,6 +47,47 @@ function assertMinimumReleaseAgeExclusions(
       `Dependency maturity exclusions must be exact npm package identities: ${JSON.stringify(invalid)}`,
     );
   }
+}
+
+/** Validates and filters release-age exclusions down to exact package names present in the selected catalog. */
+export function selectMinimumReleaseAgeExclusions(
+  exclusions: unknown,
+  selectedPackageNames: ReadonlySet<string>,
+): string[] {
+  if (
+    !Array.isArray(exclusions) ||
+    exclusions.some((item) => typeof item !== "string")
+  ) {
+    throw new Error(
+      "Dependency maturity exclusions must be an array of exact npm package identities",
+    );
+  }
+  assertMinimumReleaseAgeExclusions(exclusions);
+  return exclusions.filter((dependency) =>
+    selectedPackageNames.has(dependency),
+  );
+}
+
+/** Returns the validated release-age exclusions configured in the workspace policy snapshot. */
+export function loadTemplateMinimumReleaseAgeExclusions(): string[] {
+  const configured = (
+    workspaceInstallPolicySnapshot as {
+      readonly minimumReleaseAgeExclude?: unknown;
+    }
+  ).minimumReleaseAgeExclude;
+  if (configured === undefined) {
+    return [];
+  }
+  if (
+    !Array.isArray(configured) ||
+    configured.some((item) => typeof item !== "string")
+  ) {
+    throw new Error(
+      "Workspace install policy minimumReleaseAgeExclude must be an array of exact npm package identities",
+    );
+  }
+  assertMinimumReleaseAgeExclusions(configured);
+  return [...configured];
 }
 
 function parseTemplateCatalogSection(

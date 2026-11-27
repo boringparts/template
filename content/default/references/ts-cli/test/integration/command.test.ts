@@ -72,7 +72,7 @@ void describe("CLI contract", () => {
     }
   });
 
-  void it("exposes help, version, and native v5 contract discovery with replayable examples", async () => {
+  void it("exposes help, version, and native v6 contract discovery with replayable examples", async () => {
     const version = testRuntime(["--version"]);
     assert.equal(await runCli(version.runtime), 0);
     assert.equal(
@@ -92,7 +92,7 @@ void describe("CLI contract", () => {
     const directoryDocument = JSON.parse(directory.stdout());
     assert.partialDeepStrictEqual(directoryDocument, {
       kind: "directory",
-      schemaVersion: "5",
+      schemaVersion: "6",
       command: "cli",
       name: identity.commandName,
       children: [
@@ -131,7 +131,7 @@ void describe("CLI contract", () => {
     };
     assert.partialDeepStrictEqual(summaryDocument, {
       kind: "summary",
-      schemaVersion: "5",
+      schemaVersion: "6",
       command: "lookup",
       outputs: {
         default: "structured",
@@ -152,7 +152,7 @@ void describe("CLI contract", () => {
     assert.equal(await runCli(inputQuery.runtime), 0);
     assert.partialDeepStrictEqual(JSON.parse(inputQuery.stdout()), {
       kind: "input",
-      schemaVersion: "5",
+      schemaVersion: "6",
       command: "lookup",
       input: {
         inputSchema: {
@@ -166,7 +166,7 @@ void describe("CLI contract", () => {
     assert.equal(await runCli(successQuery.runtime), 0);
     assert.partialDeepStrictEqual(JSON.parse(successQuery.stdout()), {
       kind: "success",
-      schemaVersion: "5",
+      schemaVersion: "6",
       command: "lookup",
       mode: "structured",
       success: {
@@ -182,7 +182,7 @@ void describe("CLI contract", () => {
     assert.equal(await runCli(failuresQuery.runtime), 0);
     assert.partialDeepStrictEqual(JSON.parse(failuresQuery.stdout()), {
       kind: "failures",
-      schemaVersion: "5",
+      schemaVersion: "6",
       command: "lookup",
       mode: "structured",
       failures: { notFound: { exitCode: 1 } },
@@ -192,7 +192,7 @@ void describe("CLI contract", () => {
     assert.equal(await runCli(wireQuery.runtime), 0);
     assert.partialDeepStrictEqual(JSON.parse(wireQuery.stdout()), {
       kind: "wire",
-      schemaVersion: "5",
+      schemaVersion: "6",
       command: "lookup",
       mode: "structured",
     });

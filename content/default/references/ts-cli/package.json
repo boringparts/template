@@ -34,7 +34,7 @@
     "test:template": "node --conditions=source --test --test-reporter=spec 'test/template/**/*.test.ts'"
   },
   "dependencies": {
-    "@ykdz/cli-contract": "catalog:",
+    "@boringparts/cli-contract": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
