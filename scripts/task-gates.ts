@@ -86,6 +86,7 @@ function runCaptured(
     cwd,
     encoding: "utf8",
     maxBuffer: maxTurboOutputBytes,
+    stdio: ["ignore", "pipe", "pipe"],
   });
 
   return {
@@ -107,7 +108,7 @@ function runVisible(cwd: string, args: readonly string[]): Promise<number> {
     const child = spawn(command, commandArgs, {
       cwd,
       detached: process.platform !== "win32",
-      stdio: "inherit",
+      stdio: ["ignore", "inherit", "inherit"],
     });
     let interruptedBy: NodeJS.Signals | undefined;
     const forward = (signal: NodeJS.Signals): void => {

@@ -201,6 +201,10 @@ catalogs:
       specifier: ^4.6.7
       version: 4.6.7
 
+overrides:
+  pinia>typescript: '-'
+  vue>typescript: '-'
+
 importers:
 
   .:
@@ -243,7 +247,7 @@ importers:
         version: 4.6.7
     devDependencies:
       '@boringparts/tooling-config':
-        specifier: link:../tooling-config
+        specifier: workspace:*
         version: link:../tooling-config
       '@types/node':
         specifier: 'catalog:'
@@ -275,6 +279,54 @@ importers:
       tsrs:
         specifier: 'catalog:'
         version: 7.1.0-beta.tsrs4
+      typescript-7:
+        specifier: 'catalog:'
+        version: typescript@7.0.2
+
+  references/npm-publication:
+    devDependencies:
+      '@boringparts/tooling-config':
+        specifier: workspace:*
+        version: link:../../packages/tooling-config
+      '@changesets/cli':
+        specifier: 'catalog:'
+        version: 3.0.3
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.11
+      oxfmt:
+        specifier: 'catalog:'
+        version: 0.79.0
+      oxlint:
+        specifier: 'catalog:'
+        version: 1.94.0
+      tsrs:
+        specifier: 'catalog:'
+        version: 7.1.0-beta.tsrs4
+      typescript-7:
+        specifier: 'catalog:'
+        version: typescript@7.0.2
+
+  references/workspace-root:
+    devDependencies:
+      '@boringparts/tooling-config':
+        specifier: workspace:*
+        version: link:../../packages/tooling-config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.11
+      oxfmt:
+        specifier: 'catalog:'
+        version: 0.79.0
+      oxlint:
+        specifier: 'catalog:'
+        version: 1.94.0
+      tsrs:
+        specifier: 'catalog:'
+        version: 7.1.0-beta.tsrs4
+      turbo:
+        specifier: 'catalog:'
+        version: 2.11.13
       typescript-7:
         specifier: 'catalog:'
         version: typescript@7.0.2

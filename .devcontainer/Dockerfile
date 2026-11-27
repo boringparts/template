@@ -1,12 +1,9 @@
-ARG NODE_VERSION
-FROM node:${NODE_VERSION}-bookworm-slim
+FROM node:26.13.1-bookworm-slim
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # Cover both users supported by the image so non-interactive commands can run global tools directly.
 ENV PATH="/root/.local/share/pnpm/bin:/home/node/.local/share/pnpm/bin:$PATH"
-# @template-mirror pnpm-bootstrap
 COPY --from=ghcr.io/pnpm/pnpm:12.21.0 /opt/pnpm /opt/pnpm
-# @end-template-mirror
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         bubblewrap \

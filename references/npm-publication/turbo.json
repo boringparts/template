@@ -1,0 +1,46 @@
+{
+  "extends": ["//"],
+  "tags": ["library"],
+  "tasks": {
+    "format:check": {
+      "dependsOn": [],
+      "tags": ["quality:light"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "format:write": {
+      "dependsOn": ["lint:fix"],
+      "cache": false,
+      "tags": ["work:repair"],
+      "inputs": [],
+      "outputs": []
+    },
+    "lint": {
+      "dependsOn": ["^lint"],
+      "tags": ["quality:light"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "lint:fix": {
+      "dependsOn": [],
+      "cache": false,
+      "tags": ["work:repair"],
+      "inputs": [],
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "tags": ["quality:light"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "publication:pack": {
+      "tags": ["work:release"],
+      "cache": false
+    },
+    "publication:publish": {
+      "tags": ["work:release"],
+      "cache": false
+    }
+  }
+}
