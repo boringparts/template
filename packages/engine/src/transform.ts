@@ -106,6 +106,9 @@ export function rewriteSubpackageManifest(options: {
     Object.hasOwn(manifest.exports, "./package.json")
   ) {
     delete manifest.exports["./package.json"];
+    if (Object.keys(manifest.exports).length === 0) {
+      delete manifest.exports;
+    }
   }
 
   const toolingReplacement = `@${options.scope}/tooling-config`;
