@@ -4,10 +4,16 @@ import path from "node:path";
 import { parse as parseToml } from "smol-toml";
 import { parse as parseYaml } from "yaml";
 
+export type NodeDevEngineRuntime = {
+  readonly name: string;
+  readonly version: string;
+  readonly onFail: string;
+};
+
 export type TemplateToolchainDeclarations = {
-  readonly rootNodeEngine: string;
-  readonly rootNodeRuntimeName: string;
-  readonly rootNodeRuntimeOnFail: string;
+  readonly devEngines: {
+    readonly runtime: NodeDevEngineRuntime;
+  };
   readonly packageManagerDeclaration: string;
   readonly rustToolchainChannel: string;
   readonly playwrightTestVersion: string;
@@ -25,22 +31,23 @@ export function deriveTemplateToolchain(
   readonly cliNodeEngine: string;
   readonly pnpmVersion: string | undefined;
 } {
-  const node = declarations.rootNodeEngine.trim();
+  const { runtime } = declarations.devEngines;
+  const node = runtime.version.trim();
   const pnpmVersion = /^pnpm@(\d+\.\d+\.\d+)$/u.exec(
     declarations.packageManagerDeclaration.trim(),
   )?.[1];
   const diagnostics: string[] = [];
-  if (declarations.rootNodeRuntimeName.trim() !== "node")
+  if (runtime.name.trim() !== "node")
     diagnostics.push(
-      `Root devEngines.runtime.name must be "node", got ${declarations.rootNodeRuntimeName}`,
+      `Root devEngines.runtime.name must be "node", got ${runtime.name}`,
     );
   if (!/^\d+\.\d+\.\d+$/u.test(node))
     diagnostics.push(
-      `Root devEngines.runtime.version must declare an exact tested Node patch version (e.g. 26.13.1), got ${declarations.rootNodeEngine}`,
+      `Root devEngines.runtime.version must declare an exact tested Node patch version (e.g. 26.13.1), got ${runtime.version}`,
     );
-  if (declarations.rootNodeRuntimeOnFail.trim() !== "download")
+  if (runtime.onFail.trim() !== "download")
     diagnostics.push(
-      `Root devEngines.runtime.onFail must be "download", got ${declarations.rootNodeRuntimeOnFail}`,
+      `Root devEngines.runtime.onFail must be "download", got ${runtime.onFail}`,
     );
   if (pnpmVersion === undefined)
     diagnostics.push(
@@ -73,11 +80,7 @@ export function deriveTemplateToolchain(
  */
 export function readNodeDevEngine(manifest: {
   readonly devEngines?: unknown;
-}): {
-  readonly name: string;
-  readonly version: string;
-  readonly onFail: string;
-} {
+}): NodeDevEngineRuntime {
   const devEngines = manifest.devEngines;
   const runtime = isRecord(devEngines) ? devEngines.runtime : undefined;
   if (!isRecord(runtime)) {
@@ -146,11 +149,10 @@ export async function readTemplateToolchainDeclarations(
     "channel" in toolchain
       ? toolchain.channel
       : undefined;
-  const nodeDevEngine = readNodeDevEngine(manifest);
   return {
-    rootNodeEngine: nodeDevEngine.version,
-    rootNodeRuntimeName: nodeDevEngine.name,
-    rootNodeRuntimeOnFail: nodeDevEngine.onFail,
+    devEngines: {
+      runtime: readNodeDevEngine(manifest),
+    },
     packageManagerDeclaration:
       typeof manifest.packageManager === "string"
         ? manifest.packageManager

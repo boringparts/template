@@ -111,7 +111,7 @@ if (derived.diagnostics.length > 0)
 const toolchainSnapshot = await formattedSource(
   "release-toolchain-snapshot.ts",
   `// Derived by root sync:workspace-policy from native toolchain declarations; edit the source of truth and run sync explicitly.
-export const releaseToolchainSnapshot = Object.freeze(${JSON.stringify({ nodeVersion: declarations.rootNodeEngine.trim(), packageManagerPin: declarations.packageManagerDeclaration.trim(), rustVersion: declarations.rustToolchainChannel.trim() }, null, 2)} as const);
+export const releaseToolchainSnapshot = Object.freeze(${JSON.stringify({ nodeVersion: declarations.devEngines.runtime.version.trim(), packageManagerPin: declarations.packageManagerDeclaration.trim(), rustVersion: declarations.rustToolchainChannel.trim() }, null, 2)} as const);
 
 export type ReleaseToolchainSnapshot = typeof releaseToolchainSnapshot;
 `,

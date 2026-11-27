@@ -915,7 +915,10 @@ function linkedPackageOverrides(options: {
         (consumerRole === "cli-tool" ||
           consumerRole === "runtime-service" ||
           consumerRole === "node-library")) ||
-      (providerRole === "runtime-service" && consumerRole !== "shared-library");
+      (providerRole === "runtime-service" &&
+        (consumerRole === "cli-tool" ||
+          consumerRole === "runtime-service" ||
+          consumerRole === "browser-app"));
     if (!isDefaultPackageRole(providerRole) || !providerAllowed) {
       throw new PackageLinkValidationError(
         {

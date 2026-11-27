@@ -59,23 +59,31 @@ function assertMinimumReleaseAgeExclusions(
   }
 }
 
-/** Validates and filters release-age exclusions down to exact package names present in the selected catalog. */
-export function selectMinimumReleaseAgeExclusions(
+function parseMinimumReleaseAgeExclusions(
   exclusions: unknown,
-  selectedPackageNames: ReadonlySet<string>,
-): string[] {
+  sourceLabel: string,
+): readonly string[] {
   if (
     !Array.isArray(exclusions) ||
     exclusions.some((item) => typeof item !== "string")
   ) {
     throw new Error(
-      "Dependency maturity exclusions must be an array of exact npm package identities",
+      `${sourceLabel} must be an array of exact npm package identities`,
     );
   }
   assertMinimumReleaseAgeExclusions(exclusions);
-  return exclusions.filter((dependency) =>
-    selectedPackageNames.has(dependency),
-  );
+  return exclusions;
+}
+
+/** Validates and filters release-age exclusions down to exact package names present in the selected catalog. */
+export function selectMinimumReleaseAgeExclusions(
+  exclusions: unknown,
+  selectedPackageNames: ReadonlySet<string>,
+): string[] {
+  return parseMinimumReleaseAgeExclusions(
+    exclusions,
+    "Dependency maturity exclusions",
+  ).filter((dependency) => selectedPackageNames.has(dependency));
 }
 
 /** Returns the validated release-age exclusions configured in the workspace policy snapshot. */
@@ -88,56 +96,12 @@ export function loadTemplateMinimumReleaseAgeExclusions(): string[] {
   if (configured === undefined) {
     return [];
   }
-  if (
-    !Array.isArray(configured) ||
-    configured.some((item) => typeof item !== "string")
-  ) {
-    throw new Error(
-      "Workspace install policy minimumReleaseAgeExclude must be an array of exact npm package identities",
-    );
-  }
-  assertMinimumReleaseAgeExclusions(configured);
-  return [...configured];
-}
-
-function parseTemplateCatalogSection(
-  workspaceYaml: string,
-  sectionName: "catalog",
-): TemplateDependencyCatalog {
-  const catalog: TemplateDependencyCatalog = {};
-  const lines = workspaceYaml.split(/\r?\n/);
-  const catalogStart = lines.findIndex((line) => line === `${sectionName}:`);
-
-  if (catalogStart === -1) {
-    return catalog;
-  }
-
-  for (const line of lines.slice(catalogStart + 1)) {
-    if (line.length > 0 && !line.startsWith("  ")) {
-      break;
-    }
-
-    const match = /^  (?:"([^"]+)"|([^:]+)): (.+)$/.exec(line);
-    if (!match) {
-      continue;
-    }
-
-    const key = match[1] ?? match[2];
-    const version = match[3];
-    if (key === undefined || version === undefined) {
-      continue;
-    }
-
-    catalog[key] = version;
-  }
-
-  return catalog;
-}
-
-function parseTemplateDependencyCatalog(
-  workspaceYaml: string,
-): TemplateDependencyCatalog {
-  return parseTemplateCatalogSection(workspaceYaml, "catalog");
+  return [
+    ...parseMinimumReleaseAgeExclusions(
+      configured,
+      "Workspace install policy minimumReleaseAgeExclude",
+    ),
+  ];
 }
 
 export function loadTemplateDependencyCatalog(): TemplateDependencyCatalog {
@@ -252,71 +216,8 @@ export function collectGeneratedManifestCatalogSelections(
   };
 }
 
-export function collectGeneratedManifestCatalogReferences(
-  manifests: readonly GeneratedPackageManifestDependencies[],
-): string[] {
-  return [
-    ...collectGeneratedManifestCatalogSelections(manifests).defaultDependencies,
-  ];
-}
-
 function renderCatalogKey(key: string): string {
   return key.startsWith("@") ? JSON.stringify(key) : key;
-}
-
-export function pnpmWorkspaceYamlWithCatalogDependencies(
-  workspaceYaml: string,
-  dependencies: readonly string[],
-  templateCatalog: TemplateDependencyCatalog = loadTemplateDependencyCatalog(),
-): string {
-  const catalogStart = workspaceYaml
-    .split(/\r?\n/)
-    .findIndex((line) => line === "catalog:");
-
-  if (catalogStart === -1) {
-    throw new Error(
-      "Cannot update pnpm Dependency Catalog: missing catalog section",
-    );
-  }
-
-  const existingCatalog = parseTemplateDependencyCatalog(workspaceYaml);
-  const missingDependencies = dependencies.filter(
-    (dependency) => existingCatalog[dependency] === undefined,
-  );
-
-  if (missingDependencies.length === 0) {
-    return workspaceYaml;
-  }
-
-  const nextCatalog = {
-    ...existingCatalog,
-    ...selectTemplateDependencyCatalogEntries(
-      missingDependencies,
-      templateCatalog,
-    ),
-  };
-  const lines = workspaceYaml.split(/\r?\n/);
-  const catalogEnd = lines.findIndex(
-    (line, index) =>
-      index > catalogStart && line.length > 0 && !line.startsWith("  "),
-  );
-  const replacementEnd = catalogEnd === -1 ? lines.length : catalogEnd;
-  const catalogLines = [
-    "catalog:",
-    ...Object.entries(nextCatalog)
-      .toSorted(([left], [right]) => left.localeCompare(right))
-      .map(
-        ([dependency, version]) =>
-          `  ${renderCatalogKey(dependency)}: ${version}`,
-      ),
-    "",
-  ];
-
-  return [
-    ...lines.slice(0, catalogStart),
-    ...catalogLines,
-    ...lines.slice(replacementEnd),
-  ].join("\n");
 }
 
 export function renderGeneratedPnpmWorkspaceYaml(
