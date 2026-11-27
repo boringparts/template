@@ -257,13 +257,13 @@ void describe("Built-in Preset GitHub YAML checker", () => {
     const source = baseline.source;
     for (const mutated of [
       source.replace("persist-credentials: false", "persist-credentials: true"),
-      source.replace(".engines.node", ".version"),
+      source.replace("node-version-file: false", "node-version-file: true"),
+      source.replace(
+        "node-version-file: false\n",
+        "node-version-file: false\n          runtime: node@latest\n",
+      ),
       source.replace("pnpm install --frozen-lockfile", "pnpm install"),
       source.replace("install: false", "install: true"),
-      source.replace(
-        "runtime: ${{ steps.node-runtime.outputs.runtime }}",
-        "runtime: node@latest",
-      ),
       source.replace(
         "run: pnpm install --frozen-lockfile",
         "run: node --conditions=source scripts/task-gates.ts check",

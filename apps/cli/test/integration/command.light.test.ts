@@ -723,13 +723,24 @@ void describe("template CLI command control", () => {
     const rootManifest = JSON.parse(
       await readFile(path.join(workspace, "demo/package.json"), "utf8"),
     ) as {
-      readonly engines: { readonly node: string };
+      readonly devEngines: {
+        readonly runtime: {
+          readonly name: string;
+          readonly version: string;
+          readonly onFail: string;
+        };
+      };
+      readonly engines?: unknown;
       readonly packageManager: string;
     };
-    assert.equal(
-      rootManifest.engines.node,
-      releaseToolchainSnapshot.nodeVersion,
-    );
+    assert.equal(rootManifest.engines, undefined);
+    assert.deepEqual(rootManifest.devEngines, {
+      runtime: {
+        name: "node",
+        version: releaseToolchainSnapshot.nodeVersion,
+        onFail: "download",
+      },
+    });
     assert.equal(
       rootManifest.packageManager,
       releaseToolchainSnapshot.packageManagerPin,

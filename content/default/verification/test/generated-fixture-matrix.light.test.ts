@@ -342,7 +342,10 @@ void describe("registry-derived Package Addition Fixture Matrix", () => {
             if (args[0] !== "init") return result;
             const manifest = JSON.parse(
               await readFile(path.join(options.cwd, "package.json"), "utf8"),
-            ) as { packageManager: string; engines: { node: string } };
+            ) as {
+              packageManager: string;
+              devEngines: { runtime: { version: string } };
+            };
             let rustChannel: string | undefined;
             try {
               const toml = await readFile(
@@ -355,7 +358,7 @@ void describe("registry-derived Package Addition Fixture Matrix", () => {
             }
             captured.set(path.basename(options.cwd), {
               packageManager: manifest.packageManager,
-              node: manifest.engines.node,
+              node: manifest.devEngines.runtime.version,
               ...(rustChannel === undefined ? {} : { rustChannel }),
             });
             return result;

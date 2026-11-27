@@ -70,7 +70,103 @@ await test("root directory path alone does not inject reference package business
   assert.equal(manifest.name, "@sample/workspace");
   assert.equal(manifest.version, "1.2.3");
   assert.equal(manifest.packageManager, "npm@10.0.0");
-  assert.deepEqual(manifest.engines, { node: "^26.13.0" });
+  assert.deepEqual(manifest.engines, { node: ">=20" });
+});
+
+await test("does not inject engines when omitted and serializes devEngines before engines", () => {
+  const owner = defineReferencePackage({
+    manifest: {
+      name: "@fixture/child",
+      version: "1.0.0",
+      type: "module",
+      exports: { "./reference": "./package.json" },
+    },
+    resourceRoot: new URL("../", import.meta.url),
+    alias: "child",
+    instance: "independent",
+    defaultLeafName: "child",
+    role: "shared-library",
+    resources: [],
+  });
+  const conventions = {
+    repositoryName: "sample",
+    defaultPackageScope: "sample",
+  };
+  const definition = owner.createDefinition({
+    conventions,
+    creationInput: undefined,
+  });
+  const contribution = owner.evaluate({
+    packageDefinitionId:
+      "package-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    definition: {
+      packageDefinitionId:
+        "package-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      ...definition,
+    },
+    createdBy: "initialization",
+    creationInput: undefined,
+    prepared: owner.prepare({ excludedPackagePaths: [] }),
+    bindings: new Map(),
+    conventions,
+    stableCommon: {
+      nodeDeclaration: "26.13.1",
+      packageManagerPin: "pnpm@12.21.0",
+    },
+    packageInput: undefined,
+  });
+  assert.equal(contribution.facts.manifest.engines, undefined);
+
+  const orderedOwner = defineReferencePackage({
+    manifest: {
+      name: "@fixture/ordered",
+      version: "1.0.0",
+      type: "module",
+      exports: { "./reference": "./package.json" },
+      engines: { node: ">=24.0.0" },
+      devEngines: {
+        runtime: { name: "node", version: "24.0.0", onFail: "download" },
+      },
+    },
+    resourceRoot: new URL("../", import.meta.url),
+    alias: "ordered",
+    instance: "independent",
+    defaultLeafName: "ordered",
+    role: "shared-library",
+    resources: [],
+  });
+  const orderedDefinition = orderedOwner.createDefinition({
+    conventions,
+    creationInput: undefined,
+  });
+  const orderedContribution = orderedOwner.evaluate({
+    packageDefinitionId:
+      "package-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    definition: {
+      packageDefinitionId:
+        "package-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      ...orderedDefinition,
+    },
+    createdBy: "initialization",
+    creationInput: undefined,
+    prepared: orderedOwner.prepare({ excludedPackagePaths: [] }),
+    bindings: new Map(),
+    conventions,
+    stableCommon: {
+      nodeDeclaration: "26.13.1",
+      packageManagerPin: "pnpm@12.21.0",
+    },
+    packageInput: undefined,
+  });
+  const serializedFile = orderedContribution.files.find(
+    ({ path: filePath }) => filePath === "package.json",
+  );
+  assert.ok(serializedFile);
+  const serialized = new TextDecoder().decode(serializedFile.content);
+  assert.ok(serialized.indexOf('"devEngines"') >= 0);
+  assert.ok(
+    serialized.indexOf('"engines"') > serialized.indexOf('"devEngines"'),
+  );
 });
 
 await test("native author factory produces plain native documents during evaluation", async () => {

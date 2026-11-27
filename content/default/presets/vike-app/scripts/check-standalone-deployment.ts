@@ -3,11 +3,14 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 const repositoryRoot = process.cwd();
-const rootManifest: { readonly engines: { readonly node: string } } =
-  JSON.parse(await readFile(path.join(repositoryRoot, "package.json"), "utf8"));
+const rootManifest: {
+  readonly devEngines: { readonly runtime: { readonly version: string } };
+} = JSON.parse(
+  await readFile(path.join(repositoryRoot, "package.json"), "utf8"),
+);
 const applicationPackageName = "@boringparts/reference-vike-web";
 const buildArguments = Object.entries({
-  NODE_VERSION: rootManifest.engines.node,
+  NODE_VERSION: rootManifest.devEngines.runtime.version,
   APPLICATION_PACKAGE_NAME: applicationPackageName,
   APPLICATION_PACKAGE_PATH: "references/vike-web",
   DATABASE_PACKAGE_NAME: "@boringparts/reference-vike-db",

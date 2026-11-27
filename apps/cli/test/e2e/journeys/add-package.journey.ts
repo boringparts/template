@@ -56,7 +56,7 @@ const additionPresets = templatePresets.filter(
 const presetMatrix = initializationPresets.flatMap((initialization) =>
   additionPresets.map((addition) => ({ initialization, addition })),
 );
-const legacyCommandOffset = 9;
+const legacyCommandOffset = 10;
 const matrixCommandOffset = legacyCommandOffset + 3;
 
 async function snapshot(
@@ -81,6 +81,13 @@ async function snapshot(
 }
 
 type RootManifest = {
+  readonly devEngines?: {
+    readonly runtime?: {
+      readonly name?: string;
+      readonly version?: string;
+      readonly onFail?: string;
+    };
+  };
   readonly engines?: { readonly node?: string };
   readonly packageManager?: string;
 };
@@ -100,12 +107,15 @@ async function rewriteRootManifest(
     string,
     unknown
   >;
-  manifest.engines = { node: toolchain.node };
+  delete manifest.engines;
+  manifest.devEngines = {
+    runtime: { name: "node", version: toolchain.node, onFail: "download" },
+  };
   manifest.packageManager = toolchain.packageManager;
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
-const upgradedNode = "22";
+const upgradedNode = "24.18.0";
 const upgradedPackageManager = "pnpm@10.5.0";
 
 const journey: CliJourney = {
@@ -193,7 +203,7 @@ const journey: CliJourney = {
           await writeFile(
             path.join(context.workDir, "toolchain-history.json"),
             JSON.stringify({
-              rootNode: root.engines?.node,
+              rootNode: root.devEngines?.runtime?.version,
               rootPackageManager: root.packageManager,
             }),
           );
@@ -287,7 +297,14 @@ const journey: CliJourney = {
           const manifest = JSON.parse(
             await readFile(manifestPath, "utf8"),
           ) as Record<string, unknown>;
-          manifest.engines = { node: upgradedNode };
+          delete manifest.engines;
+          manifest.devEngines = {
+            runtime: {
+              name: "node",
+              version: upgradedNode,
+              onFail: "download",
+            },
+          };
           delete manifest.packageManager;
           await writeFile(
             manifestPath,
@@ -309,6 +326,41 @@ const journey: CliJourney = {
           "packages/missing-pm",
           "--output",
           "text",
+        ],
+      },
+      {
+        name: "add package on a target root with only legacy engines.node",
+        cwd: project,
+        async prepare() {
+          await writeFile(
+            path.join(context.workDir, "missing-pm-after-add.json"),
+            await readFile(path.join(project, "package.json"), "utf8"),
+          );
+          const manifestPath = path.join(project, "package.json");
+          const manifest = JSON.parse(
+            await readFile(manifestPath, "utf8"),
+          ) as Record<string, unknown>;
+          delete manifest.devEngines;
+          manifest.engines = { node: upgradedNode };
+          manifest.packageManager = upgradedPackageManager;
+          await writeFile(
+            manifestPath,
+            `${JSON.stringify(manifest, null, 2)}\n`,
+          );
+          await writeFile(
+            path.join(context.workDir, "legacy-engines-before.json"),
+            JSON.stringify(await snapshot(project)),
+          );
+        },
+        args: [
+          "add",
+          "package",
+          "--preset",
+          addablePresetName,
+          "--name",
+          "legacy-engines",
+          "--path",
+          "packages/legacy-engines",
         ],
       },
     ];
@@ -533,7 +585,7 @@ const journey: CliJourney = {
     assert.equal(
       history.rootNode,
       releaseToolchainSnapshot.nodeVersion,
-      "Initialized root engines.node should match the exact Node version from the CLI release snapshot",
+      "Initialized root devEngines.runtime.version should match the exact Node version from the CLI release snapshot",
     );
     assert.equal(
       history.rootPackageManager,
@@ -552,16 +604,31 @@ const journey: CliJourney = {
       ),
     ) as {
       readonly name: string;
-      readonly engines: { readonly node: string };
+      readonly engines?: unknown;
     };
-    assert.equal(upgradedManifest.engines.node, `^${upgradedNode}`);
+    assert.equal(upgradedManifest.engines, undefined);
+    const devcontainerAfterAddition = JSON.parse(
+      await readFile(
+        path.join(project, ".devcontainer/devcontainer.json"),
+        "utf8",
+      ),
+    ) as {
+      readonly build?: { readonly args?: Record<string, unknown> };
+    };
+    assert.equal(
+      devcontainerAfterAddition.build?.args?.NODE_VERSION,
+      upgradedNode,
+    );
     const rootAfterAddition = JSON.parse(
       await readFile(
         path.join(context.workDir, "root-after-current-addition.json"),
         "utf8",
       ),
     ) as RootManifest;
-    assert.equal(rootAfterAddition.engines?.node, upgradedNode);
+    assert.equal(rootAfterAddition.engines, undefined);
+    assert.deepEqual(rootAfterAddition.devEngines, {
+      runtime: { name: "node", version: upgradedNode, onFail: "download" },
+    });
     assert.equal(rootAfterAddition.packageManager, upgradedPackageManager);
 
     const rejectedResult = JSON.parse(results[7]?.stderr ?? "");
@@ -571,14 +638,14 @@ const journey: CliJourney = {
     };
     assert.equal(results[7]?.exitCode, 1);
     // JSON output must identify the invalid field, its actual value, and the corrective action.
-    assert.match(rejected.error.message, /engines\.node/u);
+    assert.match(rejected.error.message, /devEngines\.runtime/u);
     assert.ok(
-      rejected.error.message.includes('">=22"'),
+      rejected.error.message.includes(`">=${upgradedNode}"`),
       `JSON diagnostic should include the actual declared value, got: ${rejected.error.message}`,
     );
     assert.match(
       rejected.error.suggestion,
-      /Fix engines\.node in root package\.json/u,
+      /Fix devEngines\.runtime in root package\.json/u,
     );
     await assert.rejects(stat(path.join(project, "packages/rejected")), {
       code: "ENOENT",
@@ -621,10 +688,37 @@ const journey: CliJourney = {
       code: "ENOENT",
     });
     assert.equal(
-      await readFile(path.join(project, "package.json"), "utf8"),
+      await readFile(
+        path.join(context.workDir, "missing-pm-after-add.json"),
+        "utf8",
+      ),
       await readFile(
         path.join(context.workDir, "missing-pm-root-package.json"),
         "utf8",
+      ),
+    );
+
+    const legacyEnginesRejectedResult = JSON.parse(results[9]?.stderr ?? "");
+    assert.equal(results[9]?.exitCode, 1);
+    assert.equal(legacyEnginesRejectedResult.variant, "operationFailed");
+    assert.match(
+      legacyEnginesRejectedResult.data.error.message,
+      /devEngines\.runtime/u,
+    );
+    assert.match(
+      legacyEnginesRejectedResult.data.error.suggestion,
+      /Fix devEngines\.runtime in root package\.json/u,
+    );
+    await assert.rejects(stat(path.join(project, "packages/legacy-engines")), {
+      code: "ENOENT",
+    });
+    assert.deepEqual(
+      await snapshot(project),
+      JSON.parse(
+        await readFile(
+          path.join(context.workDir, "legacy-engines-before.json"),
+          "utf8",
+        ),
       ),
     );
 
@@ -969,8 +1063,19 @@ const journey: CliJourney = {
       );
       const packageManifest = JSON.parse(
         await readFile(path.join(project, addedPath, "package.json"), "utf8"),
-      ) as { readonly name: string };
+      ) as {
+        readonly name: string;
+        readonly engines?: { readonly node?: string };
+      };
       assert.equal(packageManifest.name, packageName);
+      if (additionAlias === "ts-cli") {
+        assert.equal(
+          packageManifest.engines?.node,
+          `^${releaseToolchainSnapshot.nodeVersion}`,
+        );
+      } else {
+        assert.equal(packageManifest.engines, undefined);
+      }
 
       const blueprint = JSON.parse(
         await readFile(path.join(project, ".template/blueprint.json"), "utf8"),

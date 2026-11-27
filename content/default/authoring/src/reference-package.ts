@@ -93,6 +93,7 @@ const packageManifestKeyOrder = [
   "dependenciesMeta",
   "peerDependencies",
   "optionalDependencies",
+  "devEngines",
   "engines",
   "packageManager",
 ] as const;
@@ -399,7 +400,6 @@ function outputManifest(options: {
     readonly path: string;
   };
   readonly conventions: DefaultWorkspaceConventions;
-  readonly stableCommon: unknown;
   readonly bindings: ReadonlyMap<string, PackageBinding>;
   readonly dependencies: readonly ReferenceDependency[];
   readonly templateDependencies: readonly ReferenceTemplateDependency[];
@@ -488,15 +488,6 @@ function outputManifest(options: {
     manifest[field] = dependencies;
   }
 
-  if (isRecord(options.stableCommon)) {
-    const nodeDeclaration = options.stableCommon.nodeDeclaration;
-    if (typeof nodeDeclaration === "string") {
-      manifest.engines = {
-        ...(isRecord(manifest.engines) ? manifest.engines : {}),
-        node: `^${nodeDeclaration}`,
-      };
-    }
-  }
   return Object.freeze(manifest);
 }
 
@@ -880,7 +871,6 @@ export function defineReferencePackage<
         manifest: options.manifest,
         definition: input.definition,
         conventions: input.conventions,
-        stableCommon: input.stableCommon,
         bindings: input.bindings,
         dependencies: contentDependencies,
         templateDependencies,
