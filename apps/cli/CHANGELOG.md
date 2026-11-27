@@ -4,7 +4,10 @@
 
 ### Minor Changes
 
-- 公开 CLI（`@ykdz/template`）与生成的 TypeScript CLI 参考包升级至 `@ykdz/cli-contract@0.5.0`：按命令通过 `define.outputModes` 声明 `structured`（默认）与 `text`（`--output text`）模式；启用原生 `--schema`（v5 目录、摘要及 `input` / `success` / `failures` / `wire` 分片）并声明可重放示例；结构化结果与用法错误统一为 v3 信封；移除旧 `schema` 子命令与 `--output-format` 选项。
+- 公开 CLI 与默认内容套件迁至 `@boringparts` 命名空间：公开包更名为 `@boringparts/template`（命令仍为 `template`），仓库地址、包元数据、内部工作区包、内容身份命名空间与验证容器标签同步切换。
+- 公开 CLI 与 `ts-cli` 预设升级至 `@boringparts/cli-contract@0.7.0`：支持原生 `--schema` v6 契约发现、0.7.0 帮助文案模板、`structured`（默认）与 `text`（`--output text`）双输出模式，以及 v3 结构化结果与用法错误信封；移除旧 `schema` 子命令与 `--output-format` 选项；生成工作区根配置按实际选用的依赖过滤投影 `minimumReleaseAgeExclude`。
+- 仓库根与生成项目根改用 `devEngines.runtime`（锁定 Node.js `26.13.1`、`onFail: "download"`）作为 Node.js 工具链唯一真源；工作流改由 `pnpm/setup`（`node-version-file: false`）直接读取根清单，并移除非 CLI 子包冗余的 `engines.node`。
+- 拆分为 `ts-lib` 与 `node-lib` 两套库预设并细化包角色链接边界：`ts-lib` 保持平台中立（纯 ES2024 构建类型隔离，移除 `#/*` 子路径别名并改用相对 `.ts` 扩展名重写，通过包名自引用分别验证源码 `test` 与构建产物 `test:dist`）；新增 `node-lib` 预设（声明 `engines.node` `>=24.0.0`、包级 `devEngines.runtime` `24.0.0` 及按需投影 `catalog:node-24`）；默认包角色扩展至 6 类，在规划阶段阻止浏览器应用与平台中立库链接 Node 专属库。
 - 全仓代码注释、日志、CLI 帮助与输出、报错诊断、预设元数据、工作流步骤名及测试描述统一为英文（保留用户可见产品界面、产品说明文档及测试中的中文样本）。
 - 升级工具链与依赖基线至 Node.js `26.13.1`、pnpm `12.21.0`、Rust `1.100.0`，同步更新依赖目录（含 `telefunc` `0.3.1`、`@vikejs/hono` `0.4.1` 路由注册顺序适配、`vitest` / `@vitest/browser-playwright` `5.1.1`、`execa` `10.2.1`、`srvx` `1.0.8` 等）、开发容器 `docker-outside-of-docker` `1.10.2` 及工作流 `pnpm/setup` `v3.2.0`。
 
