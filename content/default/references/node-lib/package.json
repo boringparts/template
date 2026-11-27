@@ -1,0 +1,60 @@
+{
+  "name": "@boringparts/reference-node-lib",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./reference": "./package.json",
+    "./template": {
+      "source": "./template/definition.ts",
+      "types": "./template-dist/definition.d.ts",
+      "default": "./template-dist/definition.js"
+    }
+  },
+  "scripts": {
+    "check:author-planning-roles": "pnpm --workspace-root run author-planning-roles:workspace -- --owner-directory \"$PWD\"",
+    "format:check": "oxfmt --list-different .",
+    "format:write": "oxfmt --write .",
+    "lint": "oxlint --quiet --format=unix --ignore-pattern node_modules .",
+    "lint:fix": "oxlint --format=unix . --fix",
+    "typecheck": "tsc -p tsconfig.node.json --noEmit --pretty false",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json --pretty false",
+    "test": "node --conditions=source --test --test-reporter=spec 'test/**/*.test.ts'",
+    "test:dist": "node --test --test-reporter=spec 'test/**/*.test.ts'",
+    "build:template": "rm -rf template-dist && tsc -p tsconfig.template.json --pretty false"
+  },
+  "dependencies": {
+    "@boringparts/template-core": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@boringparts/default-content-authoring": "workspace:*",
+    "@boringparts/reference-npm-publication": "workspace:*",
+    "@boringparts/reference-tooling-config": "workspace:*",
+    "@boringparts/reference-workspace-root": "workspace:*",
+    "@boringparts/tooling-config": "workspace:*",
+    "@types/node": "catalog:node-24",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "tsrs": "catalog:",
+    "typescript-7": "catalog:"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.0.0",
+      "onFail": "download"
+    }
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

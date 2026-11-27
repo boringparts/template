@@ -14,14 +14,41 @@ import {
 const root = new URL("../", import.meta.url);
 const workspace = parse(
   await readFile(new URL("pnpm-workspace.yaml", root), "utf8"),
-) as Record<string, unknown> & { catalog: Record<string, string> };
+) as Record<string, unknown> & {
+  catalog: Record<string, string>;
+  catalogs?: Record<string, Record<string, string>>;
+};
 const ignore = await readFile(new URL(".gitignore", root), "utf8");
 const {
   packages: _packages,
   catalog: _catalog,
-  catalogs: _catalogs,
+  catalogs: rawNamedCatalogs,
   ...installPolicy
 } = workspace;
+const namedCatalogs = Object.fromEntries(
+  Object.entries(rawNamedCatalogs ?? {}).map(([catalogName, entries]) => {
+    if (
+      typeof entries !== "object" ||
+      entries === null ||
+      Array.isArray(entries)
+    ) {
+      throw new Error(`Named catalog ${catalogName} must be an object map.`);
+    }
+    return [
+      catalogName,
+      Object.fromEntries(
+        Object.entries(entries).map(([dependency, version]) => {
+          if (typeof version !== "string" || version.trim().length === 0) {
+            throw new Error(
+              `Named catalog ${catalogName} entry ${dependency} must be a non-empty string.`,
+            );
+          }
+          return [dependency, version];
+        }),
+      ),
+    ];
+  }),
+);
 const check = process.argv.includes("--check");
 
 async function formattedSource(name: string, source: string): Promise<string> {
@@ -63,6 +90,8 @@ const workspaceSnapshot = await formattedSource(
   "workspace-policy-snapshot.ts",
   `// Derived by root sync:workspace-policy from native declarations; edit the source of truth and run sync explicitly.
 export const dependencyCatalogSnapshot: Readonly<Record<string, string>> = ${JSON.stringify(workspace.catalog, null, 2)};
+
+export const namedDependencyCatalogsSnapshot: Readonly<Record<string, Readonly<Record<string, string>>>> = ${JSON.stringify(namedCatalogs, null, 2)};
 
 export const workspaceInstallPolicySnapshot = ${JSON.stringify(installPolicy, null, 2)};
 `,

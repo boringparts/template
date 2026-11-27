@@ -24,6 +24,7 @@
     "typecheck": "tsc -p tsconfig.node.json --noEmit --pretty false"
   },
   "dependencies": {
+    "@boringparts/preset-node-lib": "workspace:*",
     "@boringparts/preset-rust-bin": "workspace:*",
     "@boringparts/preset-ts-cli": "workspace:*",
     "@boringparts/preset-ts-lib": "workspace:*",
@@ -31,6 +32,7 @@
     "@boringparts/preset-vue-app": "workspace:*",
     "@boringparts/preset-vue-hono-app": "workspace:*",
     "@boringparts/reference-hono-api": "workspace:*",
+    "@boringparts/reference-node-lib": "workspace:*",
     "@boringparts/reference-npm-publication": "workspace:*",
     "@boringparts/reference-rust-bin": "workspace:*",
     "@boringparts/reference-tooling-config": "workspace:*",

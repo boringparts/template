@@ -1,9 +1,19 @@
 import {
   dependencyCatalogSnapshot,
+  namedDependencyCatalogsSnapshot,
   workspaceInstallPolicySnapshot,
 } from "./workspace-policy-snapshot.ts";
 
 export type TemplateDependencyCatalog = Record<string, string>;
+export type NamedTemplateDependencyCatalogs = Record<
+  string,
+  TemplateDependencyCatalog
+>;
+
+export type GeneratedCatalogReferences = {
+  readonly defaultDependencies: readonly string[];
+  readonly namedDependencies: Readonly<Record<string, readonly string[]>>;
+};
 
 export type GeneratedDependencyCatalogOptions = {
   readonly dependencies: readonly string[];
@@ -134,6 +144,14 @@ export function loadTemplateDependencyCatalog(): TemplateDependencyCatalog {
   return { ...dependencyCatalogSnapshot };
 }
 
+export function loadTemplateNamedDependencyCatalogs(): NamedTemplateDependencyCatalogs {
+  return Object.fromEntries(
+    Object.entries(namedDependencyCatalogsSnapshot).map(
+      ([catalogName, entries]) => [catalogName, { ...entries }],
+    ),
+  );
+}
+
 export function selectTemplateDependencyCatalogEntries(
   dependencies: readonly string[],
   catalog: TemplateDependencyCatalog = loadTemplateDependencyCatalog(),
@@ -154,10 +172,42 @@ export function selectTemplateDependencyCatalogEntries(
   return selected;
 }
 
-export function collectGeneratedManifestCatalogReferences(
+export function selectTemplateNamedDependencyCatalogEntries(
+  namedDependencies: Readonly<Record<string, readonly string[]>>,
+  namedCatalogs: Readonly<
+    Record<string, Readonly<Record<string, string>>>
+  > = loadTemplateNamedDependencyCatalogs(),
+): NamedTemplateDependencyCatalogs {
+  const selected: NamedTemplateDependencyCatalogs = {};
+
+  for (const [catalogName, dependencies] of Object.entries(
+    namedDependencies,
+  ).toSorted(([left], [right]) => left.localeCompare(right))) {
+    if (dependencies.length === 0) {
+      continue;
+    }
+
+    const catalog = namedCatalogs[catalogName];
+    if (catalog === undefined) {
+      throw new Error(
+        `Template Named Dependency Catalog is missing catalog: ${catalogName}`,
+      );
+    }
+
+    selected[catalogName] = selectTemplateDependencyCatalogEntries(
+      dependencies,
+      catalog,
+    );
+  }
+
+  return selected;
+}
+
+export function collectGeneratedManifestCatalogSelections(
   manifests: readonly GeneratedPackageManifestDependencies[],
-): string[] {
-  const dependencies = new Set<string>();
+): GeneratedCatalogReferences {
+  const defaultDependencies = new Set<string>();
+  const namedDependencies = new Map<string, Set<string>>();
 
   for (const manifest of manifests) {
     for (const dependencyMap of [
@@ -169,14 +219,45 @@ export function collectGeneratedManifestCatalogReferences(
       for (const [dependency, specifier] of Object.entries(
         dependencyMap ?? {},
       )) {
+        if (specifier === "catalog:" || specifier === "catalog:default") {
+          defaultDependencies.add(dependency);
+          continue;
+        }
         if (specifier.startsWith("catalog:")) {
-          dependencies.add(dependency);
+          const catalogName = specifier.slice("catalog:".length);
+          if (catalogName.length === 0 || catalogName.trim() !== catalogName) {
+            throw new Error(
+              `Invalid dependency catalog specifier ${JSON.stringify(specifier)} for ${dependency}`,
+            );
+          }
+          const entries =
+            namedDependencies.get(catalogName) ?? new Set<string>();
+          entries.add(dependency);
+          namedDependencies.set(catalogName, entries);
         }
       }
     }
   }
 
-  return [...dependencies].toSorted();
+  return {
+    defaultDependencies: [...defaultDependencies].toSorted(),
+    namedDependencies: Object.fromEntries(
+      [...namedDependencies.entries()]
+        .toSorted(([left], [right]) => left.localeCompare(right))
+        .map(([catalogName, dependencies]) => [
+          catalogName,
+          [...dependencies].toSorted(),
+        ]),
+    ),
+  };
+}
+
+export function collectGeneratedManifestCatalogReferences(
+  manifests: readonly GeneratedPackageManifestDependencies[],
+): string[] {
+  return [
+    ...collectGeneratedManifestCatalogSelections(manifests).defaultDependencies,
+  ];
 }
 
 function renderCatalogKey(key: string): string {

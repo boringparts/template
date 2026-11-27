@@ -89,7 +89,7 @@ async function diagnosticScenario(): Promise<{
     }
     const plan = await planPreset(member);
     const runtimePackage = plan.packages.find(
-      ({ role }) => role === "runtime-service",
+      ({ role }) => role === "browser-app" || role === "runtime-service",
     );
     if (runtimePackage !== undefined) {
       diagnostic = { member, packagePath: runtimePackage.path };

@@ -115,7 +115,7 @@ function validSelection() {
     packageName: "@boringparts/reference-vue-hono-web",
     name: "@demo/web",
     path: "apps/web",
-    role: "runtime-service",
+    role: "browser-app",
     dependencyBindings: { [honoApiDependencyKey]: apiId },
   });
   return {
@@ -240,7 +240,7 @@ void describe("Vue-Hono preset joint E2E composition", () => {
           ),
           ownerFacts,
         }),
-      /web.*runtime-service/u,
+      /web.*browser-app/u,
     );
     assert.throws(
       () =>

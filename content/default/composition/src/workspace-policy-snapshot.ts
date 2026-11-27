@@ -56,6 +56,17 @@ export const dependencyCatalogSnapshot: Readonly<Record<string, string>> = {
   "validate-npm-package-name": "^8.0.0",
 };
 
+export const namedDependencyCatalogsSnapshot: Readonly<
+  Record<string, Readonly<Record<string, string>>>
+> = {
+  "node-24": {
+    "@types/node": "~24.0.0",
+  },
+  "public-cli-runtime": {
+    typescript: "npm:typescript@^6.0.3",
+  },
+};
+
 export const workspaceInstallPolicySnapshot = {
   nodeLinker: "isolated",
   preferSymlinkedExecutables: true,

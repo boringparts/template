@@ -37,7 +37,7 @@ export const referencePackage = defineReferencePackage({
   instance: "independent",
   defaultLeafName: "db-migrations",
   defaultPath: "packages/db-migrations",
-  role: "shared-library",
+  role: "node-library",
   dependencies: [
     baseWorkspaceDependency,
     toolingConfigDependency,

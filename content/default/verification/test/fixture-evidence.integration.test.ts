@@ -65,23 +65,25 @@ const applicableFocusedScenarioCount = async (): Promise<number> => {
   });
   assert.deepStrictEqual(
     applicableScenarios
-      .map(({ basePackageName }) => basePackageName)
+      .map(
+        ({ basePackageName, providerPackageName }) =>
+          `${basePackageName}->${providerPackageName}`,
+      )
       .toSorted(),
     [
-      "@boringparts/preset-ts-cli",
-      "@boringparts/preset-ts-lib",
-      "@boringparts/preset-vike-app",
-      "@boringparts/preset-vue-app",
-      "@boringparts/preset-vue-hono-app",
+      "@boringparts/preset-node-lib->@boringparts/preset-node-lib",
+      "@boringparts/preset-node-lib->@boringparts/preset-ts-lib",
+      "@boringparts/preset-ts-cli->@boringparts/preset-node-lib",
+      "@boringparts/preset-ts-cli->@boringparts/preset-ts-lib",
+      "@boringparts/preset-ts-lib->@boringparts/preset-ts-lib",
+      "@boringparts/preset-vike-app->@boringparts/preset-node-lib",
+      "@boringparts/preset-vike-app->@boringparts/preset-ts-lib",
+      "@boringparts/preset-vue-app->@boringparts/preset-ts-lib",
+      "@boringparts/preset-vue-hono-app->@boringparts/preset-node-lib",
+      "@boringparts/preset-vue-hono-app->@boringparts/preset-ts-lib",
     ],
   );
-  assert.ok(
-    applicableScenarios.every(
-      ({ providerPackageName, linkFrom }) =>
-        providerPackageName === "@boringparts/preset-ts-lib" &&
-        linkFrom.length === 1,
-    ),
-  );
+  assert.ok(applicableScenarios.every(({ linkFrom }) => linkFrom.length === 1));
   return applicableScenarios.length;
 };
 
@@ -164,7 +166,7 @@ void describe("Fixture Verification Evidence", () => {
         matrixExecutions += 1;
       }
       assert.strictEqual(matrixExecutions, initialization.length);
-      assert.strictEqual(matrixExecutions, 6);
+      assert.strictEqual(matrixExecutions, 7);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -689,22 +691,26 @@ void describe("Fixture Verification Evidence", () => {
           if (scenarioSet === "focused") {
             assert.deepStrictEqual(
               renderedScenarios
-                .map(({ scenario }) => scenario.base.identity.packageName)
+                .map(
+                  ({ scenario }) =>
+                    `${scenario.base.identity.packageName}->${scenario.addition?.identity.packageName}`,
+                )
                 .toSorted(),
               [
-                "@boringparts/preset-ts-cli",
-                "@boringparts/preset-ts-lib",
-                "@boringparts/preset-vike-app",
-                "@boringparts/preset-vue-app",
-                "@boringparts/preset-vue-hono-app",
+                "@boringparts/preset-node-lib->@boringparts/preset-node-lib",
+                "@boringparts/preset-node-lib->@boringparts/preset-ts-lib",
+                "@boringparts/preset-ts-cli->@boringparts/preset-node-lib",
+                "@boringparts/preset-ts-cli->@boringparts/preset-ts-lib",
+                "@boringparts/preset-ts-lib->@boringparts/preset-ts-lib",
+                "@boringparts/preset-vike-app->@boringparts/preset-node-lib",
+                "@boringparts/preset-vike-app->@boringparts/preset-ts-lib",
+                "@boringparts/preset-vue-app->@boringparts/preset-ts-lib",
+                "@boringparts/preset-vue-hono-app->@boringparts/preset-node-lib",
+                "@boringparts/preset-vue-hono-app->@boringparts/preset-ts-lib",
               ],
             );
             assert.ok(
-              renderedScenarios.every(
-                ({ scenario, linkFrom }) =>
-                  scenario.addition?.identity.packageName ===
-                    "@boringparts/preset-ts-lib" && linkFrom.length === 1,
-              ),
+              renderedScenarios.every(({ linkFrom }) => linkFrom.length === 1),
             );
           }
           const browserConstrained = renderedScenarios.filter((receipt) =>

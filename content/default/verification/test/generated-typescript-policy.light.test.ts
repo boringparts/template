@@ -190,6 +190,23 @@ void describe("Generated Repository TypeScript policy", () => {
               Array.isArray(config.compilerOptions?.lib) &&
               config.compilerOptions.lib.length === 1 &&
               config.compilerOptions.lib[0] === "es2024";
+            const packageDirectory = path.dirname(configPath);
+            let usesNode24CatalogTypes = false;
+            try {
+              const packageManifest = JSON.parse(
+                await readFile(
+                  path.join(packageDirectory, "package.json"),
+                  "utf8",
+                ),
+              ) as {
+                readonly devDependencies?: Readonly<Record<string, string>>;
+              };
+              usesNode24CatalogTypes =
+                packageManifest.devDependencies?.["@types/node"] ===
+                "catalog:node-24";
+            } catch {
+              usesNode24CatalogTypes = false;
+            }
             const allowedOverrides = [
               ...(config.compilerOptions?.exactOptionalPropertyTypes ===
                 false && inherited.includes("@vue/tsconfig/tsconfig.dom.json")
@@ -200,7 +217,8 @@ void describe("Generated Repository TypeScript policy", () => {
                 (candidate) =>
                   candidate.compilerOptions?.moduleResolution === "bundler",
               ) ||
-                isPureEs2024Build)
+                isPureEs2024Build ||
+                usesNode24CatalogTypes)
                 ? ["skipLibCheck"]
                 : []),
             ];

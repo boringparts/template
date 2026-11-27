@@ -160,11 +160,11 @@ function assertVikePackageRoles(options: {
     );
   }
   if (
-    options.database.definition.role !== "shared-library" ||
-    options.migrations.definition.role !== "shared-library"
+    options.database.definition.role !== "node-library" ||
+    options.migrations.definition.role !== "node-library"
   ) {
     throw new Error(
-      "Vike app deployment requires the database and migrations packages to have the shared-library role",
+      "Vike app deployment requires the database and migrations packages to have the node-library role",
     );
   }
   if (

@@ -102,7 +102,9 @@ void describe("default policy package role and path contract", () => {
   for (const role of [
     "cli-tool",
     "runtime-service",
+    "browser-app",
     "shared-library",
+    "node-library",
     "native-package",
   ]) {
     void it(`accepts default role ${role}`, () => {
@@ -129,7 +131,7 @@ void describe("default policy package role and path contract", () => {
           {
             path: ".packages[0].role",
             message:
-              "Package Role must be cli-tool, runtime-service, shared-library, or native-package",
+              "Package Role must be cli-tool, runtime-service, browser-app, shared-library, node-library, or native-package",
           },
         ],
       },

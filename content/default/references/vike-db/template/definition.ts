@@ -27,7 +27,7 @@ export const referencePackage = defineReferencePackage({
   instance: "independent",
   defaultLeafName: "db",
   defaultPath: "packages/db",
-  role: "shared-library",
+  role: "node-library",
   dependencies: [baseWorkspaceDependency, toolingConfigDependency],
   resources: [
     { path: "scripts/seed-example.ts" },

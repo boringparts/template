@@ -27,6 +27,14 @@ export const templateContent = await loadContentSource({
       load: () => import("@boringparts/preset-ts-lib/template"),
     },
     {
+      specifier: "@boringparts/reference-node-lib/template",
+      load: () => import("@boringparts/reference-node-lib/template"),
+    },
+    {
+      specifier: "@boringparts/preset-node-lib/template",
+      load: () => import("@boringparts/preset-node-lib/template"),
+    },
+    {
       specifier: "@boringparts/reference-ts-cli/template",
       load: () => import("@boringparts/reference-ts-cli/template"),
     },

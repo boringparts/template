@@ -129,4 +129,73 @@ void describe("real generator receipt checks", () => {
       await rm(workspace, { recursive: true, force: true });
     }
   });
+
+  void it("rejects unreferenced named catalogs and validates referenced named catalogs in generated pnpm-workspace.yaml", async () => {
+    const workspace = await mkdtemp(
+      path.join(tmpdir(), "template-generated-named-catalogs-"),
+    );
+    try {
+      const tsLibScenario = deriveInitializationScenarios(
+        sourceGeneratedScenarioRuntime,
+      ).find(
+        (candidate) => candidate.base.definition.metadata.alias === "ts-lib",
+      );
+      assert.ok(tsLibScenario);
+      const receipt = await materializeGeneratedScenario({
+        runtime: sourceGeneratedScenarioRuntime,
+        scenario: tsLibScenario,
+        workspace,
+      });
+      if (receipt.status !== "generated") {
+        throw new Error("ts-lib initialization must be applicable");
+      }
+
+      const workspacePath = path.join(
+        receipt.projectDir,
+        "pnpm-workspace.yaml",
+      );
+      const originalWorkspace = await readFile(workspacePath, "utf8");
+      const parsedWorkspace = parseYaml(originalWorkspace) as Record<
+        string,
+        unknown
+      >;
+      assert.strictEqual("catalogs" in parsedWorkspace, false);
+
+      await writeFile(
+        workspacePath,
+        stringifyYaml({
+          ...parsedWorkspace,
+          catalogs: { "node-24": { "@types/node": "~24.0.0" } },
+        }),
+      );
+      await assert.rejects(
+        validateGeneratedScenarioReceipt({
+          receipt,
+          runtime: sourceGeneratedScenarioRuntime,
+        }),
+        /named dependency catalogs/u,
+      );
+
+      const libManifestPath = path.join(
+        receipt.projectDir,
+        "packages/lib/package.json",
+      );
+      const libManifest = JSON.parse(
+        await readFile(libManifestPath, "utf8"),
+      ) as {
+        devDependencies: Record<string, string>;
+      };
+      libManifest.devDependencies["@types/node"] = "catalog:node-24";
+      await writeFile(
+        libManifestPath,
+        `${JSON.stringify(libManifest, null, 2)}\n`,
+      );
+      await validateGeneratedScenarioReceipt({
+        receipt,
+        runtime: sourceGeneratedScenarioRuntime,
+      });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  });
 });
