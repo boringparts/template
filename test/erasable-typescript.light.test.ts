@@ -258,7 +258,7 @@ void describe("Erasable TypeScript enforcement", () => {
 
         const result = await execa(
           "pnpm",
-          ["exec", "tsc", "-p", temporaryConfigPath],
+          ["exec", "tsc", "-p", temporaryConfigPath, "--pretty", "false"],
           { reject: false, all: true },
         );
         assert.strictEqual(result.exitCode, 0, `${configPath}\n${result.all}`);
@@ -305,7 +305,14 @@ void describe("Erasable TypeScript enforcement", () => {
 
       const result = await execa(
         "pnpm",
-        ["exec", "tsc", "-p", path.join(projectRoot, "tsconfig.json")],
+        [
+          "exec",
+          "tsc",
+          "-p",
+          path.join(projectRoot, "tsconfig.json"),
+          "--pretty",
+          "false",
+        ],
         { reject: false, all: true },
       );
       assert.notStrictEqual(result.exitCode, 0);
