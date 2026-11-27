@@ -177,6 +177,15 @@ void describe("vike-app preset", () => {
       assert.equal(dockerfile.includes("ARG NODE_VERSION"), false);
       assert.equal(dockerfile.includes("__PNPM_VERSION__"), false);
       assert.equal(dockerfile.includes("@template-mirror"), false);
+      assert.ok(
+        dockerfile.includes(
+          'pnpm exec turbo run build --filter="$APPLICATION_PACKAGE_NAME" --filter="$MIGRATION_PACKAGE_NAME"',
+        ),
+      );
+      assert.equal(
+        dockerfile.includes('pnpm --filter "$DATABASE_PACKAGE_NAME" run build'),
+        false,
+      );
 
       // Root package.json delegates dev to @acme-vike/web without injected db:prepare scripts or publication scripts
       const rootPkg = JSON.parse(
@@ -268,17 +277,28 @@ void describe("vike-app preset", () => {
       ) as {
         readonly tasks: Record<string, { readonly dependsOn?: string[] }>;
       };
+      assert.ok(webTurbo.tasks.dev?.dependsOn?.includes("^build"));
+      assert.ok(webTurbo.tasks.build?.dependsOn?.includes("^build"));
+      assert.ok(webTurbo.tasks.test?.dependsOn?.includes("^build"));
+      assert.ok(webTurbo.tasks["test:browser"]?.dependsOn?.includes("^build"));
       assert.ok(
         webTurbo.tasks["test:e2e"]?.dependsOn?.includes(
           "@acme-vike/deployment#database:prepare:e2e",
         ),
       );
 
+      const webViteConfig = readFileSync(
+        path.join(targetDir, "apps/web/vite.config.ts"),
+        "utf8",
+      );
+      assert.equal(webViteConfig.includes("conditions"), false);
+
       const dbTurbo = JSON.parse(
         readFileSync(path.join(targetDir, "packages/db/turbo.json"), "utf8"),
       ) as {
         readonly tasks: Record<string, { readonly dependsOn?: string[] }>;
       };
+      assert.ok(dbTurbo.tasks.build?.dependsOn?.includes("^build"));
       assert.ok(
         dbTurbo.tasks.test?.dependsOn?.includes(
           "@acme-vike/deployment#database:prepare:test",
@@ -336,6 +356,7 @@ void describe("vike-app preset", () => {
       assert.ok(checkerSource.includes('"apps/web"'));
       assert.ok(checkerSource.includes('"Dockerfile"'));
       assert.ok(checkerSource.includes('"scripts/container-entrypoint.sh"'));
+      assert.ok(checkerSource.includes('"/migration"'));
       assert.equal(checkerSource.includes("references/vike-"), false);
 
       // Devcontainer appends browser-test & shellcheck layers

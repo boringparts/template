@@ -303,12 +303,18 @@ importers:
 
   .:
     devDependencies:
+      '@boringparts/reference-workspace-root':
+        specifier: workspace:*
+        version: link:references/workspace-root
       '@boringparts/tooling-config':
         specifier: workspace:./packages/tooling-config
         version: link:packages/tooling-config
       '@changesets/cli':
         specifier: 'catalog:'
         version: 3.0.3
+      '@devcontainers/cli':
+        specifier: 'catalog:'
+        version: 0.89.0
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.11
@@ -456,9 +462,6 @@ importers:
       '@boringparts/tooling-config':
         specifier: workspace:*
         version: link:../tooling-config
-      '@devcontainers/cli':
-        specifier: 'catalog:'
-        version: 0.89.0
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.11

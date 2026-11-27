@@ -48,11 +48,12 @@
       "tags": ["work:preparation"]
     },
     "test": {
+      "dependsOn": ["^build"],
       "outputs": [],
       "tags": ["quality:light"]
     },
     "test:browser": {
-      "dependsOn": ["browser:prepare"],
+      "dependsOn": ["^build", "browser:prepare"],
       "tags": ["quality:heavy"]
     },
     "test:e2e": {

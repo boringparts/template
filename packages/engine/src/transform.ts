@@ -163,7 +163,7 @@ export function rewriteSubpackageManifest(options: {
   readonly packageName: string;
   readonly preservePackageJsonExport?: boolean;
   readonly rewriteBinName?: boolean;
-  readonly packageBindings: ReadonlyMap<string, string>;
+  readonly dependencyBindings: ReadonlyMap<string, string>;
   readonly pathReplacements?: ReadonlyMap<string, string>;
   readonly linkedProviders: readonly string[];
   readonly defaultCatalogDeps: Set<string>;
@@ -200,7 +200,7 @@ export function rewriteSubpackageManifest(options: {
           ? rewriteTextSpecifiers({
               text: scriptCmd,
               scope: options.scope,
-              packageBindings: options.packageBindings,
+              dependencyBindings: options.dependencyBindings,
               pathReplacements,
             })
           : scriptCmd;
@@ -223,8 +223,8 @@ export function rewriteSubpackageManifest(options: {
     for (const [dep, spec] of Object.entries(section)) {
       if (dep === toolingConfigRefName) {
         rewritten[toolingReplacement] = "workspace:*";
-      } else if (options.packageBindings.has(dep)) {
-        rewritten[options.packageBindings.get(dep)!] = "workspace:*";
+      } else if (options.dependencyBindings.has(dep)) {
+        rewritten[options.dependencyBindings.get(dep)!] = "workspace:*";
       } else {
         rewritten[dep] = spec;
       }
@@ -264,7 +264,7 @@ export function rewriteSubpackageManifest(options: {
 export function rewriteSubpackageTurboConfig(options: {
   readonly rawJson: string;
   readonly scope: string;
-  readonly packageBindings: ReadonlyMap<string, string>;
+  readonly dependencyBindings: ReadonlyMap<string, string>;
 }): string {
   const config = JSON.parse(options.rawJson) as Record<string, unknown>;
   const tasks = config.tasks;
@@ -290,7 +290,7 @@ export function rewriteSubpackageTurboConfig(options: {
       if (pkgPrefix === toolingConfigRefName) {
         return `${toolingReplacement}${taskSuffix}`;
       }
-      const boundPkg = options.packageBindings.get(pkgPrefix);
+      const boundPkg = options.dependencyBindings.get(pkgPrefix);
       return boundPkg === undefined ? entry : `${boundPkg}${taskSuffix}`;
     });
   }
@@ -298,33 +298,97 @@ export function rewriteSubpackageTurboConfig(options: {
   return formatJson(config);
 }
 
-/** Rewrites the crate package name inside `Cargo.toml` or `Cargo.lock`. */
+/** Rewrites the crate package name inside `Cargo.toml`. */
 export function rewriteCargoToml(options: {
   readonly rawToml: string;
-  readonly isLockfile: boolean;
   readonly fromPackageName: string;
   readonly toPackageName: string;
 }): string {
   const parsed = parseToml(options.rawToml);
-  if (!options.isLockfile) {
-    if (
-      isRecord(parsed.package) &&
-      parsed.package.name === options.fromPackageName
-    ) {
-      parsed.package.name = options.toPackageName;
+  if (
+    isRecord(parsed.package) &&
+    parsed.package.name === options.fromPackageName
+  ) {
+    parsed.package.name = options.toPackageName;
+  }
+  return stringifyToml(parsed);
+}
+
+/**
+ * Synthesizes a single root workspace `Cargo.lock` from one or more instantiated Rust crates,
+ * creating local `[[package]]` entries for each workspace member and deduplicating/sorting
+ * third-party dependency `[[package]]` entries.
+ */
+export function synthesizeWorkspaceCargoLock(
+  crates: readonly {
+    readonly fromPackageName: string;
+    readonly toPackageName: string;
+    readonly rawLockfile: string;
+  }[],
+): string {
+  let lockVersion: unknown = 4;
+  const localPackages: Record<string, unknown>[] = [];
+  const externalPackages = new Map<string, Record<string, unknown>>();
+
+  for (const crate of crates) {
+    const parsed = parseToml(crate.rawLockfile);
+    if (typeof parsed.version === "number") {
+      lockVersion = parsed.version;
     }
-  } else if (Array.isArray(parsed.package)) {
+    if (!Array.isArray(parsed.package)) {
+      continue;
+    }
     for (const pkg of parsed.package) {
-      if (
-        isRecord(pkg) &&
-        pkg.name === options.fromPackageName &&
-        pkg.source === undefined
-      ) {
-        pkg.name = options.toPackageName;
+      if (!isRecord(pkg) || typeof pkg.name !== "string") {
+        continue;
+      }
+      if (pkg.source === undefined) {
+        if (pkg.name === crate.fromPackageName) {
+          localPackages.push({
+            ...pkg,
+            name: crate.toPackageName,
+          });
+        }
+      } else {
+        const version = typeof pkg.version === "string" ? pkg.version : "";
+        const source = typeof pkg.source === "string" ? pkg.source : "";
+        const key = `${pkg.name}\u0000${version}\u0000${source}`;
+        if (!externalPackages.has(key)) {
+          externalPackages.set(key, { ...pkg });
+        }
       }
     }
   }
-  return stringifyToml(parsed);
+
+  const comparePackage = (
+    left: Record<string, unknown>,
+    right: Record<string, unknown>,
+  ): number => {
+    const leftName = typeof left.name === "string" ? left.name : "";
+    const rightName = typeof right.name === "string" ? right.name : "";
+    if (leftName !== rightName) {
+      return leftName < rightName ? -1 : 1;
+    }
+    const leftVersion = typeof left.version === "string" ? left.version : "";
+    const rightVersion = typeof right.version === "string" ? right.version : "";
+    if (leftVersion !== rightVersion) {
+      return leftVersion < rightVersion ? -1 : 1;
+    }
+    const leftSource = typeof left.source === "string" ? left.source : "";
+    const rightSource = typeof right.source === "string" ? right.source : "";
+    return leftSource < rightSource ? -1 : leftSource > rightSource ? 1 : 0;
+  };
+
+  const allPackages = [...localPackages, ...externalPackages.values()].toSorted(
+    comparePackage,
+  );
+
+  return `# This file is automatically @generated by Cargo.\n# It is not intended for manual editing.\n${stringifyToml(
+    {
+      version: lockVersion,
+      package: allPackages,
+    },
+  )}`;
 }
 
 /**
@@ -334,12 +398,12 @@ export function rewriteCargoToml(options: {
 export function rewriteTextSpecifiers(options: {
   readonly text: string;
   readonly scope: string;
-  readonly packageBindings: ReadonlyMap<string, string>;
+  readonly dependencyBindings: ReadonlyMap<string, string>;
   readonly pathReplacements: ReadonlyMap<string, string>;
 }): string {
   const replacements: [string, string][] = [
     [toolingConfigRefName, `@${options.scope}/tooling-config`],
-    ...options.packageBindings.entries(),
+    ...options.dependencyBindings.entries(),
     ...options.pathReplacements.entries(),
   ];
   // Apply longest patterns first so prefix substrings never corrupt longer package names.

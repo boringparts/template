@@ -2,6 +2,11 @@
   "extends": ["//"],
   "tags": ["app"],
   "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "tags": []
+    },
     "browser:prepare": {
       "cache": false,
       "outputs": [],

@@ -11,6 +11,5 @@ const telefuncPlugin = telefunc() as PluginOption;
 
 export default defineConfig({
   plugins: [vike(), telefuncPlugin, ...(vueConfig.plugins ?? [])],
-  resolve: { conditions: ["source"] },
   ssr: { external: [databaseManifest.name] },
 });

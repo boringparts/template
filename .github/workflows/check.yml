@@ -43,6 +43,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Run Light Check
         run: node --conditions=source scripts/task-gates.ts check
+      - name: Verify @boringparts/template distribution tarball
+        run: pnpm --filter @boringparts/template run build && pnpm --filter @boringparts/template run test:dist
 
   repo-devcontainer:
     name: Repository Devcontainer Smoke
@@ -63,7 +65,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Run repository devcontainer smoke check
-        run: node --conditions=source packages/template/scripts/verify-containers.ts --scenario repo-devcontainer
+        run: node --conditions=source scripts/verify-containers.ts --scenario repo-devcontainer
 
   container-matrix:
     name: Container Verify (${{ matrix.scenario }})
@@ -99,7 +101,7 @@ jobs:
       - name: Build CLI distribution
         run: pnpm --filter @boringparts/template run build
       - name: Verify scenario in devcontainer
-        run: node --conditions=source packages/template/scripts/verify-containers.ts --scenario ${{ matrix.scenario }} --diagnostics-dir .ci-diagnostics/${{ matrix.scenario }}
+        run: node --conditions=source scripts/verify-containers.ts --scenario ${{ matrix.scenario }} --diagnostics-dir .ci-diagnostics/${{ matrix.scenario }}
       - name: Upload container diagnostics
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

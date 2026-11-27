@@ -15,6 +15,7 @@
     },
     "dev": {
       "cache": false,
+      "dependsOn": ["^build"],
       "outputs": [],
       "tags": ["work:development"]
     },
@@ -47,13 +48,13 @@
     },
     "test:browser": {
       "cache": true,
-      "dependsOn": ["browser:prepare"],
+      "dependsOn": ["^build", "browser:prepare"],
       "outputs": [],
       "tags": ["quality:heavy"]
     },
     "test:e2e": {
       "cache": false,
-      "dependsOn": ["build", "browser:prepare"],
+      "dependsOn": ["^build", "build", "browser:prepare"],
       "outputs": [],
       "tags": ["quality:heavy"]
     },
@@ -65,6 +66,7 @@
     },
     "test": {
       "cache": true,
+      "dependsOn": ["^build"],
       "outputs": [],
       "tags": ["quality:light"]
     }

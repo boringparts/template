@@ -8,7 +8,17 @@ import { createVikeAppPreset } from "./presets/vike-app.ts";
 import { createVueAppPreset } from "./presets/vue-app.ts";
 import { createVueHonoAppPreset } from "./presets/vue-hono-app.ts";
 
-export { resolvePackageDir, resolveTemplateWorkspaceRoots } from "./roots.ts";
+export {
+  resolvePackageDir,
+  resolveTemplateDistributionSources,
+  resolveTemplateWorkspaceRoots,
+  type RegisteredReferencePackage,
+  type TemplateDistributionSources,
+} from "./roots.ts";
+export {
+  standardPresetVerificationScenarios,
+  type PresetVerificationScenario,
+} from "./scenarios.ts";
 
 /** Loads all built-in presets in deterministic display order. */
 export function loadBuiltInPresets(

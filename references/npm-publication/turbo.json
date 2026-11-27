@@ -2,6 +2,11 @@
   "extends": ["//"],
   "tags": ["library"],
   "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "tags": []
+    },
     "format:check": {
       "dependsOn": [],
       "tags": ["quality:light"],

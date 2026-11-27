@@ -2,6 +2,11 @@
   "extends": ["//"],
   "tags": ["app"],
   "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "tags": []
+    },
     "check:deployment": {
       "dependsOn": [
         "@boringparts/reference-vike-db#build",

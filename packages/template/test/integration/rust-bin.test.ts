@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
@@ -108,7 +109,7 @@ void describe("rust-bin preset and polyglot workspace", () => {
           },
         ]);
 
-        // Subpackage Cargo.toml, Cargo.lock, and wrapper package.json
+        // Subpackage Cargo.toml without subpackage Cargo.lock, and wrapper package.json
         const crateManifest = parseToml(
           readFileSync(
             path.join(targetDir, spec.cratePath, "Cargo.toml"),
@@ -116,32 +117,56 @@ void describe("rust-bin preset and polyglot workspace", () => {
           ),
         ) as unknown as { readonly package: { readonly name: string } };
         assert.equal(crateManifest.package.name, spec.crateName);
+        assert.equal(
+          existsSync(path.join(targetDir, spec.cratePath, "Cargo.lock")),
+          false,
+        );
 
-        const crateLock = parseToml(
-          readFileSync(
-            path.join(targetDir, spec.cratePath, "Cargo.lock"),
-            "utf8",
-          ),
-        ) as unknown as {
+        const rootLockPath = path.join(targetDir, "Cargo.lock");
+        assert.equal(existsSync(rootLockPath), true);
+        const rootLockRaw = readFileSync(rootLockPath, "utf8");
+        const rootLock = parseToml(rootLockRaw) as unknown as {
           readonly package: readonly {
             readonly name: string;
             readonly source?: string;
           }[];
         };
         assert.ok(
-          crateLock.package.some(
+          rootLock.package.some(
             (pkg) => pkg.name === spec.crateName && pkg.source === undefined,
           ),
         );
         assert.ok(
-          crateLock.package.some(
+          rootLock.package.some(
             (pkg) => pkg.name === "anyhow" && pkg.source !== undefined,
           ),
         );
         assert.equal(
-          crateLock.package.some(
+          rootLock.package.some(
             (pkg) => pkg.name === "app" && spec.crateName !== "app",
           ),
+          false,
+        );
+
+        execFileSync(
+          "cargo",
+          ["check", "--workspace", "--locked", "--offline"],
+          {
+            cwd: targetDir,
+            stdio: ["ignore", "pipe", "pipe"],
+          },
+        );
+        execFileSync(
+          "cargo",
+          ["test", "--workspace", "--locked", "--offline"],
+          {
+            cwd: targetDir,
+            stdio: ["ignore", "pipe", "pipe"],
+          },
+        );
+        assert.equal(readFileSync(rootLockPath, "utf8"), rootLockRaw);
+        assert.equal(
+          existsSync(path.join(targetDir, spec.cratePath, "Cargo.lock")),
           false,
         );
 
@@ -291,6 +316,83 @@ void describe("rust-bin preset and polyglot workspace", () => {
         assert.equal("//#publication:pack" in rootTurbo.tasks, false);
         assert.equal("//#publication:publish" in rootTurbo.tasks, false);
       }
+    });
+  });
+
+  void it("synthesizes a single deduplicated root Cargo.lock across multiple rust-bin instances", async () => {
+    await withTempDir(async (workspaceDir) => {
+      const targetDir = path.join(workspaceDir, "multi-rust");
+      const run = testRuntime([
+        "init",
+        targetDir,
+        "--preset",
+        "rust-bin:a",
+        "--preset",
+        "rust-bin:b",
+      ]);
+      assert.equal(await runCli(run.runtime), 0, run.stderr());
+      assert.equal(run.stderr(), "");
+
+      const rootCargo = parseToml(
+        readFileSync(path.join(targetDir, "Cargo.toml"), "utf8"),
+      ) as unknown as {
+        readonly workspace: { readonly members: readonly string[] };
+      };
+      assert.deepStrictEqual(rootCargo.workspace.members, [
+        "crates/a",
+        "crates/b",
+      ]);
+
+      assert.equal(
+        existsSync(path.join(targetDir, "crates/a/Cargo.lock")),
+        false,
+      );
+      assert.equal(
+        existsSync(path.join(targetDir, "crates/b/Cargo.lock")),
+        false,
+      );
+
+      const rootLockPath = path.join(targetDir, "Cargo.lock");
+      assert.equal(existsSync(rootLockPath), true);
+      const rootLockRaw = readFileSync(rootLockPath, "utf8");
+      const rootLock = parseToml(rootLockRaw) as unknown as {
+        readonly package: readonly {
+          readonly name: string;
+          readonly source?: string;
+        }[];
+      };
+      assert.ok(
+        rootLock.package.some(
+          (pkg) => pkg.name === "a" && pkg.source === undefined,
+        ),
+      );
+      assert.ok(
+        rootLock.package.some(
+          (pkg) => pkg.name === "b" && pkg.source === undefined,
+        ),
+      );
+      assert.equal(
+        rootLock.package.filter((pkg) => pkg.name === "anyhow").length,
+        1,
+      );
+
+      execFileSync("cargo", ["check", "--workspace", "--locked", "--offline"], {
+        cwd: targetDir,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      execFileSync("cargo", ["test", "--workspace", "--locked", "--offline"], {
+        cwd: targetDir,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      assert.equal(readFileSync(rootLockPath, "utf8"), rootLockRaw);
+      assert.equal(
+        existsSync(path.join(targetDir, "crates/a/Cargo.lock")),
+        false,
+      );
+      assert.equal(
+        existsSync(path.join(targetDir, "crates/b/Cargo.lock")),
+        false,
+      );
     });
   });
 

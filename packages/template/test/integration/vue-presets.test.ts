@@ -368,6 +368,14 @@ void describe("vue-app and vue-hono-app presets via runCli", () => {
         "@acme-fs/api#build",
         "^typecheck",
       ]);
+      assert.ok(webTurbo.tasks.dev?.dependsOn?.includes("^build"));
+      assert.ok(webTurbo.tasks["test:browser"]?.dependsOn?.includes("^build"));
+
+      const webViteConfig = readFileSync(
+        path.join(targetDir, "apps/web/vite.config.ts"),
+        "utf8",
+      );
+      assert.equal(webViteConfig.includes("conditions"), false);
 
       // packages/e2e manifest, turbo.json, and playwright.config.ts rewritten
       const e2ePkg = JSON.parse(
@@ -506,6 +514,46 @@ void describe("vue-app and vue-hono-app presets via runCli", () => {
         failure.data.issues.some((issue) => issue.code === "UNSUPPORTED_LINK"),
       );
       assert.equal(existsSync(rejectedDir), false);
+    });
+  });
+
+  void it("configures vue-app + ts-lib --link with ^build test dependencies and serve-only source resolution", async () => {
+    await withTempDir(async (workspaceDir) => {
+      const targetDir = path.join(workspaceDir, "linked-vue-app");
+      const run = testRuntime([
+        "init",
+        targetDir,
+        "--preset",
+        "vue-app",
+        "--preset",
+        "ts-lib",
+        "--link",
+        "apps/web:packages/lib",
+      ]);
+      assert.equal(await runCli(run.runtime), 0, run.stderr());
+      assert.equal(run.stderr(), "");
+
+      const webPkg = JSON.parse(
+        readFileSync(path.join(targetDir, "apps/web/package.json"), "utf8"),
+      ) as { readonly dependencies: Record<string, string> };
+      assert.equal(webPkg.dependencies["@linked-vue-app/lib"], "workspace:*");
+
+      const webTurbo = JSON.parse(
+        readFileSync(path.join(targetDir, "apps/web/turbo.json"), "utf8"),
+      ) as {
+        readonly tasks: Record<string, { readonly dependsOn?: string[] }>;
+      };
+      assert.ok(webTurbo.tasks.dev?.dependsOn?.includes("^build"));
+      assert.ok(webTurbo.tasks.build?.dependsOn?.includes("^build"));
+      assert.ok(webTurbo.tasks.test?.dependsOn?.includes("^build"));
+      assert.ok(webTurbo.tasks["test:browser"]?.dependsOn?.includes("^build"));
+      assert.ok(webTurbo.tasks["test:e2e"]?.dependsOn?.includes("^build"));
+
+      const viteConfig = readFileSync(
+        path.join(targetDir, "apps/web/vite.config.ts"),
+        "utf8",
+      );
+      assert.equal(viteConfig.includes("conditions"), false);
     });
   });
 });

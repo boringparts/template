@@ -12,10 +12,13 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-type PresetScenario = {
+import {
+  standardPresetVerificationScenarios,
+  type PresetVerificationScenario,
+} from "../packages/presets/src/scenarios.ts";
+
+type PresetScenario = PresetVerificationScenario & {
   readonly kind: "preset";
-  readonly id: string;
-  readonly args: readonly string[];
 };
 
 type RepoSmokeScenario = {
@@ -25,47 +28,11 @@ type RepoSmokeScenario = {
 
 type VerificationScenario = PresetScenario | RepoSmokeScenario;
 
-const presetScenarios: readonly PresetScenario[] = [
-  { kind: "preset", id: "ts-lib", args: ["--preset", "ts-lib"] },
-  { kind: "preset", id: "node-lib", args: ["--preset", "node-lib"] },
-  { kind: "preset", id: "ts-cli", args: ["--preset", "ts-cli"] },
-  { kind: "preset", id: "rust-bin", args: ["--preset", "rust-bin"] },
-  { kind: "preset", id: "vue-app", args: ["--preset", "vue-app"] },
-  { kind: "preset", id: "vue-hono-app", args: ["--preset", "vue-hono-app"] },
-  { kind: "preset", id: "vike-app", args: ["--preset", "vike-app"] },
-  {
+const presetScenarios: readonly PresetScenario[] =
+  standardPresetVerificationScenarios.map((scenario) => ({
     kind: "preset",
-    id: "vue-hono-fullstack",
-    args: [
-      "--preset",
-      "vue-hono-app",
-      "--preset",
-      "ts-lib:shared",
-      "--preset",
-      "node-lib:server-kit",
-      "--link",
-      "apps/web:packages/shared",
-      "--link",
-      "apps/api:packages/shared",
-      "--link",
-      "apps/api:packages/server-kit",
-    ],
-  },
-  {
-    kind: "preset",
-    id: "polyglot-cli",
-    args: [
-      "--preset",
-      "ts-cli:tool",
-      "--preset",
-      "ts-lib:core",
-      "--preset",
-      "rust-bin:worker",
-      "--link",
-      "packages/tool:packages/core",
-    ],
-  },
-];
+    ...scenario,
+  }));
 
 const repoSmokeScenario: RepoSmokeScenario = {
   kind: "repo-smoke",
@@ -94,12 +61,10 @@ const runtimeDirectoryNames = new Set([
   "node_modules",
   "dist",
   "templates",
-  "template-dist",
   "target",
   "coverage",
   ".turbo",
   ".pnpm-store",
-  ".template",
   ".vitest",
   "data",
   "playwright-report",
@@ -112,31 +77,9 @@ const diagnosticSubpaths = [
   ".vitest/attachments",
 ] as const;
 
-function findWorkspaceRoot(startDir: string): string {
-  let current = path.resolve(startDir);
-  while (true) {
-    if (existsSync(path.join(current, "pnpm-workspace.yaml"))) {
-      return current;
-    }
-    const parent = path.dirname(current);
-    if (parent === current) {
-      throw new Error(`Could not locate pnpm-workspace.yaml above ${startDir}`);
-    }
-    current = parent;
-  }
-}
-
-function resolveExecutable(
-  name: string,
-  searchRoots: readonly string[],
-): string {
-  for (const root of searchRoots) {
-    const candidate = path.join(root, "node_modules", ".bin", name);
-    if (existsSync(candidate)) {
-      return candidate;
-    }
-  }
-  return name;
+function resolveExecutable(name: string, searchRoot: string): string {
+  const candidate = path.join(searchRoot, "node_modules", ".bin", name);
+  return existsSync(candidate) ? candidate : name;
 }
 
 function runCaptured(
@@ -720,12 +663,8 @@ async function main(): Promise<void> {
     return;
   }
 
-  const packageRoot = path.resolve(import.meta.dirname, "..");
-  const workspaceRoot = findWorkspaceRoot(packageRoot);
-  const devcontainerBin = resolveExecutable("devcontainer", [
-    packageRoot,
-    workspaceRoot,
-  ]);
+  const workspaceRoot = process.cwd();
+  const devcontainerBin = resolveExecutable("devcontainer", workspaceRoot);
 
   const needsTarball = parsed.scenarios.some(
     (scenario) => scenario.kind === "preset",
@@ -737,17 +676,22 @@ async function main(): Promise<void> {
   try {
     let tarballPath: string | undefined;
     if (needsTarball && packWorkDir !== undefined) {
-      if (
-        !existsSync(path.join(packageRoot, "dist/cli.js")) ||
-        !existsSync(path.join(packageRoot, "templates/root/package.json"))
-      ) {
-        console.log("==> Building @boringparts/template distribution");
-        await runStreaming("pnpm", ["run", "build"], { cwd: packageRoot });
-      }
+      console.log("==> Building @boringparts/template distribution");
+      await runStreaming(
+        "pnpm",
+        ["--filter", "@boringparts/template", "run", "build"],
+        { cwd: workspaceRoot },
+      );
       const packOut = runCaptured(
         "pnpm",
-        ["pack", "--pack-destination", packWorkDir],
-        { cwd: packageRoot },
+        [
+          "--filter",
+          "@boringparts/template",
+          "pack",
+          "--pack-destination",
+          packWorkDir,
+        ],
+        { cwd: workspaceRoot },
       ).trim();
       tarballPath = packOut.split(/\r?\n/u).at(-1);
       if (tarballPath === undefined || !existsSync(tarballPath)) {

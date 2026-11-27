@@ -37,7 +37,7 @@ export function createVikeAppPreset(templatesRoot?: string): PresetDefinition {
         defaultName: "web",
         defaultCollection: "apps",
         defaultPath: "apps/web",
-        internalBindings: {
+        dependencyBindings: {
           "@boringparts/reference-vike-db": "db",
           "@boringparts/reference-vike-deployment": "deployment",
         },
@@ -122,7 +122,7 @@ export function createVikeAppPreset(templatesRoot?: string): PresetDefinition {
         defaultName: "db",
         defaultCollection: "packages",
         defaultPath: "packages/db",
-        internalBindings: {
+        dependencyBindings: {
           "@boringparts/reference-vike-deployment": "deployment",
         },
         reference: {
@@ -177,7 +177,7 @@ export function createVikeAppPreset(templatesRoot?: string): PresetDefinition {
         defaultName: "migrations",
         defaultCollection: "packages",
         defaultPath: "packages/migrations",
-        internalBindings: {
+        dependencyBindings: {
           "@boringparts/reference-vike-db": "db",
         },
         reference: {
@@ -217,7 +217,7 @@ export function createVikeAppPreset(templatesRoot?: string): PresetDefinition {
         defaultName: "deployment",
         defaultCollection: "packages",
         defaultPath: "packages/deployment",
-        internalBindings: {
+        dependencyBindings: {
           "@boringparts/reference-vike-db": "db",
           "@boringparts/reference-vike-migrations": "migrations",
           "@boringparts/reference-vike-web": "web",

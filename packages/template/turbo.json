@@ -4,17 +4,8 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": [],
       "outputs": ["dist/**", "templates/**"],
-      "cache": false,
       "tags": ["work:preparation"]
-    },
-    "check:containers": {
-      "dependsOn": ["build"],
-      "inputs": [],
-      "outputs": [],
-      "cache": false,
-      "tags": ["quality:heavy"]
     },
     "format:check": {
       "inputs": [],
@@ -41,14 +32,12 @@
       "tags": ["work:repair"]
     },
     "test": {
-      "dependsOn": [],
-      "inputs": [],
+      "dependsOn": ["build"],
       "outputs": [],
       "tags": ["quality:light"]
     },
     "test:dist": {
       "dependsOn": ["build"],
-      "inputs": [],
       "outputs": [],
       "cache": false,
       "tags": ["quality:heavy"]
