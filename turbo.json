@@ -13,6 +13,12 @@
     "//#check": {
       "tags": ["quality:entry"]
     },
+    "//#check:containers": {
+      "dependsOn": ["@boringparts/template#build"],
+      "outputs": [],
+      "cache": false,
+      "tags": ["quality:heavy"]
+    },
     "//#check:full": {
       "tags": ["quality:entry"]
     },

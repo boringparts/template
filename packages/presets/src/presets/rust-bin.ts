@@ -32,7 +32,6 @@ export function createRustBinPreset(templatesRoot?: string): PresetDefinition {
             { sourcePath: "package.json", targetPath: "package.json" },
             { sourcePath: "turbo.json", targetPath: "turbo.json" },
             { sourcePath: "Cargo.toml", targetPath: "Cargo.toml" },
-            { sourcePath: "Cargo.lock", targetPath: "Cargo.lock" },
             { sourcePath: "rustfmt.toml", targetPath: "rustfmt.toml" },
             { sourcePath: "src/main.rs", targetPath: "src/main.rs" },
             { sourcePath: "resources/gitignore", targetPath: ".gitignore" },

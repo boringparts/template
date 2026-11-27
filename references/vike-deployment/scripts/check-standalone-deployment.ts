@@ -17,6 +17,10 @@ function findWorkspaceRoot(startDir: string): string {
   }
 }
 
+// Deployment check scripts run inside the deployment package (`pnpm --filter ... run check:deployment`),
+// while `docker buildx build` needs the repository root as its context so `turbo prune` sees every
+// workspace package. In generated repositories, `vike-app` projects `Dockerfile` and
+// `scripts/container-entrypoint.sh` directly to the repository root (`dockerfilePath` is rewritten).
 const repositoryRoot = findWorkspaceRoot(import.meta.dirname);
 // oxfmt-ignore
 const dockerfilePath =
@@ -400,6 +404,25 @@ async function runStartedDeployment(
   await deploymentPhase(mode, "e2e", async () => runPlaywright(baseUrl));
 }
 
+async function assertSlimRuntimeImageExcludesMigration(): Promise<void> {
+  await dockerWithTimeout(
+    30_000,
+    "run",
+    "--rm",
+    runtimeImage,
+    "node",
+    "--input-type=module",
+    "--eval",
+    `import { existsSync } from "node:fs";
+if (existsSync("/migration")) {
+  throw new Error("Slim runtime image must exclude /migration");
+}
+if (existsSync("/usr/local/bin/container-entrypoint")) {
+  throw new Error("Slim runtime image must exclude /usr/local/bin/container-entrypoint");
+}`,
+  );
+}
+
 async function assertUnpreparedRuntimeFails(): Promise<void> {
   await dockerWithTimeout(
     30_000,
@@ -522,6 +545,9 @@ try {
       runtimeImage,
       ".",
     ),
+  );
+  await deploymentPhase("runtime", "slim-check", async () =>
+    assertSlimRuntimeImageExcludesMigration(),
   );
   for (const volume of Object.values(volumes)) {
     await docker("volume", "create", volume);

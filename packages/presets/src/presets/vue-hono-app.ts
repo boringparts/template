@@ -63,7 +63,7 @@ export function createVueHonoAppPreset(
         defaultName: "web",
         defaultCollection: "apps",
         defaultPath: "apps/web",
-        internalBindings: {
+        dependencyBindings: {
           "@boringparts/reference-hono-api": "api",
         },
         reference: {
@@ -105,7 +105,7 @@ export function createVueHonoAppPreset(
         defaultName: "e2e",
         defaultCollection: "packages",
         defaultPath: "packages/e2e",
-        internalBindings: {
+        dependencyBindings: {
           "@boringparts/reference-hono-api": "api",
           "@boringparts/reference-vue-hono-web": "web",
         },

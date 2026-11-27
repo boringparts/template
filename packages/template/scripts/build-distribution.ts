@@ -11,6 +11,7 @@ import {
 } from "node:fs";
 import path from "node:path";
 
+import { resolveTemplateDistributionSources } from "@boringparts/template-presets";
 import { build as esbuild } from "esbuild";
 
 const packageRoot = path.resolve(import.meta.dirname, "..");
@@ -38,31 +39,9 @@ const rootBaselineFiles = [
   "oxlint.config.ts",
 ] as const;
 
-function findWorkspaceRoot(startDir: string): string {
-  let current = path.resolve(startDir);
-  while (true) {
-    if (existsSync(path.join(current, "pnpm-workspace.yaml"))) {
-      return current;
-    }
-    const parent = path.dirname(current);
-    if (parent === current) {
-      throw new Error(`Could not locate pnpm-workspace.yaml above ${startDir}`);
-    }
-    current = parent;
-  }
-}
-
-function resolveExecutable(
-  name: string,
-  searchRoots: readonly string[],
-): string {
-  for (const root of searchRoots) {
-    const candidate = path.join(root, "node_modules", ".bin", name);
-    if (existsSync(candidate)) {
-      return candidate;
-    }
-  }
-  return name;
+function resolveExecutable(name: string, searchRoot: string): string {
+  const candidate = path.join(searchRoot, "node_modules", ".bin", name);
+  return existsSync(candidate) ? candidate : name;
 }
 
 function copyTemplateDirectory(sourceDir: string, targetDir: string): void {
@@ -90,7 +69,6 @@ function copyTemplateDirectory(sourceDir: string, targetDir: string): void {
 }
 
 async function main(): Promise<void> {
-  const workspaceRoot = findWorkspaceRoot(packageRoot);
   const distDir = path.join(packageRoot, "dist");
   const templatesDir = path.join(packageRoot, "templates");
 
@@ -133,7 +111,7 @@ async function main(): Promise<void> {
   }
 
   // Emit public declaration files and verify zero leaks from workspace-private packages.
-  const tscBin = resolveExecutable("tsc", [packageRoot, workspaceRoot]);
+  const tscBin = resolveExecutable("tsc", packageRoot);
   execFileSync(
     tscBin,
     ["-p", "tsconfig.build.json", "--emitDeclarationOnly", "--pretty", "false"],
@@ -159,22 +137,17 @@ async function main(): Promise<void> {
     }
   }
 
-  // Copy static template assets matching packages/presets/src/roots.ts layout.
+  // Copy static template assets using the exact registered package resolution from @boringparts/template-presets.
+  const sources = resolveTemplateDistributionSources();
   copyTemplateDirectory(
-    path.join(workspaceRoot, "packages", "tooling-config"),
+    sources.toolingConfigDir,
     path.join(templatesDir, "packages", "tooling-config"),
   );
 
-  const referencesSourceDir = path.join(workspaceRoot, "references");
-  for (const entry of readdirSync(referencesSourceDir, {
-    withFileTypes: true,
-  })) {
-    if (!entry.isDirectory()) {
-      continue;
-    }
+  for (const refPkg of sources.referencePackages) {
     copyTemplateDirectory(
-      path.join(referencesSourceDir, entry.name),
-      path.join(templatesDir, "references", entry.name),
+      refPkg.packageDir,
+      path.join(templatesDir, "references", refPkg.slug),
     );
   }
 
@@ -182,7 +155,7 @@ async function main(): Promise<void> {
   mkdirSync(rootTargetDir, { recursive: true });
   for (const fileName of rootBaselineFiles) {
     copyFileSync(
-      path.join(workspaceRoot, fileName),
+      path.join(sources.rootBaseDir, fileName),
       path.join(rootTargetDir, fileName),
     );
   }

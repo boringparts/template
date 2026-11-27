@@ -48,7 +48,7 @@
     },
     "test:browser": {
       "cache": true,
-      "dependsOn": ["browser:prepare"],
+      "dependsOn": ["^build", "browser:prepare"],
       "outputs": [],
       "tags": ["quality:heavy"]
     },

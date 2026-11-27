@@ -14,6 +14,9 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const taskGatesPath = fileURLToPath(
+  import.meta.resolve("@boringparts/reference-workspace-root/task-gates"),
+);
+const rootTaskGatesEntryPath = fileURLToPath(
   new URL("../scripts/task-gates.ts", import.meta.url),
 );
 const turboExecutablePath = fileURLToPath(import.meta.resolve("turbo"));
@@ -387,12 +390,8 @@ void describe("task-gates public gate entry", () => {
       for (const args of [[], ["unknown"], ["check", "extra"]]) {
         const usage = await runCommand(
           "node",
-          [
-            "--conditions=source",
-            path.join(root, "scripts/task-gates.ts"),
-            ...args,
-          ],
-          { cwd: root },
+          ["--conditions=source", rootTaskGatesEntryPath, ...args],
+          { cwd: path.dirname(path.dirname(rootTaskGatesEntryPath)) },
         );
         assert.equal(usage.exitCode, 2, usage.stderr);
         assert.equal(

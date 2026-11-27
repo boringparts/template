@@ -66,7 +66,7 @@ export type PresetNode = {
   readonly defaultCollection: WorkspaceCollection;
   readonly defaultPath: string;
   /** Maps a reference package name (e.g. `@boringparts/reference-hono-api`) to a sibling `nodeId`. */
-  readonly internalBindings?: Readonly<Record<string, string>>;
+  readonly dependencyBindings?: Readonly<Record<string, string>>;
   /** Optional relative path replacements inside text files (e.g. `references/vike-web` -> `apps/web`). */
   readonly pathReplacements?: Readonly<Record<string, string>>;
 };
@@ -111,6 +111,7 @@ export type WorkspaceTemplateRoots = {
   readonly rootOxfmtConfigPath: string;
   readonly rootOxlintConfigPath: string;
   readonly rustLayerDockerfilePath?: string;
+  readonly rustLockfilePath?: string;
 };
 
 export type GeneratedInstance = {
@@ -120,8 +121,8 @@ export type GeneratedInstance = {
   readonly packageName: string;
   readonly path: string;
   readonly reference: ReferencePackage;
-  /** Maps reference package names (including self and internal bindings) to instantiated package names. */
-  readonly packageBindings: ReadonlyMap<string, string>;
+  /** Maps reference package names (including self and internal dependency bindings) to instantiated package names. */
+  readonly dependencyBindings: ReadonlyMap<string, string>;
   /** Optional text replacements for relative reference paths. */
   readonly pathReplacements: ReadonlyMap<string, string>;
   /** Target package names added via explicit `--link`. */

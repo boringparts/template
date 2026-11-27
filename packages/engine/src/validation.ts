@@ -184,7 +184,7 @@ type MutablePlannedNode = {
   readonly packageName: string;
   readonly path: string;
   readonly reference: PresetDefinition["nodes"][number]["reference"];
-  readonly packageBindings: ReadonlyMap<string, string>;
+  readonly dependencyBindings: ReadonlyMap<string, string>;
   readonly pathReplacements: ReadonlyMap<string, string>;
   readonly linkedProviders: string[];
 };
@@ -277,17 +277,17 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
       presetNodePackagesBySelection.push(nodePackageById);
 
       for (const node of preset.nodes) {
-        const packageBindings = new Map<string, string>();
-        packageBindings.set(
+        const dependencyBindings = new Map<string, string>();
+        dependencyBindings.set(
           node.reference.packageName,
           nodePackageById.get(node.nodeId)!,
         );
         for (const [refPkgName, targetNodeId] of Object.entries(
-          node.internalBindings ?? {},
+          node.dependencyBindings ?? {},
         )) {
           const targetPkgName = nodePackageById.get(targetNodeId);
           if (targetPkgName !== undefined) {
-            packageBindings.set(refPkgName, targetPkgName);
+            dependencyBindings.set(refPkgName, targetPkgName);
           }
         }
 
@@ -302,7 +302,7 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
           packageName: nodePackageById.get(node.nodeId)!,
           path: node.defaultPath,
           reference: node.reference,
-          packageBindings,
+          dependencyBindings,
           pathReplacements,
           linkedProviders: [],
         });
@@ -336,7 +336,7 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
     }
 
     const packageName = `@${resolvedScope}/${leafName}`;
-    const packageBindings = new Map<string, string>([
+    const dependencyBindings = new Map<string, string>([
       [primary.reference.packageName, packageName],
     ]);
     const pathReplacements = new Map<string, string>(
@@ -353,7 +353,7 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
       packageName,
       path: packagePath,
       reference: primary.reference,
-      packageBindings,
+      dependencyBindings,
       pathReplacements,
       linkedProviders: [],
     });
@@ -527,7 +527,7 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
     packageName: node.packageName,
     path: node.path,
     reference: node.reference,
-    packageBindings: node.packageBindings,
+    dependencyBindings: node.dependencyBindings,
     pathReplacements: node.pathReplacements,
     linkedProviders: node.linkedProviders,
   }));

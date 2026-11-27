@@ -3,10 +3,8 @@
   "tags": ["presets"],
   "tasks": {
     "build": {
-      "dependsOn": ["@boringparts/template-engine#build"],
-      "inputs": [],
+      "dependsOn": ["^build"],
       "outputs": ["dist/**"],
-      "cache": false,
       "tags": ["work:preparation"]
     },
     "format:check": {

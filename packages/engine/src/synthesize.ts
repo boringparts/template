@@ -12,6 +12,7 @@ import {
   rewriteSubpackageManifest,
   rewriteSubpackageTurboConfig,
   rewriteTextSpecifiers,
+  synthesizeWorkspaceCargoLock,
 } from "./transform.ts";
 import type {
   DevcontainerLayer,
@@ -669,7 +670,7 @@ export function buildProjectProjection(
           scope: blueprint.scope,
           leafName: "tooling-config",
           packageName: `@${blueprint.scope}/tooling-config`,
-          packageBindings: emptyBindings,
+          dependencyBindings: emptyBindings,
           linkedProviders: [],
           defaultCatalogDeps,
           namedCatalogDeps,
@@ -685,7 +686,7 @@ export function buildProjectProjection(
           rewriteTextSpecifiers({
             text: decoder.decode(bytes),
             scope: blueprint.scope,
-            packageBindings: emptyBindings,
+            dependencyBindings: emptyBindings,
             pathReplacements: emptyPaths,
           }),
           executable,
@@ -728,7 +729,7 @@ export function buildProjectProjection(
             ...(instance.reference.rewriteBinName === undefined
               ? {}
               : { rewriteBinName: instance.reference.rewriteBinName }),
-            packageBindings: instance.packageBindings,
+            dependencyBindings: instance.dependencyBindings,
             pathReplacements: instance.pathReplacements,
             linkedProviders: instance.linkedProviders,
             defaultCatalogDeps,
@@ -742,19 +743,18 @@ export function buildProjectProjection(
           rewriteSubpackageTurboConfig({
             rawJson: rawText,
             scope: blueprint.scope,
-            packageBindings: instance.packageBindings,
+            dependencyBindings: instance.dependencyBindings,
           }),
           executable,
         );
       } else if (
         instance.reference.rustPackageName !== undefined &&
-        (file.targetPath === "Cargo.toml" || file.targetPath === "Cargo.lock")
+        file.targetPath === "Cargo.toml"
       ) {
         addText(
           targetPath,
           rewriteCargoToml({
             rawToml: rawText,
-            isLockfile: file.targetPath === "Cargo.lock",
             fromPackageName: instance.reference.rustPackageName,
             toPackageName: instance.leafName,
           }),
@@ -766,7 +766,7 @@ export function buildProjectProjection(
           rewriteTextSpecifiers({
             text: rawText,
             scope: blueprint.scope,
-            packageBindings: instance.packageBindings,
+            dependencyBindings: instance.dependencyBindings,
             pathReplacements: instance.pathReplacements,
           }),
           executable,
@@ -793,7 +793,7 @@ export function buildProjectProjection(
     rewriteTextSpecifiers({
       text: textContent,
       scope: blueprint.scope,
-      packageBindings: emptyBindings,
+      dependencyBindings: emptyBindings,
       pathReplacements: emptyPaths,
     });
 
@@ -870,13 +870,29 @@ export function buildProjectProjection(
     rustToolchainChannel = resolveRustToolchainChannel(toolchainText);
     if (blueprint.capabilities.rustWorkspace) {
       addText("rust-toolchain.toml", toolchainText);
-      const crateMembers = blueprint.instances
-        .filter((instance) => instance.reference.rustPackageName !== undefined)
-        .map((instance) => instance.path);
+      const rustInstances = blueprint.instances.filter(
+        (instance) => instance.reference.rustPackageName !== undefined,
+      );
+      const crateMembers = rustInstances.map((instance) => instance.path);
       addText(
         "Cargo.toml",
         `[workspace]\nresolver = "3"\nmembers = ${JSON.stringify(crateMembers)}\n\n[profile.release]\nstrip = "symbols"\nlto = "thin"\ncodegen-units = 1\n`,
       );
+      if (rustInstances.length > 0) {
+        addText(
+          "Cargo.lock",
+          synthesizeWorkspaceCargoLock(
+            rustInstances.map((instance) => ({
+              fromPackageName: instance.reference.rustPackageName!,
+              toPackageName: instance.leafName,
+              rawLockfile: readText(
+                roots.rustLockfilePath ??
+                  path.join(instance.reference.packageDir, "Cargo.lock"),
+              ),
+            })),
+          ),
+        );
+      }
     }
   }
 

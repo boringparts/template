@@ -28,8 +28,7 @@ COPY --from=pruner /repo/out/json/ ./
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store pnpm install --offline --frozen-lockfile
 COPY --from=pruner /repo/out/full/ ./
 COPY --from=pruner /repo/${ENTRYPOINT_SCRIPT_PATH} ./scripts/container-entrypoint.sh
-RUN pnpm --filter "$DATABASE_PACKAGE_NAME" run build
-RUN pnpm --filter "$APPLICATION_PACKAGE_NAME" run build
+RUN pnpm exec turbo run build --filter="$APPLICATION_PACKAGE_NAME" --filter="$MIGRATION_PACKAGE_NAME"
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store pnpm --config.inject-workspace-packages=true --filter "$APPLICATION_PACKAGE_NAME" deploy --prod /runtime-deploy
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store pnpm --config.inject-workspace-packages=true --filter "$MIGRATION_PACKAGE_NAME" deploy --prod /migration-deploy
 

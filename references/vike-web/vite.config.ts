@@ -9,8 +9,8 @@ import vueConfig from "./tooling/vite.ts";
 // oxlint-disable-next-line typescript/no-unsafe-type-assertion
 const telefuncPlugin = telefunc() as PluginOption;
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [vike(), telefuncPlugin, ...(vueConfig.plugins ?? [])],
-  resolve: { conditions: ["source"] },
+  ...(command === "serve" ? { resolve: { conditions: ["source"] } } : {}),
   ssr: { external: [databaseManifest.name] },
-});
+}));
