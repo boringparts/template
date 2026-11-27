@@ -1,6 +1,7 @@
 import type { PresetDefinition } from "@boringparts/template-engine";
 
 import { createNodeLibPreset } from "./presets/node-lib.ts";
+import { createRustBinPreset } from "./presets/rust-bin.ts";
 import { createTsCliPreset } from "./presets/ts-cli.ts";
 import { createTsLibPreset } from "./presets/ts-lib.ts";
 
@@ -14,5 +15,6 @@ export function loadBuiltInPresets(
     createTsLibPreset(templatesRoot),
     createNodeLibPreset(templatesRoot),
     createTsCliPreset(templatesRoot),
+    createRustBinPreset(templatesRoot),
   ];
 }

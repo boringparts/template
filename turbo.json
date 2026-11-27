@@ -1,4 +1,5 @@
 {
+  "globalPassThroughEnv": ["CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN"],
   "globalDependencies": [
     "oxfmt.config.ts",
     "oxlint.config.ts",
@@ -75,12 +76,17 @@
       },
       "presets": {
         "dependencies": {
-          "allow": ["engine", "library", "app"]
+          "allow": ["engine", "library", "app", "native"]
         }
       },
       "cli": {
         "dependencies": {
-          "allow": ["engine", "presets", "library", "app"]
+          "allow": ["engine", "presets", "library", "app", "native"]
+        }
+      },
+      "native": {
+        "dependencies": {
+          "allow": ["library"]
         }
       }
     }
