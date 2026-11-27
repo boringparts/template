@@ -1,232 +1,4 @@
 {
-  "boundaries": {
-    "tags": {
-      "app": {
-        "dependencies": {
-          "allow": [
-            "app",
-            "native",
-            "library",
-            "template-core",
-            "template-generator",
-            "template-environment",
-            "template-workspace",
-            "template-workspace-authoring",
-            "template-preset",
-            "template-content",
-            "default-content-verification"
-          ]
-        }
-      },
-      "library": {
-        "dependencies": {
-          "allow": [
-            "library",
-            "app",
-            "native",
-            "template-core",
-            "template-generator",
-            "template-environment",
-            "template-workspace",
-            "template-workspace-authoring",
-            "template-preset",
-            "template-content",
-            "default-content-verification"
-          ]
-        }
-      },
-      "template-core": {
-        "dependencies": {
-          "allow": [
-            "template-core",
-            "template-generator",
-            "app",
-            "native",
-            "library",
-            "template-environment",
-            "template-workspace",
-            "template-workspace-authoring",
-            "template-preset",
-            "template-content",
-            "default-content-verification"
-          ]
-        }
-      },
-      "template-environment": {
-        "dependencies": {
-          "allow": [
-            "template-environment",
-            "app",
-            "native",
-            "library",
-            "template-core",
-            "template-generator",
-            "template-workspace",
-            "template-workspace-authoring",
-            "template-preset",
-            "template-content",
-            "default-content-verification"
-          ]
-        }
-      },
-      "template-workspace": {
-        "dependencies": {
-          "allow": [
-            "template-workspace",
-            "app",
-            "native",
-            "library",
-            "template-core",
-            "template-generator",
-            "template-environment",
-            "template-workspace-authoring",
-            "template-preset",
-            "template-content",
-            "default-content-verification"
-          ]
-        }
-      },
-      "template-workspace-authoring": {
-        "dependencies": {
-          "allow": [
-            "template-workspace-authoring",
-            "app",
-            "native",
-            "library",
-            "template-workspace",
-            "template-root",
-            "template-core",
-            "template-generator",
-            "template-environment",
-            "template-cli",
-            "template-preset",
-            "template-content",
-            "default-content-verification"
-          ]
-        }
-      },
-      "template-preset": {
-        "dependencies": {
-          "allow": [
-            "template-preset",
-            "template-content",
-            "app",
-            "native",
-            "library",
-            "template-core",
-            "template-generator",
-            "template-environment",
-            "template-workspace",
-            "template-workspace-authoring",
-            "default-content-verification"
-          ]
-        }
-      },
-      "template-content": {
-        "dependencies": {
-          "allow": [
-            "template-content",
-            "template-preset",
-            "app",
-            "native",
-            "library",
-            "template-core",
-            "template-generator",
-            "template-environment",
-            "template-workspace",
-            "template-workspace-authoring",
-            "default-content-verification"
-          ]
-        }
-      },
-      "template-cli": {
-        "dependencies": {
-          "allow": [
-            "template-cli",
-            "app",
-            "native",
-            "library",
-            "template-core",
-            "template-generator",
-            "template-preset",
-            "template-content",
-            "template-environment",
-            "template-workspace",
-            "template-workspace-authoring",
-            "default-content-verification"
-          ]
-        }
-      },
-      "default-content-verification": {
-        "dependencies": {
-          "allow": [
-            "app",
-            "native",
-            "library",
-            "template-core",
-            "template-generator",
-            "template-environment",
-            "template-workspace",
-            "template-workspace-authoring",
-            "template-preset",
-            "template-content",
-            "default-content-verification"
-          ]
-        }
-      },
-      "template-root": {
-        "dependencies": {
-          "allow": [
-            "template-root",
-            "app",
-            "native",
-            "library",
-            "template-core",
-            "template-generator",
-            "template-preset",
-            "template-content",
-            "default-content-verification",
-            "template-environment",
-            "template-workspace",
-            "template-cli",
-            "template-workspace-authoring"
-          ]
-        }
-      },
-      "native": {
-        "dependencies": {
-          "allow": [
-            "native",
-            "app",
-            "library",
-            "template-core",
-            "template-generator",
-            "template-environment",
-            "template-workspace",
-            "template-workspace-authoring",
-            "template-preset",
-            "template-content",
-            "default-content-verification"
-          ]
-        }
-      }
-    }
-  },
-  "globalPassThroughEnv": [
-    "CARGO_HOME",
-    "RUSTUP_HOME",
-    "RUSTUP_TOOLCHAIN",
-    "TMPDIR",
-    "DOCKER_CONFIG",
-    "BUILDX_CONFIG",
-    "BUILDX_BUILDER",
-    "PNPM_CONFIG_STORE_DIR",
-    "PNPM_CONFIG_CACHE_DIR",
-    "HTTPS_PROXY",
-    "https_proxy",
-    "NO_PROXY",
-    "no_proxy"
-  ],
   "globalDependencies": [
     "oxfmt.config.ts",
     "oxlint.config.ts",
@@ -245,11 +17,6 @@
     },
     "//#check:heavy": {
       "tags": ["quality:entry"]
-    },
-    "//#author-planning-roles:workspace": {
-      "cache": false,
-      "outputs": [],
-      "tags": ["work:on-demand"]
     },
     "//#fix": {
       "tags": ["work:repair"]
@@ -276,78 +43,27 @@
       "outputs": [],
       "tags": ["quality:light"]
     },
-    "//#sync:workspace-policy": {
-      "cache": false,
-      "tags": ["work:on-demand"]
-    },
-    "//#check:workspace-policy": {
-      "outputs": [],
-      "tags": ["quality:light"]
-    },
-    "//#build": {
-      "tags": ["work:preparation"]
-    },
-    "//#sync:repository": {
-      "cache": false,
-      "tags": ["work:on-demand"]
-    },
-    "//#check:repository:config": {
-      "outputs": [],
-      "tags": ["quality:light"]
-    },
-    "//#check:development-container": {
-      "cache": false,
-      "tags": ["quality:heavy"],
-      "passThroughEnv": ["NODE_USE_ENV_PROXY"]
-    },
-    "//#test": {
-      "outputs": [],
-      "tags": ["quality:light"]
-    },
-    "//#test:integration": {
-      "cache": false,
-      "tags": ["quality:heavy"]
-    },
-    "//#test:e2e:cli": {
-      "cache": false,
-      "tags": ["quality:heavy"],
-      "passThroughEnv": ["TEMPLATE_CLI_JOURNEY_DIAGNOSTICS_DIR"]
-    },
-    "//#database:prepare:dev": {
-      "cache": false,
-      "tags": ["work:preparation"],
-      "dependsOn": ["@boringparts/reference-vike-db#build"]
-    },
-    "//#database:prepare:e2e": {
-      "cache": false,
-      "tags": ["work:preparation"],
-      "dependsOn": ["@boringparts/reference-vike-db#build"]
-    },
-    "//#database:prepare:test": {
-      "cache": false,
-      "tags": ["work:preparation"],
-      "dependsOn": ["@boringparts/reference-vike-db#build"]
-    },
-    "//#toolchain:prepare": {
-      "cache": false,
-      "tags": ["work:preparation"]
-    },
-    "//#sync": {
-      "cache": false,
-      "tags": ["work:on-demand"]
-    },
     "//#publication:pack": {
-      "cache": false,
-      "tags": ["work:on-demand"]
+      "tags": ["work:release"],
+      "cache": false
     },
     "//#publication:publish": {
-      "cache": false,
-      "tags": ["work:on-demand"]
+      "tags": ["work:release"],
+      "cache": false
     }
   },
-  "tags": ["template-root"],
-  "remoteCache": {
-    "signature": true
-  },
-  "concurrency": "2"
+  "boundaries": {
+    "tags": {
+      "app": {
+        "dependencies": {
+          "allow": ["app", "library"]
+        }
+      },
+      "library": {
+        "dependencies": {
+          "allow": ["library"]
+        }
+      }
+    }
+  }
 }

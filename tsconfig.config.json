@@ -2,13 +2,9 @@
   "extends": "@boringparts/tooling-config/node.json",
   "compilerOptions": {
     "types": ["node"],
-    "noEmit": true,
-    "allowJs": true,
-    "checkJs": true,
-    "rewriteRelativeImportExtensions": false,
-    "allowImportingTsExtensions": true,
     "composite": false,
+    "noEmit": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.config.tsbuildinfo"
   },
-  "include": ["*.config.ts", "test/**/*.ts"]
+  "include": ["*.config.ts", "scripts/task-gates.ts"]
 }

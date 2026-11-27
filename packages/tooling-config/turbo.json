@@ -1,6 +1,6 @@
 {
   "extends": ["//"],
-  "tags": ["native"],
+  "tags": ["library"],
   "tasks": {
     "build": {
       "dependsOn": [],
@@ -9,27 +9,32 @@
       "tags": []
     },
     "format:check": {
+      "inputs": [],
       "outputs": [],
       "tags": ["quality:light"]
     },
     "format:write": {
       "dependsOn": ["lint:fix"],
+      "inputs": [],
       "outputs": [],
       "cache": false,
       "tags": ["work:repair"]
     },
-    "lint": {
-      "dependsOn": ["^lint"],
-      "outputs": [],
-      "tags": ["quality:light"]
-    },
     "lint:fix": {
+      "inputs": [],
       "outputs": [],
       "cache": false,
       "tags": ["work:repair"]
     },
     "typecheck": {
       "dependsOn": [],
+      "inputs": [],
+      "outputs": [],
+      "tags": ["quality:light"]
+    },
+    "lint": {
+      "dependsOn": ["^lint"],
+      "inputs": [],
       "outputs": [],
       "tags": ["quality:light"]
     }

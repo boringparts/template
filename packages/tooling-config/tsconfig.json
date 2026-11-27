@@ -1,9 +1,9 @@
 {
-  "extends": "./node.json",
+  "extends": "@boringparts/tooling-config/node.json",
   "compilerOptions": {
     "types": ["node"],
     "noEmit": true,
     "declarationMap": false
   },
-  "include": ["*.config.ts"]
+  "include": ["*.config.ts", "scripts/**/*.ts", "template/**/*.ts"]
 }

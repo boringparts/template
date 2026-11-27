@@ -1,6 +1,0 @@
-export enum DisplayMode {
-  Compact,
-  Comfortable,
-}
-
-export const defaultDisplayMode = DisplayMode.Comfortable;

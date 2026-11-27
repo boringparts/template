@@ -5,58 +5,25 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
-  workflow_call:
-    inputs:
-      pack_cli:
-        description: Pack and verify CLI distribution artifacts
-        required: false
-        type: boolean
-        default: false
-    secrets:
-      TURBO_TOKEN:
-        required: false
-      TURBO_REMOTE_CACHE_SIGNATURE_KEY:
-        required: false
-    outputs:
-      pack_artifact_id:
-        description: Changesets packed artifact ID
-        value: ${{ jobs.check.outputs.pack_artifact_id }}
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
-    name: Check source and standalone capabilities
+    name: Root Check
     runs-on: ubuntu-latest
-    timeout-minutes: 120
-    permissions:
-      actions: read
-      contents: read
-    outputs:
-      pack_artifact_id: ${{ steps.pack.outputs.pack-dir-artifact-id }}
-    env:
-      TEMPLATE_FIXTURE_WORKSPACE_DIR: ${{ github.workspace }}/.fixture-workspace
-      TEMPLATE_FIXTURE_EVIDENCE_DIR: ${{ github.workspace }}/.fixture-evidence
-      TEMPLATE_FIXTURE_EVIDENCE_READ: "1"
-      TEMPLATE_FIXTURE_EVIDENCE_WRITE: "1"
-      TEMPLATE_FIXTURE_EVIDENCE_ACTIVITY_DIR: ${{ github.workspace }}/.fixture-evidence-activity
-      TEMPLATE_FIXTURE_EVIDENCE_RUN_ID: ${{ github.run_id }}
-      TEMPLATE_FIXTURE_EVIDENCE_RUN_ATTEMPT: ${{ github.run_attempt }}
-      TEMPLATE_FIXTURE_BUILDKIT_CACHE_DIR: ${{ github.workspace }}/.fixture-native-cache/buildkit
-      TEMPLATE_FIXTURE_PNPM_CACHE_DIR: ${{ github.workspace }}/.fixture-native-cache/pnpm
-      TEMPLATE_FIXTURE_CARGO_CACHE_DIR: ${{ github.workspace }}/.fixture-native-cache/cargo
-      TEMPLATE_CLI_JOURNEY_DIAGNOSTICS_DIR: ${{ github.workspace }}/.cli-journey-diagnostics
-      TEMPLATE_BUILTIN_PRESET_DIAGNOSTICS_DIR: ${{ github.workspace }}/.preset-behavior-diagnostics
+    timeout-minutes: 30
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v7
-
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 1
       - name: Set up pnpm and Node.js
         uses: pnpm/setup@731dfb6463bbd11c11fd0ee11fe00ed0e36d48a1 # v3.2.0
         with:
@@ -65,212 +32,8 @@ jobs:
           cache: true
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Check package
-        id: package-check
-        run: node --conditions=source scripts/run-task-gate.ts check
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Restore BuildKit cache
-        if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main' && job.workflow_ref == github.workflow_ref) || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && job.workflow_ref == github.workflow_ref)
-        uses: actions/cache/restore@v6
-        with:
-          path: .fixture-native-cache/buildkit
-          key: fixture-buildkit-${{ runner.os }}-${{ hashFiles('content/default/references/workspace-root/resources/environment/**/*.Dockerfile', 'content/default/references/workspace-root/resources/environment/devcontainer/workspace-template.json', 'content/default/references/rust-bin/resources/devcontainer/rust.Dockerfile', 'content/default/presets/vike-app/resources/deployment/Dockerfile', 'packages/environment/src/development-container-tool-layer.ts') }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: |
-            fixture-buildkit-${{ runner.os }}-${{ hashFiles('content/default/references/workspace-root/resources/environment/**/*.Dockerfile', 'content/default/references/workspace-root/resources/environment/devcontainer/workspace-template.json', 'content/default/references/rust-bin/resources/devcontainer/rust.Dockerfile', 'content/default/presets/vike-app/resources/deployment/Dockerfile', 'packages/environment/src/development-container-tool-layer.ts') }}-
-            fixture-buildkit-${{ runner.os }}-
-
-      - name: Restore pnpm downloads cache
-        if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main' && job.workflow_ref == github.workflow_ref) || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && job.workflow_ref == github.workflow_ref)
-        uses: actions/cache/restore@v6
-        with:
-          path: .fixture-native-cache/pnpm
-          key: fixture-pnpm-downloads-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: |
-            fixture-pnpm-downloads-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
-            fixture-pnpm-downloads-${{ runner.os }}-
-
-      - name: Restore Cargo downloads cache
-        if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main' && job.workflow_ref == github.workflow_ref) || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && job.workflow_ref == github.workflow_ref)
-        uses: actions/cache/restore@v6
-        with:
-          path: .fixture-native-cache/cargo
-          key: fixture-cargo-downloads-${{ runner.os }}-${{ hashFiles('content/default/references/rust-bin/Cargo.lock', 'rust-toolchain.toml') }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: |
-            fixture-cargo-downloads-${{ runner.os }}-${{ hashFiles('content/default/references/rust-bin/Cargo.lock', 'rust-toolchain.toml') }}-
-            fixture-cargo-downloads-${{ runner.os }}-
-
-      - name: Restore Fixture Verification Evidence
-        uses: actions/cache/restore@v6
-        with:
-          path: .fixture-evidence
-          key: fixture-verification-evidence-${{ runner.os }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: |
-            fixture-verification-evidence-${{ runner.os }}-
-
-      - name: Validate Fixture Gate Prerequisites
-        id: fixture-prerequisites
-        run: |
-          docker version --format '{{.Server.Version}}'
-          pnpm --filter @boringparts/default-content-verification exec devcontainer --version
-
-      - name: Prepare shell checks
-        run: sudo apt-get update && sudo apt-get install -y shellcheck
-
-      - name: Check heavy gate
-        if: always() && steps.package-check.outcome == 'success'
-        run: node --conditions=source scripts/run-task-gate.ts check:heavy
-        env:
-          TURBO_CONCURRENCY: "1"
-          TEMPLATE_FIXTURE_TURBO_TEAM: ${{ vars.TURBO_TEAM }}
-          TEMPLATE_FIXTURE_TURBO_TOKEN: ${{ (((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch') && job.workflow_ref == github.workflow_ref || github.event_name == 'release') && secrets.TURBO_TOKEN || '' }}
-          TEMPLATE_FIXTURE_TURBO_REMOTE_CACHE_SIGNATURE_KEY: ${{ (((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch') && job.workflow_ref == github.workflow_ref || github.event_name == 'release') && secrets.TURBO_REMOTE_CACHE_SIGNATURE_KEY || '' }}
-          TEMPLATE_FIXTURE_TURBO_REMOTE_CACHE_READ_ONLY: ${{ (((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch') && job.workflow_ref == github.workflow_ref) && 'false' || 'true' }}
-
-      - name: Show kernel diagnostics on failure
-        if: failure()
-        run: sudo dmesg --level=err,warn --time-format=iso | tail -n 80
-
-      - name: Check Fixture Evidence Health
-        id: fixture-evidence-health
-        if: always() && steps.package-check.outcome == 'success'
-        run: pnpm --filter @boringparts/default-content-verification run check:evidence-health
-
-      - name: Build CLI distribution directory
-        if: inputs.pack_cli
-        run: pnpm --filter @boringparts/template run build:distribution
-
-      - name: Pack pending release versions
-        id: pack
-        if: inputs.pack_cli
-        uses: changesets/action/pack@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
-
-      - name: Download packed artifacts for verification
-        if: inputs.pack_cli
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          artifact-ids: ${{ steps.pack.outputs.pack-dir-artifact-id }}
-          path: ${{ runner.temp }}/packed-cli
-          merge-multiple: true
-
-      - name: Verify installed CLI
-        if: inputs.pack_cli
-        run: |
-          if compgen -G "$RUNNER_TEMP/packed-cli/packages/boringparts-template-*.tgz" > /dev/null; then
-            npm install --prefix "$RUNNER_TEMP/template-consumer" "$RUNNER_TEMP/packed-cli/packages/"boringparts-template-*.tgz
-            TEMPLATE_CLI_JOURNEY_MODE=packed TEMPLATE_CLI_PACKED_BIN="$RUNNER_TEMP/template-consumer/node_modules/.bin/template" pnpm --filter @boringparts/template run test:e2e:packed
-          fi
-
-      - name: Clean up test containers
-        if: always() && steps.fixture-prerequisites.outcome == 'success'
-        run: |
-          fixture_container_ids="$(docker ps -aq --filter label=com.boringparts.template.verification.project)"
-          if [[ -n "$fixture_container_ids" ]]; then
-            readarray -t fixture_containers <<< "$fixture_container_ids"
-            docker rm -f "${fixture_containers[@]}"
-          fi
-
-      - name: Restore fixture diagnostic ownership
-        if: always() && steps.fixture-prerequisites.outcome == 'success'
-        run: |
-          if [ -d .fixture-workspace ]; then
-            sudo chown -hR "$(id -u):$(id -g)" -- .fixture-workspace
-          fi
-
-      - name: Upload Fixture Evidence Activity
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: fixture-evidence-activity-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .fixture-evidence-activity/activity.jsonl
-          include-hidden-files: true
-          if-no-files-found: ignore
-          retention-days: 7
-
-      - name: Upload Fixture Failure Diagnostics
-        if: always() && steps.fixture-prerequisites.outcome == 'success'
-        uses: actions/upload-artifact@v7
-        with:
-          name: fixture-failure-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            .fixture-workspace/**
-            !.fixture-workspace/**/node_modules/**
-            !.fixture-workspace/**/.pnpm-store/**
-            !.fixture-workspace/**/.npm/**
-            !.fixture-workspace/**/.cargo/registry/**
-            !.fixture-workspace/**/.cargo/git/**
-            !.fixture-workspace/**/target/**
-            !.fixture-workspace/**/.cache/**
-            !.fixture-workspace/**/.turbo/cache/**
-          include-hidden-files: true
-          if-no-files-found: ignore
-          retention-days: 7
-
-      - name: Upload CLI Journey Diagnostics
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: cli-journey-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            .cli-journey-diagnostics/**
-            !.cli-journey-diagnostics/**/node_modules/**
-            !.cli-journey-diagnostics/**/.pnpm-store/**
-            !.cli-journey-diagnostics/**/.npm/**
-            !.cli-journey-diagnostics/**/.cargo/registry/**
-            !.cli-journey-diagnostics/**/.cargo/git/**
-            !.cli-journey-diagnostics/**/target/**
-            !.cli-journey-diagnostics/**/.cache/**
-            !.cli-journey-diagnostics/**/.turbo/cache/**
-          include-hidden-files: true
-          if-no-files-found: ignore
-          retention-days: 7
-
-      - name: Upload Preset Behavior Diagnostics
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: preset-behavior-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            .preset-behavior-diagnostics/**
-            !.preset-behavior-diagnostics/**/node_modules/**
-            !.preset-behavior-diagnostics/**/.pnpm-store/**
-            !.preset-behavior-diagnostics/**/.npm/**
-            !.preset-behavior-diagnostics/**/.cargo/registry/**
-            !.preset-behavior-diagnostics/**/.cargo/git/**
-            !.preset-behavior-diagnostics/**/target/**
-            !.preset-behavior-diagnostics/**/.cache/**
-            !.preset-behavior-diagnostics/**/.turbo/cache/**
-          include-hidden-files: true
-          if-no-files-found: ignore
-          retention-days: 7
-
-      - name: Save BuildKit cache
-        if: always() && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch') && job.workflow_ref == github.workflow_ref && steps.fixture-evidence-health.outcome == 'success'
-        uses: actions/cache/save@v6
-        with:
-          path: .fixture-native-cache/buildkit
-          key: fixture-buildkit-${{ runner.os }}-${{ hashFiles('content/default/references/workspace-root/resources/environment/**/*.Dockerfile', 'content/default/references/workspace-root/resources/environment/devcontainer/workspace-template.json', 'content/default/references/rust-bin/resources/devcontainer/rust.Dockerfile', 'content/default/presets/vike-app/resources/deployment/Dockerfile', 'packages/environment/src/development-container-tool-layer.ts') }}-${{ github.run_id }}-${{ github.run_attempt }}
-
-      - name: Save pnpm downloads cache
-        if: always() && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch') && job.workflow_ref == github.workflow_ref && steps.fixture-evidence-health.outcome == 'success'
-        uses: actions/cache/save@v6
-        with:
-          path: .fixture-native-cache/pnpm
-          key: fixture-pnpm-downloads-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
-
-      - name: Save Cargo downloads cache
-        if: always() && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch') && job.workflow_ref == github.workflow_ref && steps.fixture-evidence-health.outcome == 'success'
-        uses: actions/cache/save@v6
-        with:
-          path: .fixture-native-cache/cargo
-          key: fixture-cargo-downloads-${{ runner.os }}-${{ hashFiles('content/default/references/rust-bin/Cargo.lock', 'rust-toolchain.toml') }}-${{ github.run_id }}-${{ github.run_attempt }}
-
-      - name: Save Fixture Verification Evidence
-        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && job.workflow_ref == github.workflow_ref && steps.fixture-evidence-health.outcome == 'success'
-        uses: actions/cache/save@v6
-        with:
-          path: .fixture-evidence
-          key: fixture-verification-evidence-${{ runner.os }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Run Light Check
+        run: node --conditions=source scripts/task-gates.ts check
+      - name: Run Heavy Check
+        id: run-heavy-check
+        run: node --conditions=source scripts/task-gates.ts check:heavy

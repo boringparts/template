@@ -1,8 +1,4 @@
 {
   "access": "public",
-  "baseBranch": "main",
-  "privatePackages": {
-    "version": true,
-    "tag": false
-  }
+  "baseBranch": "main"
 }

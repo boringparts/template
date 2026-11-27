@@ -1,7 +1,0 @@
-{
-  "extends": "@boringparts/tooling-config/node.json",
-  "compilerOptions": {
-    "types": ["node"]
-  },
-  "include": ["template/**/*.ts", "test/**/*.ts"]
-}

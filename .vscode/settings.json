@@ -9,14 +9,5 @@
   "editor.formatOnSaveMode": "file",
   "oxc.configPath": "./oxlint.config.ts",
   "oxc.enable": true,
-  "oxc.fmt.configPath": "./oxfmt.config.ts",
-  "rust-analyzer.cargo.features": "all",
-  "rust-analyzer.check.command": "clippy",
-  "rust-analyzer.procMacro.enable": true,
-  "[rust]": {
-    "editor.defaultFormatter": "rust-lang.rust-analyzer"
-  },
-  "[toml]": {
-    "editor.defaultFormatter": "tamasfe.even-better-toml"
-  }
+  "oxc.fmt.configPath": "./oxfmt.config.ts"
 }

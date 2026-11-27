@@ -1,5 +1,0 @@
-node_modules/
-target/
-test/rust-toolchain-projection.light.test.ts
-template-dist/
-.turbo/

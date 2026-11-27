@@ -2,10 +2,7 @@ version: 2
 
 updates:
   - package-ecosystem: devcontainers
-    directories:
-      - /
-      - /content/default/references/workspace-root/resources/environment
-      - /content/default/references/rust-bin/resources/devcontainer
+    directory: /
     schedule:
       interval: weekly
   - package-ecosystem: npm
@@ -15,41 +12,26 @@ updates:
     groups:
       drizzle:
         patterns:
-          - "drizzle-*"
-          - "drizzle-orm"
+          - drizzle-*
+          - drizzle-orm
     ignore:
       - dependency-name: "@types/node"
         update-types:
           - version-update:semver-major
-      - dependency-name: "pnpm"
+      - dependency-name: pnpm
         update-types:
           - version-update:semver-major
           - version-update:semver-minor
           - version-update:semver-patch
   - package-ecosystem: github-actions
-    directories:
-      - /
-      - /content/default/references/workspace-root/resources/github
-      - /content/default/references/npm-publication
+    directory: /
     schedule:
       interval: weekly
   - package-ecosystem: docker
-    directories:
-      - /.devcontainer
-      - /content/default/references/workspace-root/resources/environment
-      - /content/default/references/rust-bin/resources/devcontainer
-      - /content/default/presets/vike-app
+    directory: /.devcontainer
     schedule:
       interval: weekly
     ignore:
       - dependency-name: mcr.microsoft.com/devcontainers/typescript-node
         update-types:
           - version-update:semver-major
-  - package-ecosystem: cargo
-    directory: /content/default/references/rust-bin
-    schedule:
-      interval: weekly
-  - package-ecosystem: rust-toolchain
-    directory: /
-    schedule:
-      interval: weekly

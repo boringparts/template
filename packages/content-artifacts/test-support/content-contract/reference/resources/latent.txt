@@ -1,1 +1,0 @@
-Complete resource declared by the reference package and not directly read by the current evaluation.

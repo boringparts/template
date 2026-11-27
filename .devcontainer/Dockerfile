@@ -33,9 +33,6 @@ RUN apt-get update \
 # Pin the standalone Turborepo version so container builds download release assets directly without hitting unauthenticated GitHub API rate limits.
 RUN curl -fsSL https://turborepo.dev/install | sh -s -- --version 2.11.13 --install-dir /usr/local/bin --no-modify-path
 
-ARG PLAYWRIGHT_CLI_PACKAGE
-RUN npx --yes --package "${PLAYWRIGHT_CLI_PACKAGE}" playwright install --with-deps chromium
-
 RUN install -m 0755 -d /etc/apt/keyrings \
     && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /etc/apt/keyrings/githubcli-archive-keyring.gpg \
     && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
@@ -43,32 +40,3 @@ RUN install -m 0755 -d /etc/apt/keyrings \
     && apt-get update \
     && apt-get install -y --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/*
-
-ARG RUST_TOOLCHAIN
-ENV RUSTUP_HOME=/usr/local/rustup
-ENV CARGO_HOME=/usr/local/cargo
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    libc6-dev \
-    && rm -rf /var/lib/apt/lists/*
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
-    sh -s -- -y --profile minimal --default-toolchain none \
-    && "${CARGO_HOME}/bin/rustup" toolchain install ${RUST_TOOLCHAIN} --profile minimal --component rustfmt --component clippy \
-    && "${CARGO_HOME}/bin/rustup" default ${RUST_TOOLCHAIN} \
-    && find -L "${CARGO_HOME}/bin" -maxdepth 1 -type f -exec ln -sf -t /usr/local/bin/ {} + \
-    && cargo --version \
-    && rustc --version \
-    && chmod -R a+w ${RUSTUP_HOME} ${CARGO_HOME}
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends shellcheck \
-    && rm -rf /var/lib/apt/lists/*
-
-ENV SHELL=/bin/bash
-ENV RUST_BACKTRACE=1
-
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends git-lfs \
-    && rm -rf /var/lib/apt/lists/* \
-    && git lfs install --system

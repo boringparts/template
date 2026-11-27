@@ -1,8 +1,6 @@
 node_modules/
 .pnpm-store/
 dist/
-template-dist/
-.package/
 target/
 .turbo/
 coverage/
@@ -12,11 +10,5 @@ coverage/
 data/
 playwright-report/
 test-results/
-
-.fixture-evidence/
-.fixture-evidence-activity/
-.fixture-native-cache/
-.fixture-workspace/
 .changeset/packed/
-.cli-journey-diagnostics/
-.preset-behavior-diagnostics/
+
