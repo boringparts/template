@@ -972,7 +972,7 @@ void describe("template CLI command control", () => {
         readonly children: readonly { readonly name: string }[];
       };
       assert.equal(directory.kind, "directory");
-      assert.equal(directory.schemaVersion, "5");
+      assert.equal(directory.schemaVersion, "6");
       assert.equal(directory.command, "template");
       assert.deepEqual(
         directory.children.map((child) => child.name).toSorted(),
@@ -990,7 +990,7 @@ void describe("template CLI command control", () => {
       };
       assertPartialDeepStrictEqual(initSummaryDocument, {
         kind: "summary",
-        schemaVersion: "5",
+        schemaVersion: "6",
         command: "init",
         outputs: {
           default: "structured",
@@ -1016,7 +1016,7 @@ void describe("template CLI command control", () => {
       const initInputDoc = JSON.parse(initInput.stdout());
       assertPartialDeepStrictEqual(initInputDoc, {
         kind: "input",
-        schemaVersion: "5",
+        schemaVersion: "6",
         command: "init",
       });
       assert.ok(initInputDoc.input.inputSchema.required.includes("dir"));
@@ -1026,7 +1026,7 @@ void describe("template CLI command control", () => {
       assert.equal(await runCli({ ...initSuccess.runtime, cwd: workspace }), 0);
       assertPartialDeepStrictEqual(JSON.parse(initSuccess.stdout()), {
         kind: "success",
-        schemaVersion: "5",
+        schemaVersion: "6",
         command: "init",
         mode: "structured",
         success: {
@@ -1068,7 +1068,7 @@ void describe("template CLI command control", () => {
       assert.equal(await runCli({ ...addFailures.runtime, cwd: workspace }), 0);
       assertPartialDeepStrictEqual(JSON.parse(addFailures.stdout()), {
         kind: "failures",
-        schemaVersion: "5",
+        schemaVersion: "6",
         command: "addPackage",
         mode: "structured",
         failures: { conflict: { exitCode: 1 } },
@@ -1085,7 +1085,7 @@ void describe("template CLI command control", () => {
       );
       assertPartialDeepStrictEqual(JSON.parse(blueprintFailures.stdout()), {
         kind: "failures",
-        schemaVersion: "5",
+        schemaVersion: "6",
         command: "validateBlueprint",
         mode: "structured",
         failures: {
@@ -1119,7 +1119,7 @@ void describe("template CLI command control", () => {
       assert.equal(await runCli({ ...presetsWire.runtime, cwd: workspace }), 0);
       assertPartialDeepStrictEqual(JSON.parse(presetsWire.stdout()), {
         kind: "wire",
-        schemaVersion: "5",
+        schemaVersion: "6",
         command: "presets",
         mode: "structured",
       });

@@ -15,6 +15,7 @@ import { describe, it } from "node:test";
 import { loadContentSource } from "@boringparts/template-generator/content-source";
 import { createDefaultGenerator } from "@boringparts/template-workspace/default-generation";
 import { execa } from "execa";
+import { parse as parseYaml } from "yaml";
 
 const content = await loadContentSource({
   namespace: "boringparts",
@@ -114,7 +115,22 @@ void describe("TypeScript CLI public preset installation behavior", () => {
       });
       assert.strictEqual(added.status, "success", JSON.stringify(added));
 
+      const workspaceYaml = parseYaml(
+        await readFile(path.join(targetRoot, "pnpm-workspace.yaml"), "utf8"),
+      ) as {
+        readonly minimumReleaseAgeStrict?: boolean;
+        readonly minimumReleaseAgeExclude?: readonly string[];
+      };
+      assert.strictEqual(workspaceYaml.minimumReleaseAgeStrict, true);
+      assert.deepStrictEqual(workspaceYaml.minimumReleaseAgeExclude, [
+        "@boringparts/cli-contract",
+      ]);
+
       await execa("pnpm", ["install"], {
+        cwd: targetRoot,
+        cancelSignal: testContext.signal,
+      });
+      await execa("pnpm", ["install", "--offline", "--frozen-lockfile"], {
         cwd: targetRoot,
         cancelSignal: testContext.signal,
       });

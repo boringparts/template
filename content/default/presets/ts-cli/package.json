@@ -47,6 +47,7 @@
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",
-    "typescript-7": "catalog:"
+    "typescript-7": "catalog:",
+    "yaml": "catalog:"
   }
 }

@@ -1,8 +1,8 @@
 // Derived by root sync:workspace-policy from native declarations; edit the source of truth and run sync explicitly.
 export const dependencyCatalogSnapshot: Readonly<Record<string, string>> = {
+  "@boringparts/cli-contract": "0.7.0",
   "@changesets/cli": "3.0.3",
   "@types/eslint": "^9.6.1",
-  "@ykdz/cli-contract": "0.5.0",
   "@devcontainers/cli": "0.89.0",
   "@hono/node-server": "^2.1.11",
   "@playwright/test": "1.64.0",
@@ -66,6 +66,7 @@ export const workspaceInstallPolicySnapshot = {
   syncInjectedDepsAfterScripts: ["build"],
   minimumReleaseAge: 1440,
   minimumReleaseAgeStrict: true,
+  minimumReleaseAgeExclude: ["@boringparts/cli-contract"],
   allowBuilds: {
     esbuild: true,
   },

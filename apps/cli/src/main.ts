@@ -8,8 +8,8 @@ import {
   schemaCapability,
   text,
   versionCapability,
-} from "@ykdz/cli-contract";
-import { isNodeBrokenPipe } from "@ykdz/cli-contract/node";
+} from "@boringparts/cli-contract";
+import { isNodeBrokenPipe } from "@boringparts/cli-contract/node";
 import { z } from "zod";
 
 import {
@@ -499,8 +499,11 @@ function createCliContract(runtime: CliRuntime) {
       },
       wording: {
         commandPlaceholder: "command",
-        choices: "(choices: {choices})",
-        default: "(default: {value})",
+        outputModePlaceholder: "mode",
+        choices: "{usage} (choices: {choices})",
+        default: "{usage} (default: {value})",
+        choicesAndDefault: "{usage} (choices: {choices}, default: {value})",
+        list: "{left}, {right}",
         whenOnMatch: "When {facts}, {onMatch}",
         forbid: "forbid {fields}",
         equals: "{field} is {value}",
@@ -587,46 +590,36 @@ function createCliContract(runtime: CliRuntime) {
             description: "Generate the follow-up TODO.md document",
           },
         },
-        outputs: define.outputModes("init", initInput, (mode) => ({
-          default: "structured",
-          modes: {
-            structured: mode.atomic({
-              description: "Machine-readable structured result",
-              format: "structured",
-              success: initSuccess,
-              failures: initFailures,
-              handler: handleInit,
-            }),
-            text: mode.atomic({
-              description: "Human-readable English text",
-              format: "text",
-              success: {
-                kind: "data",
-                variants: {
-                  initialized: {
-                    ...initSuccess.variants.initialized,
-                    text: (data) =>
-                      text.lines([
-                        `Initialized project: ${data.targetDir}`,
-                        ...initializationDetails(data),
-                        "Next steps",
-                        ...data.nextSteps.map(({ display }) => display),
-                      ]),
-                  },
-                  planned: {
-                    ...initSuccess.variants.planned,
-                    text: (data) =>
-                      text.lines([
-                        `Project generation preview: ${data.targetDir}`,
-                        ...initializationDetails(data),
-                      ]),
-                  },
+        outputs: (mode) => {
+          const execution = mode.atomic({
+            success: initSuccess,
+            failures: initFailures,
+            handler: handleInit,
+          });
+          return {
+            default: "structured",
+            modes: {
+              structured: execution.structured({
+                description: "Machine-readable structured result",
+              }),
+              text: execution.text({
+                description: "Human-readable English text",
+                success: {
+                  initialized: (data) =>
+                    text.lines([
+                      `Initialized project: ${data.targetDir}`,
+                      ...initializationDetails(data),
+                      "Next steps",
+                      ...data.nextSteps.map(({ display }) => display),
+                    ]),
+                  planned: (data) =>
+                    text.lines([
+                      `Project generation preview: ${data.targetDir}`,
+                      ...initializationDetails(data),
+                    ]),
                 },
-              },
-              failures: {
-                invalidRequest: {
-                  ...initFailures.invalidRequest,
-                  text: ({ issues }) =>
+                failures: {
+                  invalidRequest: ({ issues }) =>
                     text.lines([
                       "Invalid initialization request.",
                       ...issues.map(({ code }) =>
@@ -635,21 +628,17 @@ function createCliContract(runtime: CliRuntime) {
                           : "Check the preset, package name, path, and scope options.",
                       ),
                     ]),
-                },
-                operationFailed: {
-                  ...initFailures.operationFailed,
-                  text: ({ targetDir, error }) =>
+                  operationFailed: ({ targetDir, error }) =>
                     text.lines([
                       error.message,
                       `Directory: ${targetDir}`,
                       `Suggestion: ${error.suggestion}`,
                     ]),
                 },
-              },
-              handler: handleInit,
-            }),
-          },
-        })),
+              }),
+            },
+          };
+        },
       }),
       add: {
         kind: "commandGroup",
@@ -711,103 +700,79 @@ function createCliContract(runtime: CliRuntime) {
             description: "Preview planned file changes without writing",
           },
         },
-        outputs: define.outputModes(
-          "addPackage",
-          packageAdditionInputSchema,
-          (mode) => ({
+        outputs: (mode) => {
+          const execution = mode.atomic({
+            success: addPackageSuccess,
+            failures: addPackageFailures,
+            handler: handleAddPackage,
+          });
+          return {
             default: "structured",
             modes: {
-              structured: mode.atomic({
+              structured: execution.structured({
                 description: "Machine-readable structured result",
-                format: "structured",
-                success: addPackageSuccess,
-                failures: addPackageFailures,
-                handler: handleAddPackage,
               }),
-              text: mode.atomic({
+              text: execution.text({
                 description: "Human-readable English text",
-                format: "text",
                 success: {
-                  kind: "data",
-                  variants: {
-                    planned: {
-                      ...addPackageSuccess.variants.planned,
-                      text: ({ actions }) =>
-                        text.lines([
-                          "Package addition preview",
-                          ...actions.map(
-                            ({ path, action }) => `${action}: ${path}`,
-                          ),
-                        ]),
-                    },
-                    added: {
-                      ...addPackageSuccess.variants.added,
-                      text: ({ actions }) =>
-                        text.lines([
-                          "Package added",
-                          ...actions.map(
-                            ({ path, action }) => `${action}: ${path}`,
-                          ),
-                        ]),
-                    },
-                    unchanged: {
-                      ...addPackageSuccess.variants.unchanged,
-                      text: () =>
-                        text.line(
-                          "Request is already satisfied; no changes needed.",
-                        ),
-                    },
-                  },
+                  planned: ({ actions }) =>
+                    text.lines([
+                      "Package addition preview",
+                      ...actions.map(
+                        ({ path, action }) => `${action}: ${path}`,
+                      ),
+                    ]),
+                  added: ({ actions }) =>
+                    text.lines([
+                      "Package added",
+                      ...actions.map(
+                        ({ path, action }) => `${action}: ${path}`,
+                      ),
+                    ]),
+                  unchanged: () =>
+                    text.line(
+                      "Request is already satisfied; no changes needed.",
+                    ),
                 },
                 failures: {
-                  invalidRequest: {
-                    ...addPackageFailures.invalidRequest,
-                    text: ({ issues }) =>
-                      text.lines([
-                        "Invalid add-package request.",
-                        ...issues.map(({ code }) => {
-                          const messages: Record<typeof code, string> = {
-                            PRESET_UNKNOWN: "Select a valid preset.",
-                            PRESET_NOT_ADDABLE:
-                              "This preset does not support package addition.",
-                            INVALID_PACKAGE_NAME:
-                              "--name combined with the workspace scope is not a valid npm package name.",
-                            INVALID_PACKAGE_PATH:
-                              "--path must contain exactly two safe path segments.",
-                            RESERVED_PACKAGE_PATH:
-                              "--path cannot use a reserved workspace directory.",
-                            INVALID_LINK_FROM:
-                              "--link-from must contain exactly two safe path segments.",
-                            RESERVED_LINK_FROM:
-                              "--link-from cannot use a reserved workspace directory.",
-                            UNKNOWN_LINK_FROM:
-                              "The specified consumer package does not exist; check --link-from.",
-                            UNSUPPORTED_LINK:
-                              "The specified package roles do not support this link; adjust --link-from.",
-                          };
-                          return messages[code];
-                        }),
-                      ]),
-                  },
-                  operationFailed: {
-                    ...addPackageFailures.operationFailed,
-                    text: ({ error }) =>
-                      text.lines([
-                        error.message,
-                        `Suggestion: ${error.suggestion}`,
-                      ]),
-                  },
-                  conflict: {
-                    ...addPackageFailures.conflict,
-                    text: ({ conflicts }) =>
-                      formatPackageConflictText(conflicts),
-                  },
+                  invalidRequest: ({ issues }) =>
+                    text.lines([
+                      "Invalid add-package request.",
+                      ...issues.map(({ code }) => {
+                        const messages: Record<typeof code, string> = {
+                          PRESET_UNKNOWN: "Select a valid preset.",
+                          PRESET_NOT_ADDABLE:
+                            "This preset does not support package addition.",
+                          INVALID_PACKAGE_NAME:
+                            "--name combined with the workspace scope is not a valid npm package name.",
+                          INVALID_PACKAGE_PATH:
+                            "--path must contain exactly two safe path segments.",
+                          RESERVED_PACKAGE_PATH:
+                            "--path cannot use a reserved workspace directory.",
+                          INVALID_LINK_FROM:
+                            "--link-from must contain exactly two safe path segments.",
+                          RESERVED_LINK_FROM:
+                            "--link-from cannot use a reserved workspace directory.",
+                          UNKNOWN_LINK_FROM:
+                            "The specified consumer package does not exist; check --link-from.",
+                          UNSUPPORTED_LINK:
+                            "The specified package roles do not support this link; adjust --link-from.",
+                        };
+                        return messages[code];
+                      }),
+                    ]),
+                  operationFailed: ({ error }) =>
+                    text.lines([
+                      error.message,
+                      `Suggestion: ${error.suggestion}`,
+                    ]),
+                  conflict: ({ conflicts }) =>
+                    formatPackageConflictText(conflicts),
                 },
-                handler: handleAddPackage,
               }),
             },
-          }),
-        ),
+          };
+        },
       }),
       blueprint: {
         kind: "commandGroup",
@@ -828,60 +793,45 @@ function createCliContract(runtime: CliRuntime) {
           { input: { path: ".template/blueprint.json" } },
           { input: { path: ".template/blueprint.json" }, outputMode: "text" },
         ],
-        outputs: define.outputModes(
-          "validateBlueprint",
-          validateBlueprintInput,
-          (mode) => ({
+        outputs: (mode) => {
+          const execution = mode.atomic({
+            success: blueprintSuccess,
+            failures: blueprintFailures,
+            handler: handleValidateBlueprint,
+          });
+          return {
             default: "structured",
             modes: {
-              structured: mode.atomic({
+              structured: execution.structured({
                 description: "Machine-readable structured result",
-                format: "structured",
-                success: blueprintSuccess,
-                failures: blueprintFailures,
-                handler: handleValidateBlueprint,
               }),
-              text: mode.atomic({
+              text: execution.text({
                 description: "Human-readable English text",
-                format: "text",
                 success: {
-                  kind: "data",
-                  variants: {
-                    valid: {
-                      ...blueprintSuccess.variants.valid,
-                      text: () => text.line("Blueprint is valid."),
-                    },
-                  },
+                  valid: () => text.line("Blueprint is valid."),
                 },
                 failures: {
-                  operationFailed: {
-                    ...blueprintFailures.operationFailed,
-                    text: ({ path, error }) =>
-                      text.lines([
-                        error.message,
-                        `Path: ${path}`,
-                        `Suggestion: ${error.suggestion}`,
-                      ]),
-                  },
-                  invalid: {
-                    ...blueprintFailures.invalid,
-                    text: ({ path, issues }) =>
-                      text.lines([
-                        "Blueprint is invalid.",
-                        `Path: ${path}`,
-                        ...issues.map(
-                          (issue) =>
-                            `${issue.path}: Blueprint definition at this location is invalid.`,
-                        ),
-                        "Suggestion: Fix the blueprint and validate again.",
-                      ]),
-                  },
+                  operationFailed: ({ path, error }) =>
+                    text.lines([
+                      error.message,
+                      `Path: ${path}`,
+                      `Suggestion: ${error.suggestion}`,
+                    ]),
+                  invalid: ({ path, issues }) =>
+                    text.lines([
+                      "Blueprint is invalid.",
+                      `Path: ${path}`,
+                      ...issues.map(
+                        (issue) =>
+                          `${issue.path}: Blueprint definition at this location is invalid.`,
+                      ),
+                      "Suggestion: Fix the blueprint and validate again.",
+                    ]),
                 },
-                handler: handleValidateBlueprint,
               }),
             },
-          }),
-        ),
+          };
+        },
       }),
       ...define.command("presets")({
         kind: "command",
@@ -891,40 +841,35 @@ function createCliContract(runtime: CliRuntime) {
         fields: {},
         input: presetsInput,
         examples: [{ input: {} }, { input: {}, outputMode: "text" }],
-        outputs: define.outputModes("presets", presetsInput, (mode) => ({
-          default: "structured",
-          modes: {
-            structured: mode.atomic({
-              description: "Machine-readable structured result",
-              format: "structured",
-              success: presetsSuccess,
-              failures: {},
-              handler: handlePresets,
-            }),
-            text: mode.atomic({
-              description: "Human-readable English text",
-              format: "text",
-              success: {
-                kind: "data",
-                variants: {
-                  listed: {
-                    ...presetsSuccess.variants.listed,
-                    text: ({ presets }) =>
-                      text.lines([
-                        "Built-in presets",
-                        ...presets.map(
-                          (preset) =>
-                            `  ${preset.name}: ${preset.title} - ${preset.description}`,
-                        ),
-                      ]),
-                  },
+        outputs: (mode) => {
+          const execution = mode.atomic({
+            success: presetsSuccess,
+            failures: {},
+            handler: handlePresets,
+          });
+          return {
+            default: "structured",
+            modes: {
+              structured: execution.structured({
+                description: "Machine-readable structured result",
+              }),
+              text: execution.text({
+                description: "Human-readable English text",
+                success: {
+                  listed: ({ presets }) =>
+                    text.lines([
+                      "Built-in presets",
+                      ...presets.map(
+                        (preset) =>
+                          `  ${preset.name}: ${preset.title} - ${preset.description}`,
+                      ),
+                    ]),
                 },
-              },
-              failures: {},
-              handler: handlePresets,
-            }),
-          },
-        })),
+                failures: {},
+              }),
+            },
+          };
+        },
       }),
     },
   });

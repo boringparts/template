@@ -8,8 +8,8 @@ import {
   text,
   versionCapability,
   type WriteCliOutput,
-} from "@ykdz/cli-contract";
-import { isNodeBrokenPipe } from "@ykdz/cli-contract/node";
+} from "@boringparts/cli-contract";
+import { isNodeBrokenPipe } from "@boringparts/cli-contract/node";
 import { z } from "zod";
 
 import type { CliCommandIdentity } from "./cli-command-identity.ts";
@@ -100,8 +100,9 @@ function createCliContract(identity: CliCommandIdentity) {
       },
       wording: {
         commandPlaceholder: "command",
-        choices: "(choices: {choices})",
-        default: "(default: {value})",
+        outputModePlaceholder: "mode",
+        choicesAndDefault: "{usage} (choices: {choices}, default: {value})",
+        list: "{left}, {right}",
       },
     }),
     version: versionCapability({
@@ -135,39 +136,32 @@ function createCliContract(identity: CliCommandIdentity) {
           { input: { name: "ada" } },
           { input: { name: "ada" }, outputMode: "text" },
         ],
-        outputs: define.outputModes("lookup", lookupInput, (mode) => ({
-          default: "structured",
-          modes: {
-            structured: mode.atomic({
-              description: "Machine-readable structured result",
-              format: "structured",
-              success: lookupSuccess,
-              failures: lookupFailures,
-              handler: handleLookup,
-            }),
-            text: mode.atomic({
-              description: "Human-readable English text",
-              format: "text",
-              success: {
-                kind: "data",
-                variants: {
-                  found: {
-                    ...lookupSuccess.variants.found,
-                    text: ({ name, title }) =>
-                      text.line(`Found record: ${title} (${name})`),
-                  },
+        outputs: (mode) => {
+          const execution = mode.atomic({
+            success: lookupSuccess,
+            failures: lookupFailures,
+            handler: handleLookup,
+          });
+          return {
+            default: "structured",
+            modes: {
+              structured: execution.structured({
+                description: "Machine-readable structured result",
+              }),
+              text: execution.text({
+                description: "Human-readable English text",
+                success: {
+                  found: ({ name, title }) =>
+                    text.line(`Found record: ${title} (${name})`),
                 },
-              },
-              failures: {
-                notFound: {
-                  ...lookupFailures.notFound,
-                  text: ({ name }) => text.line(`Record not found: ${name}.`),
+                failures: {
+                  notFound: ({ name }) =>
+                    text.line(`Record not found: ${name}.`),
                 },
-              },
-              handler: handleLookup,
-            }),
-          },
-        })),
+              }),
+            },
+          };
+        },
       }),
     },
   });

@@ -196,7 +196,7 @@ const journey: CliJourney = {
       readonly children: readonly { readonly name: string }[];
     };
     assert.equal(rootDirectory.kind, "directory");
-    assert.equal(rootDirectory.schemaVersion, "5");
+    assert.equal(rootDirectory.schemaVersion, "6");
     assert.equal(rootDirectory.command, "template");
     assert.deepEqual(
       rootDirectory.children.map((child) => child.name).toSorted(),
@@ -207,7 +207,7 @@ const journey: CliJourney = {
       JSON.parse(get("add schema directory").stdout),
       {
         kind: "directory",
-        schemaVersion: "5",
+        schemaVersion: "6",
         command: "add",
         children: [{ command: "addPackage", name: "package" }],
       },
@@ -216,7 +216,7 @@ const journey: CliJourney = {
       JSON.parse(get("blueprint schema directory").stdout),
       {
         kind: "directory",
-        schemaVersion: "5",
+        schemaVersion: "6",
         command: "blueprint",
         children: [{ command: "validateBlueprint", name: "validate" }],
       },
@@ -227,7 +227,7 @@ const journey: CliJourney = {
     ) as SummaryDocument;
     assert.partialDeepStrictEqual(initSummary, {
       kind: "summary",
-      schemaVersion: "5",
+      schemaVersion: "6",
       command: "init",
       outputs: { default: "structured" },
     });
@@ -238,14 +238,14 @@ const journey: CliJourney = {
 
     assert.partialDeepStrictEqual(JSON.parse(get("init input schema").stdout), {
       kind: "input",
-      schemaVersion: "5",
+      schemaVersion: "6",
       command: "init",
     });
     assert.partialDeepStrictEqual(
       JSON.parse(get("init success schema").stdout),
       {
         kind: "success",
-        schemaVersion: "5",
+        schemaVersion: "6",
         command: "init",
         mode: "structured",
         success: {
@@ -258,7 +258,7 @@ const journey: CliJourney = {
       JSON.parse(get("init failures schema").stdout),
       {
         kind: "failures",
-        schemaVersion: "5",
+        schemaVersion: "6",
         command: "init",
         mode: "structured",
         failures: {
@@ -269,7 +269,7 @@ const journey: CliJourney = {
     );
     assert.partialDeepStrictEqual(JSON.parse(get("init wire schema").stdout), {
       kind: "wire",
-      schemaVersion: "5",
+      schemaVersion: "6",
       command: "init",
       mode: "structured",
     });
@@ -279,7 +279,7 @@ const journey: CliJourney = {
     ) as SummaryDocument;
     assert.partialDeepStrictEqual(presetsSummary, {
       kind: "summary",
-      schemaVersion: "5",
+      schemaVersion: "6",
       command: "presets",
       outputs: { default: "structured" },
     });
@@ -293,7 +293,7 @@ const journey: CliJourney = {
     ) as SummaryDocument;
     assert.partialDeepStrictEqual(addPackageSummary, {
       kind: "summary",
-      schemaVersion: "5",
+      schemaVersion: "6",
       command: "addPackage",
       outputs: { default: "structured" },
     });
@@ -307,7 +307,7 @@ const journey: CliJourney = {
     ) as SummaryDocument;
     assert.partialDeepStrictEqual(validateBlueprintSummary, {
       kind: "summary",
-      schemaVersion: "5",
+      schemaVersion: "6",
       command: "validateBlueprint",
       outputs: { default: "structured" },
     });

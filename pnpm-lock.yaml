@@ -173,6 +173,9 @@ settings:
 
 catalogs:
   default:
+    '@boringparts/cli-contract':
+      specifier: 0.7.0
+      version: 0.7.0
     '@changesets/cli':
       specifier: 3.0.3
       version: 3.0.3
@@ -212,9 +215,6 @@ catalogs:
     '@vue/tsconfig':
       specifier: ^0.9.1
       version: 0.9.1
-    '@ykdz/cli-contract':
-      specifier: 0.5.0
-      version: 0.5.0
     drizzle-kit:
       specifier: 1.0.0-rc.6
       version: 1.0.0-rc.6
@@ -420,6 +420,9 @@ importers:
 
   apps/cli:
     dependencies:
+      '@boringparts/cli-contract':
+        specifier: 'catalog:'
+        version: 0.7.0
       '@boringparts/template-content':
         specifier: workspace:*
         version: link:../../content/default/collection
@@ -429,9 +432,6 @@ importers:
       '@boringparts/template-workspace':
         specifier: workspace:*
         version: link:../../content/default/composition
-      '@ykdz/cli-contract':
-        specifier: 'catalog:'
-        version: 0.5.0
       hosted-git-info:
         specifier: 'catalog:'
         version: 10.1.1
@@ -788,6 +788,9 @@ importers:
       typescript-7:
         specifier: 'catalog:'
         version: typescript@7.0.2
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.1
 
   content/default/presets/ts-lib:
     dependencies:
@@ -1147,9 +1150,9 @@ importers:
 
   content/default/references/ts-cli:
     dependencies:
-      '@ykdz/cli-contract':
+      '@boringparts/cli-contract':
         specifier: 'catalog:'
-        version: 0.5.0
+        version: 0.7.0
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -1951,6 +1954,10 @@ packages:
 
   '@blazediff/core@1.10.0':
     resolution: {integrity: sha512-AOQff0zgR7cGsZL+4E7hVkmujoPUpm0J9xzWGWZj5wCjd3gmxESXAPfKyuzs93VdpQNFhHlBhfOjrcZ+XTERtQ==}
+
+  '@boringparts/cli-contract@0.7.0':
+    resolution: {integrity: sha512-ZOvdqHGKY0DHIigEOhqswWxma+Fz7fowsIg4ci4mF1Ier6NmWbVpGDATtPfPbMs75wQukejml/zCCX2ujxhFRg==}
+    engines: {node: '>=24.0.0'}
 
   '@brillout/import@0.2.6':
     resolution: {integrity: sha512-1GUTmADc8trUC1YSW2lp9r6PmwluMoEyHajnE1kxVdbKGD0wJOlq/DvTWMUqLtBDCnQR+n//qgMtz6HwA/lotA==}
@@ -3257,10 +3264,6 @@ packages:
         optional: true
       vue:
         optional: true
-
-  '@ykdz/cli-contract@0.5.0':
-    resolution: {integrity: sha512-KD37wse4HGdLB5zLgDR49MdIv02sqprI5pnM/l4Vf3SgfpmGmSjqrl1e7NSqMttqoeGm76lz7L8Y3kRwz5+bQA==}
-    engines: {node: ^26.13.0}
 
   abbrev@5.0.0:
     resolution: {integrity: sha512-/XrFJgzQQQHpti1raDJC6m4ws6aNktmjBlhk8Fdlk7LwCEuDoieEJJY9OFHjfiFJFFRM2tK+Ky/IsfbbmlMu1w==}
@@ -4634,6 +4637,10 @@ snapshots:
 
   '@blazediff/core@1.10.0': {}
 
+  '@boringparts/cli-contract@0.7.0':
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+
   '@brillout/import@0.2.6': {}
 
   '@brillout/json-serializer@0.5.27': {}
@@ -5655,11 +5662,6 @@ snapshots:
     optionalDependencies:
       typescript: '@typescript/typescript6@6.0.2'
       vue: 3.5.46
-
-  '@ykdz/cli-contract@0.5.0':
-    dependencies:
-      '@standard-schema/spec': 1.1.0
-      '@types/node': 26.6.6
 
   abbrev@5.0.0: {}
 
