@@ -619,4 +619,98 @@ void describe("TypeScript library public preset", () => {
     assert.strictEqual(await readFile(generationPath, "utf8"), corruptedRecord);
     await assert.rejects(stat(path.join(targetRoot, "packages/rejected")));
   });
+
+  void it("generates a platform-neutral library package with relative source imports and self-referencing tests", async () => {
+    const targetRoot = await createTemporaryRoot("template-ts-lib-neutral-");
+    const generator = createDefaultGenerator({ content });
+    const initialized = await generator.init({
+      targetRoot,
+      selection: { presets: [{ contentIdentity: preset.identity }] },
+      conventions: { repositoryName: "demo", defaultPackageScope: "demo" },
+    });
+
+    assert.strictEqual(
+      initialized.status,
+      "success",
+      JSON.stringify(initialized),
+    );
+    const packageRoot = path.join(targetRoot, "packages/lib");
+    const manifest = JSON.parse(
+      await readFile(path.join(packageRoot, "package.json"), "utf8"),
+    ) as {
+      readonly imports?: unknown;
+      readonly engines?: unknown;
+      readonly devEngines?: unknown;
+      readonly scripts: Readonly<Record<string, string>>;
+    };
+    assert.strictEqual("imports" in manifest, false);
+    assert.strictEqual("engines" in manifest, false);
+    assert.strictEqual("devEngines" in manifest, false);
+    assert.match(manifest.scripts.test ?? "", /--conditions=source/u);
+    assert.strictEqual(
+      manifest.scripts["test:dist"],
+      "node --test --test-reporter=spec 'test/**/*.test.ts'",
+    );
+
+    const turboConfig = JSON.parse(
+      await readFile(path.join(packageRoot, "turbo.json"), "utf8"),
+    ) as {
+      readonly tasks: Readonly<
+        Record<
+          string,
+          {
+            readonly dependsOn?: readonly string[];
+            readonly outputs?: readonly string[];
+            readonly tags?: readonly string[];
+          }
+        >
+      >;
+    };
+    assert.deepStrictEqual(turboConfig.tasks.test?.tags, ["quality:light"]);
+    assert.deepStrictEqual(turboConfig.tasks["test:dist"], {
+      dependsOn: ["build"],
+      inputs: [],
+      outputs: [],
+      tags: ["quality:heavy"],
+    });
+
+    const buildTsconfig = JSON.parse(
+      await readFile(path.join(packageRoot, "tsconfig.build.json"), "utf8"),
+    ) as {
+      readonly compilerOptions: {
+        readonly customConditions?: readonly string[];
+        readonly lib?: readonly string[];
+        readonly skipLibCheck?: boolean;
+        readonly types?: readonly string[];
+      };
+    };
+    assert.deepStrictEqual(buildTsconfig.compilerOptions.customConditions, []);
+    assert.deepStrictEqual(buildTsconfig.compilerOptions.lib, ["es2024"]);
+    // Required because zod's .d.cts references global URL under pure es2024 + types: [].
+    assert.strictEqual(buildTsconfig.compilerOptions.skipLibCheck, true);
+    assert.deepStrictEqual(buildTsconfig.compilerOptions.types, []);
+
+    const nodeTsconfig = JSON.parse(
+      await readFile(path.join(packageRoot, "tsconfig.node.json"), "utf8"),
+    ) as {
+      readonly compilerOptions: {
+        readonly types?: readonly string[];
+      };
+    };
+    assert.deepStrictEqual(nodeTsconfig.compilerOptions.types, ["node"]);
+
+    const entrySource = await readFile(
+      path.join(packageRoot, "src/index.ts"),
+      "utf8",
+    );
+    assert.match(entrySource, /from "\.\/name-schema\.ts"/u);
+    assert.doesNotMatch(entrySource, /#\/name-schema/u);
+
+    const greetTestSource = await readFile(
+      path.join(packageRoot, "test/greet.test.ts"),
+      "utf8",
+    );
+    assert.match(greetTestSource, /from "@demo\/lib"/u);
+    assert.doesNotMatch(greetTestSource, /\.\.\/src\/index\.ts/u);
+  });
 });

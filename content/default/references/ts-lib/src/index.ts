@@ -1,4 +1,4 @@
-import { nameSchema } from "#/name-schema";
+import { nameSchema } from "./name-schema.ts";
 
 export type Greeting = { message: string };
 

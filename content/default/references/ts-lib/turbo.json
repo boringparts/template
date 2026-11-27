@@ -39,6 +39,12 @@
       "outputs": [],
       "tags": ["quality:light"]
     },
+    "test:dist": {
+      "dependsOn": ["build"],
+      "inputs": [],
+      "outputs": [],
+      "tags": ["quality:heavy"]
+    },
     "typecheck": {
       "dependsOn": ["^typecheck"],
       "inputs": [],
