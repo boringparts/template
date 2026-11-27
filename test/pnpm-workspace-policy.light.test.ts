@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
-  collectGeneratedManifestCatalogReferences,
   collectGeneratedManifestCatalogSelections,
   loadTemplateNamedDependencyCatalogs,
   renderGeneratedPnpmWorkspaceYaml,
@@ -64,10 +63,6 @@ void describe("pnpm Workspace Policy", () => {
         },
       },
     ];
-    assert.deepStrictEqual(
-      collectGeneratedManifestCatalogReferences(manifests),
-      ["@boringparts/cli-contract", "zod"],
-    );
     const selections = collectGeneratedManifestCatalogSelections(manifests);
     assert.deepStrictEqual(selections, {
       defaultDependencies: ["@boringparts/cli-contract", "zod"],

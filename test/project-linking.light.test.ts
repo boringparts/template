@@ -708,16 +708,23 @@ await test("rejects a provider without an importable root export and retains end
   );
 });
 
-await test("allows node-library links only for Node-capable roles and rejects browser-app or shared-library with zero writes", async (context) => {
+await test("enforces default package role link boundaries across consumer and provider pairs with zero writes on rejection", async (context) => {
   for (const [consumerRole, providerRole, allowed] of [
     ["cli-tool", "node-library", true],
     ["runtime-service", "node-library", true],
     ["node-library", "node-library", true],
     ["browser-app", "node-library", false],
     ["shared-library", "node-library", false],
+    ["cli-tool", "shared-library", true],
+    ["runtime-service", "shared-library", true],
     ["browser-app", "shared-library", true],
     ["node-library", "shared-library", true],
+    ["shared-library", "shared-library", true],
+    ["cli-tool", "runtime-service", true],
+    ["runtime-service", "runtime-service", true],
     ["browser-app", "runtime-service", true],
+    ["node-library", "runtime-service", false],
+    ["shared-library", "runtime-service", false],
   ] as const) {
     const setup = await fixture(context, {
       consumerRole,

@@ -256,6 +256,18 @@ function recordByPackageId(result: SuccessfulScenarioResult) {
   );
 }
 
+function hasValidCatalogVersion(
+  expectedVersion: unknown,
+  actualVersion: unknown,
+): boolean {
+  return (
+    typeof expectedVersion === "string" &&
+    expectedVersion.trim().length > 0 &&
+    !/^(?:catalog|workspace|link):/u.test(expectedVersion) &&
+    actualVersion === expectedVersion
+  );
+}
+
 /** Validates dependency catalog alignment using only the written manifests, workspace YAML, generation record, and blueprint. */
 export async function validatePlanDependencyCatalog(
   result: SuccessfulScenarioResult,
@@ -363,12 +375,7 @@ export async function validatePlanDependencyCatalog(
         if (specifier === "catalog:" || specifier === "catalog:default") {
           const expectedVersion = templateCatalog[dependency];
           const actualVersion = catalog[dependency];
-          if (
-            typeof expectedVersion !== "string" ||
-            expectedVersion.trim().length === 0 ||
-            /^(?:catalog|workspace|link):/u.test(expectedVersion) ||
-            actualVersion !== expectedVersion
-          ) {
+          if (!hasValidCatalogVersion(expectedVersion, actualVersion)) {
             throw new Error(
               `${scenarioId}: ${manifestPath} ${field} ${dependency} ${JSON.stringify(specifier)} violates the default dependency catalog contract`,
             );
@@ -390,12 +397,7 @@ export async function validatePlanDependencyCatalog(
           const actualVersion = isRecord(actualCatalog)
             ? actualCatalog[dependency]
             : undefined;
-          if (
-            typeof expectedVersion !== "string" ||
-            expectedVersion.trim().length === 0 ||
-            /^(?:catalog|workspace|link):/u.test(expectedVersion) ||
-            actualVersion !== expectedVersion
-          ) {
+          if (!hasValidCatalogVersion(expectedVersion, actualVersion)) {
             throw new Error(
               `${scenarioId}: ${manifestPath} ${field} ${dependency} ${JSON.stringify(specifier)} violates the named dependency catalog contract`,
             );

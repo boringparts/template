@@ -79,7 +79,7 @@ export async function repositoryDevelopmentEnvironment(
   const rustFragments = prepareRustDevelopmentContainerToolLayerFragments();
   const repositoryDockerfile = prepareRepositoryEnvironmentDockerfile();
   const container = projectWorkspaceDevelopmentContainer({
-    nodeVersion: declarations.rootNodeEngine.trim(),
+    nodeVersion: declarations.devEngines.runtime.version.trim(),
     packageManagerPin: declarations.packageManagerDeclaration.trim(),
     turboVersion: declarations.turboVersion.trim(),
     layers,
