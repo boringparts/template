@@ -23,15 +23,25 @@ updates:
           - version-update:semver-major
           - version-update:semver-minor
           - version-update:semver-patch
-  - package-ecosystem: github-actions
+  - package-ecosystem: rust-toolchain
     directory: /
     schedule:
       interval: weekly
-  - package-ecosystem: docker
-    directory: /.devcontainer
+  - package-ecosystem: cargo
+    directory: /references/rust-bin
     schedule:
       interval: weekly
-    ignore:
-      - dependency-name: mcr.microsoft.com/devcontainers/typescript-node
-        update-types:
-          - version-update:semver-major
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /references/workspace-root/resources/github
+      - /references/npm-publication/resources
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directories:
+      - /.devcontainer
+      - /references/workspace-root/resources/environment
+      - /references/vike-deployment/resources/deployment
+    schedule:
+      interval: weekly
