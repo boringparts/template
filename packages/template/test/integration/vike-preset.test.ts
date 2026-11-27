@@ -12,7 +12,6 @@ import path from "node:path";
 import { describe, it } from "node:test";
 
 import type { PresetDefinition } from "@boringparts/template-engine";
-import { loadBuiltInPresets } from "@boringparts/template-presets";
 import { parse as parseYaml } from "yaml";
 
 import { cliCommandIdentity } from "../../src/cli-command-identity.ts";
@@ -203,11 +202,11 @@ void describe("vike-app preset", () => {
       ) as {
         readonly name: string;
         readonly dependencies: Record<string, string>;
-        readonly exports: Record<string, unknown>;
+        readonly exports?: Record<string, unknown>;
       };
       assert.equal(webPkg.name, "@acme-vike/web");
       assert.equal(webPkg.dependencies["@acme-vike/db"], "workspace:*");
-      assert.equal(Object.hasOwn(webPkg.exports, "./package.json"), false);
+      assert.equal(webPkg.exports, undefined);
 
       const dbPkg = JSON.parse(
         readFileSync(path.join(targetDir, "packages/db/package.json"), "utf8"),
@@ -445,30 +444,6 @@ void describe("vike-app preset", () => {
   });
 
   void it("fails fast with exit code 2 and zero disk writes on fixed topology override or conflict", async () => {
-    const builtIns = loadBuiltInPresets();
-    const tsLib = builtIns.find((p) => p.alias === "ts-lib")!;
-    const conflictingFixedPreset: PresetDefinition = {
-      alias: "vue-hono-app",
-      title: "Conflicting Fixed App",
-      description: "Synthetic fixed preset contending on apps/web",
-      topology: "fixed",
-      nodes: [
-        {
-          nodeId: "web",
-          defaultName: "web",
-          defaultCollection: "apps",
-          defaultPath: "apps/web",
-          reference: {
-            ...tsLib.nodes[0]!.reference,
-            role: "browser-app",
-            publishable: false,
-          },
-        },
-      ],
-      capabilities: {},
-    };
-    const presetsWithConflict = [...builtIns, conflictingFixedPreset];
-
     await withTempDir(async (workspaceDir) => {
       const overrideDir = path.join(workspaceDir, "override-repo");
       const overrideRun = testRuntime([
@@ -496,12 +471,7 @@ void describe("vike-app preset", () => {
         ["--preset", "vike-app", "--preset", "vue-hono-app"],
       ]) {
         const conflictDir = path.join(workspaceDir, "conflict-repo");
-        const conflictRun = testRuntime(
-          ["init", conflictDir, ...conflictArgs],
-          {
-            presets: presetsWithConflict,
-          },
-        );
+        const conflictRun = testRuntime(["init", conflictDir, ...conflictArgs]);
         assert.equal(await runCli(conflictRun.runtime), 2);
         assert.equal(conflictRun.stdout(), "");
         const conflictFailure = JSON.parse(conflictRun.stderr()) as {

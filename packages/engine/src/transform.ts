@@ -109,6 +109,9 @@ export function rewriteSubpackageManifest(options: {
     Object.hasOwn(manifest.exports, "./package.json")
   ) {
     delete manifest.exports["./package.json"];
+    if (Object.keys(manifest.exports).length === 0) {
+      delete manifest.exports;
+    }
   }
 
   if (isRecord(manifest.scripts)) {
@@ -229,7 +232,11 @@ export function rewriteCargoToml(options: {
     }
   } else if (Array.isArray(parsed.package)) {
     for (const pkg of parsed.package) {
-      if (isRecord(pkg) && pkg.name === options.fromPackageName) {
+      if (
+        isRecord(pkg) &&
+        pkg.name === options.fromPackageName &&
+        pkg.source === undefined
+      ) {
         pkg.name = options.toPackageName;
       }
     }

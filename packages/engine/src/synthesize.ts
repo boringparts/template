@@ -187,6 +187,44 @@ function synthesizeDevcontainer(options: {
     delete buildConfig.args;
   }
 
+  const hasRustLayer =
+    options.blueprint.capabilities.devcontainerLayers.includes(
+      "rust-toolchain",
+    );
+  const mounts: Record<string, unknown>[] = [
+    {
+      type: "volume",
+      source: "${devcontainerId}-pnpm-store",
+      target: "/pnpm/store",
+    },
+  ];
+  if (hasRustLayer) {
+    mounts.push(
+      {
+        type: "volume",
+        source: "${devcontainerId}-cargo-registry",
+        target: "/usr/local/cargo/registry",
+      },
+      {
+        type: "volume",
+        source: "${devcontainerId}-cargo-git",
+        target: "/usr/local/cargo/git",
+      },
+      {
+        type: "volume",
+        source: "${devcontainerId}-target",
+        target: "${containerWorkspaceFolder}/target",
+      },
+    );
+  }
+
+  const baseContainerEnv = isRecord(templateJson.containerEnv)
+    ? { ...templateJson.containerEnv }
+    : {};
+  if (hasRustLayer) {
+    baseContainerEnv.RUST_BACKTRACE = "1";
+  }
+
   const devcontainerObj: Record<string, unknown> = {
     ...templateJson,
     name: options.blueprint.repositoryName,
@@ -196,13 +234,10 @@ function synthesizeDevcontainer(options: {
         extensions: options.extensions,
       },
     },
-    mounts: [
-      {
-        type: "volume",
-        source: "${devcontainerId}-pnpm-store",
-        target: "/pnpm/store",
-      },
-    ],
+    ...(Object.keys(baseContainerEnv).length > 0
+      ? { containerEnv: baseContainerEnv }
+      : {}),
+    mounts,
   };
 
   return {
@@ -407,6 +442,15 @@ function synthesizeRootTurboJson(blueprint: ProjectBlueprint): string {
 
   return `${JSON.stringify(
     {
+      ...(blueprint.capabilities.rustWorkspace
+        ? {
+            globalPassThroughEnv: [
+              "CARGO_HOME",
+              "RUSTUP_HOME",
+              "RUSTUP_TOOLCHAIN",
+            ],
+          }
+        : {}),
       globalDependencies: [
         "oxfmt.config.ts",
         "oxlint.config.ts",
@@ -418,6 +462,9 @@ function synthesizeRootTurboJson(blueprint: ProjectBlueprint): string {
         tags: {
           app: { dependencies: { allow: ["app", "library"] } },
           library: { dependencies: { allow: ["library"] } },
+          ...(blueprint.capabilities.rustWorkspace
+            ? { native: { dependencies: { allow: ["library"] } } }
+            : {}),
         },
       },
     },
@@ -818,7 +865,7 @@ export function buildProjectProjection(
         .map((instance) => instance.path);
       addText(
         "Cargo.toml",
-        `[workspace]\nresolver = "3"\nmembers = ${JSON.stringify(crateMembers)}\n`,
+        `[workspace]\nresolver = "3"\nmembers = ${JSON.stringify(crateMembers)}\n\n[profile.release]\nstrip = "symbols"\nlto = "thin"\ncodegen-units = 1\n`,
       );
     }
   }
