@@ -1,0 +1,36 @@
+{
+  "name": "@boringparts/template-presets",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json --pretty false",
+    "format:check": "oxfmt --list-different .",
+    "format:write": "oxfmt --write .",
+    "lint": "oxlint --quiet --format=unix --ignore-pattern node_modules .",
+    "lint:fix": "oxlint --format=unix . --fix",
+    "typecheck": "tsc -p tsconfig.node.json --noEmit --pretty false"
+  },
+  "dependencies": {
+    "@boringparts/reference-npm-publication": "workspace:*",
+    "@boringparts/reference-ts-lib": "workspace:*",
+    "@boringparts/reference-workspace-root": "workspace:*",
+    "@boringparts/template-engine": "workspace:*",
+    "@boringparts/tooling-config": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "tsrs": "catalog:",
+    "typescript-7": "catalog:"
+  }
+}

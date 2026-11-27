@@ -8,6 +8,14 @@
     "dist"
   ],
   "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/main.ts",
+      "types": "./dist/main.d.ts",
+      "default": "./dist/main.js"
+    },
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json --pretty false",
     "format:check": "oxfmt --list-different .",
@@ -16,11 +24,12 @@
     "lint:fix": "oxlint --format=unix . --fix",
     "postbuild": "node -e \"if (process.platform !== 'win32') require('node:fs').chmodSync('dist/cli.js', 0o755)\"",
     "test": "node --conditions=source --test --test-reporter=spec 'test/unit/**/*.test.ts' 'test/integration/**/*.test.ts'",
-    "test:e2e": "node --conditions=source --test --test-timeout=180000 --test-reporter=spec 'test/e2e/source-journeys.test.ts'",
     "typecheck": "tsc -p tsconfig.node.json --noEmit --pretty false"
   },
   "dependencies": {
     "@boringparts/cli-contract": "catalog:",
+    "@boringparts/template-engine": "workspace:*",
+    "@boringparts/template-presets": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -29,7 +38,8 @@
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",
-    "typescript-7": "catalog:"
+    "typescript-7": "catalog:",
+    "yaml": "catalog:"
   },
   "engines": {
     "node": "^26.13.1"
