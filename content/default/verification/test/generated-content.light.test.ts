@@ -116,6 +116,120 @@ async function focusedProviderRuntime(withExports: boolean) {
 }
 
 void describe("real generated check scenarios for the single content collection", () => {
+  void it("derives unique lowercase scenario IDs bounded for BuildKit OCI repository names", () => {
+    const ociRepositoryName = (scenarioId: string): string =>
+      `docker.io/library/vsc-${scenarioId.toLowerCase()}-${"0".repeat(64)}`;
+
+    const assertValidScenarioIds = (
+      scenarios: readonly { readonly id: string }[],
+    ): void => {
+      const seen = new Set<string>();
+      for (const scenario of scenarios) {
+        assert.equal(
+          seen.has(scenario.id),
+          false,
+          `Duplicate scenario ID: ${scenario.id}`,
+        );
+        seen.add(scenario.id);
+        assert.match(scenario.id, /^[a-z0-9-]+$/u);
+        assert.ok(
+          ociRepositoryName(scenario.id).length <= 255,
+          `${scenario.id} exceeds 255-char OCI repository name limit (${ociRepositoryName(scenario.id).length})`,
+        );
+      }
+    };
+
+    assertValidScenarioIds(
+      deriveInitializationScenarios(sourceGeneratedScenarioRuntime),
+    );
+    assertValidScenarioIds(deriveFixtureMatrix(sourceGeneratedScenarioRuntime));
+    assertValidScenarioIds(
+      deriveFocusedProjectLinkScenarios(sourceGeneratedScenarioRuntime),
+    );
+
+    const basePreset = sourceGeneratedScenarioRuntime.content.find(
+      (member) =>
+        member.kind === "preset" &&
+        member.identity.packageName === "@boringparts/preset-ts-lib",
+    );
+    assert.ok(basePreset?.kind === "preset");
+
+    const initOnlyDefinition = {
+      ...basePreset.definition,
+      operations: ["init"] as const,
+    };
+    const addOnlyDefinition = {
+      ...basePreset.definition,
+      operations: ["add"] as const,
+    };
+    const sharedPrefix =
+      "@boringparts/preset-extremely-long-shared-package-name-prefix-for-slug-truncation";
+    const runtimeWithLongCollisions = {
+      ...sourceGeneratedScenarioRuntime,
+      content: [
+        {
+          ...basePreset,
+          definition: initOnlyDefinition,
+          identity: {
+            namespace: "boringparts",
+            packageName: `${sharedPrefix}-variant-one`,
+            exportPath: "./template",
+          },
+        },
+        {
+          ...basePreset,
+          definition: initOnlyDefinition,
+          identity: {
+            namespace: "boringparts",
+            packageName: `${sharedPrefix}-variant-two`,
+            exportPath: "./template",
+          },
+        },
+        {
+          ...basePreset,
+          definition: initOnlyDefinition,
+          identity: {
+            namespace: "boringparts",
+            packageName: sharedPrefix,
+            exportPath: "./template",
+          },
+        },
+        {
+          ...basePreset,
+          definition: initOnlyDefinition,
+          identity: {
+            namespace: "boringparts",
+            packageName: sharedPrefix,
+            exportPath: "./other-template",
+          },
+        },
+        {
+          ...basePreset,
+          definition: addOnlyDefinition,
+          identity: {
+            namespace: "boringparts",
+            packageName: `${sharedPrefix}-addition`,
+            exportPath: "./template",
+          },
+        },
+      ],
+    };
+
+    const collidedInit = deriveInitializationScenarios(
+      runtimeWithLongCollisions,
+    );
+    const collidedMatrix = deriveFixtureMatrix(runtimeWithLongCollisions);
+    const collidedFocused = deriveFocusedProjectLinkScenarios(
+      runtimeWithLongCollisions,
+    );
+    assert.equal(collidedInit.length, 4);
+    assert.equal(collidedMatrix.length, 8);
+    assert.equal(collidedFocused.length, 4);
+    assertValidScenarioIds(collidedInit);
+    assertValidScenarioIds(collidedMatrix);
+    assertValidScenarioIds(collidedFocused);
+  });
+
   void it("derives initialization scenarios and the full init/add matrix from declared operations", async () => {
     const initializations = deriveInitializationScenarios(
       sourceGeneratedScenarioRuntime,

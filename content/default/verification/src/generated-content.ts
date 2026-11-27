@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -57,16 +58,32 @@ export type GeneratedScenarioReceipt = {
   readonly linkFrom: readonly string[];
 };
 
+function identitySlug(identity: ContentIdentity): string {
+  const scopePrefix = `@${identity.namespace}/`;
+  const rawLabel = identity.packageName.startsWith(scopePrefix)
+    ? identity.packageName.slice(scopePrefix.length)
+    : `${identity.namespace}-${identity.packageName}`;
+  const readable = rawLabel
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gu, "-")
+    .replace(/^-+|-+$/gu, "")
+    .slice(0, 36)
+    .replace(/-+$/u, "");
+  const digest = createHash("sha256")
+    .update(contentIdentityKey(identity))
+    .digest("hex")
+    .slice(0, 12);
+  return readable.length === 0 ? digest : `${readable}-${digest}`;
+}
+
 function scenarioId(
   kind: string,
   ...identities: readonly ContentIdentity[]
 ): string {
-  return [
-    kind,
-    ...identities.map((identity) =>
-      Buffer.from(contentIdentityKey(identity)).toString("base64url"),
-    ),
-  ].join("--");
+  // Keep scenario IDs lowercase and length-bounded because @devcontainers/cli
+  // derives BuildKit's OCI repository name as docker.io/library/vsc-<id>-<sha256>,
+  // which fails image export once it exceeds 255 characters.
+  return [kind, ...identities.map(identitySlug)].join("--");
 }
 
 function presetsIn(runtime: GeneratedScenarioRuntime): readonly ChecksPreset[] {
