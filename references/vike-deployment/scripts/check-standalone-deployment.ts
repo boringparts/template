@@ -18,16 +18,19 @@ function findWorkspaceRoot(startDir: string): string {
 }
 
 const repositoryRoot = findWorkspaceRoot(import.meta.dirname);
+// oxfmt-ignore
 const dockerfilePath =
   "references/vike-deployment/resources/deployment/Dockerfile";
 const applicationPackageName = "@boringparts/reference-vike-web";
+// oxfmt-ignore
+const entrypointScriptPath =
+  "references/vike-deployment/resources/deployment/scripts/container-entrypoint.sh";
 const buildArguments = Object.entries({
   APPLICATION_PACKAGE_NAME: applicationPackageName,
   APPLICATION_PACKAGE_PATH: "references/vike-web",
   DATABASE_PACKAGE_NAME: "@boringparts/reference-vike-db",
   MIGRATION_PACKAGE_NAME: "@boringparts/reference-vike-migrations",
-  ENTRYPOINT_SCRIPT_PATH:
-    "references/vike-deployment/resources/deployment/scripts/container-entrypoint.sh",
+  ENTRYPOINT_SCRIPT_PATH: entrypointScriptPath,
 }).flatMap(([name, value]) => ["--build-arg", `${name}=${value}`]);
 const uniqueId = `${process.pid}-${Date.now()}`;
 const standaloneImage = `vike-deployment-check-standalone:${uniqueId}`;
