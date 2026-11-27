@@ -22,26 +22,12 @@ import {
 import { loadContentSource } from "@boringparts/template-generator/content-source";
 import { execa } from "execa";
 
-import { unprivilegedProcessOptions } from "../test-support/unprivileged-process.ts";
+import {
+  unprivilegedProcessOptions,
+  withUnreadableAuthorDirectories,
+} from "../test-support/unprivileged-process.ts";
 
 const workspaceRoot = fileURLToPath(new URL("../../../../", import.meta.url));
-
-async function withUnreadableAuthorDirectories<Result>(
-  directories: readonly { readonly path: string; readonly mode: number }[],
-  action: () => Promise<Result>,
-): Promise<Result> {
-  const ordered = [...directories].sort(
-    (left, right) => right.path.length - left.path.length,
-  );
-  try {
-    for (const directory of ordered) await chmod(directory.path, 0);
-    return await action();
-  } finally {
-    for (const directory of [...ordered].reverse()) {
-      await chmod(directory.path, directory.mode);
-    }
-  }
-}
 
 void it(
   "installs the SDK from packed Rust artifacts, adds a package in a fresh Node process with unreadable author directories, and runs real Cargo tasks",
@@ -219,9 +205,9 @@ void it(
       const runInstalledPhase = async (phase: "init" | "add-rust") =>
         await withUnreadableAuthorDirectories(
           authorDirectoryStates,
-          async () =>
+          async (nodeExecutable) =>
             await execa(
-              process.execPath,
+              nodeExecutable,
               [
                 "--no-global-search-paths",
                 driverPath,

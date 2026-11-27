@@ -33,7 +33,10 @@ import { resolveReferenceDependencyIdentity } from "@boringparts/template-genera
 import { execa } from "execa";
 
 import { createAuthoredContentFixture } from "../test-support/authored-content-fixture.ts";
-import { unprivilegedProcessOptions } from "../test-support/unprivileged-process.ts";
+import {
+  unprivilegedProcessOptions,
+  withUnreadableAuthorDirectories,
+} from "../test-support/unprivileged-process.ts";
 
 const workspaceRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 const temporaryRoots: string[] = [];
@@ -48,25 +51,6 @@ async function temporaryRoot(prefix: string): Promise<string> {
   const root = await mkdtemp(path.join(tmpdir(), prefix));
   temporaryRoots.push(root);
   return root;
-}
-
-async function withUnreadableAuthorDirectories<Result>(
-  directories: readonly { readonly path: string; readonly mode: number }[],
-  action: () => Promise<Result>,
-): Promise<Result> {
-  const orderedDirectories = [...directories].sort(
-    (left, right) => right.path.length - left.path.length,
-  );
-  try {
-    for (const directory of orderedDirectories) {
-      await chmod(directory.path, 0);
-    }
-    return await action();
-  } finally {
-    for (const directory of [...orderedDirectories].reverse()) {
-      await chmod(directory.path, directory.mode);
-    }
-  }
 }
 
 async function contentArtifactEvidenceRoot(): Promise<string> {
@@ -482,9 +466,9 @@ void describe("native content artifact installation chain", () => {
         })),
         { path: workspaceRoot, mode: workspaceRootMode },
       ],
-      async () =>
+      async (nodeExecutable) =>
         await execa(
-          process.execPath,
+          nodeExecutable,
           [driverPath, targetRoot, resultPath, authorRootsPath, workspaceRoot],
           {
             cwd: installedPackage,
@@ -641,23 +625,19 @@ void describe("native content artifact installation chain", () => {
           })),
           { path: workspaceRoot, mode: workspaceRootMode },
         ],
-        async () =>
-          await execa(
-            process.execPath,
-            [missingSdkDriverPath, authorRootsPath],
-            {
-              cwd: installedPackage,
-              env: {
-                ...process.env,
-                HOME: consumerRoot,
-                TMPDIR: temporaryDirectory,
-                NODE_OPTIONS: "--no-global-search-paths",
-                NODE_PATH: "",
-              },
-              ...unprivilegedProcessOptions,
-              reject: false,
+        async (nodeExecutable) =>
+          await execa(nodeExecutable, [missingSdkDriverPath, authorRootsPath], {
+            cwd: installedPackage,
+            env: {
+              ...process.env,
+              HOME: consumerRoot,
+              TMPDIR: temporaryDirectory,
+              NODE_OPTIONS: "--no-global-search-paths",
+              NODE_PATH: "",
             },
-          ),
+            ...unprivilegedProcessOptions,
+            reject: false,
+          }),
       );
     } finally {
       await Promise.all(
@@ -827,9 +807,9 @@ void describe("native content artifact installation chain", () => {
           })),
           { path: workspaceRoot, mode: workspaceMode },
         ],
-        async () =>
+        async (nodeExecutable) =>
           await execa(
-            process.execPath,
+            nodeExecutable,
             [driverPath, targetRoot, authorRootsPath, preset.alias, resultPath],
             {
               cwd: installedCollection,
@@ -906,6 +886,7 @@ void describe("native content artifact installation chain", () => {
       assert.equal(afterInitWorkspace.mtimeMs, workspaceTime);
 
       const replayPackageByPreset = new Map([
+        ["node-lib", "@boringparts/reference-node-lib"],
         ["ts-cli", "@boringparts/reference-ts-cli"],
         ["rust-bin", "@boringparts/reference-rust-bin"],
         ["vue-app", "@boringparts/reference-vue-app"],
@@ -1038,9 +1019,9 @@ void describe("native content artifact installation chain", () => {
           })),
           { path: workspaceRoot, mode: replayWorkspaceMode },
         ],
-        async () =>
+        async (nodeExecutable) =>
           await execa(
-            process.execPath,
+            nodeExecutable,
             [
               replayDriverPath,
               targetRoot,
@@ -1184,9 +1165,9 @@ void describe("native content artifact installation chain", () => {
               })),
               { path: workspaceRoot, mode: workspaceMode },
             ],
-            async () =>
+            async (nodeExecutable) =>
               await execa(
-                process.execPath,
+                nodeExecutable,
                 [
                   missingResourceDriverPath,
                   targetRoot,
@@ -1374,7 +1355,7 @@ void describe("native content artifact installation chain", () => {
         .sort(),
       references.map((member) => contentIdentityKey(member.identity)).sort(),
     );
-    assert.equal(prepared.owners.length, 12);
+    assert.equal(prepared.owners.length, references.length);
     const vueAppOwner = prepared.owners.find(
       (owner) =>
         owner.member.identity.packageName === "@boringparts/reference-vue-app",
@@ -1542,9 +1523,9 @@ void describe("native content artifact installation chain", () => {
         })),
         { path: workspaceRoot, mode: workspaceMode },
       ],
-      async () =>
+      async (nodeExecutable) =>
         await execa(
-          process.execPath,
+          nodeExecutable,
           [driverPath, projectRoot, authorRootsPath, entriesPath, resultPath],
           {
             cwd: installedCollection,
@@ -2071,9 +2052,9 @@ void describe("native content artifact installation chain", () => {
     );
     await withUnreadableAuthorDirectories(
       unreadableAuthorDirectories,
-      async () =>
+      async (nodeExecutable) =>
         await execa(
-          process.execPath,
+          nodeExecutable,
           [driverPath, targetRoot, resultPath, authorRootsPath, fixture.root],
           {
             cwd: installedCollection,
@@ -2282,9 +2263,9 @@ void describe("native content artifact installation chain", () => {
     try {
       missingDependencyResult = await withUnreadableAuthorDirectories(
         unreadableAuthorDirectories,
-        async () =>
+        async (nodeExecutable) =>
           await execa(
-            process.execPath,
+            nodeExecutable,
             [missingDependencyDriverPath, authorRootsPath],
             {
               cwd: installedCollection,
@@ -2367,9 +2348,9 @@ void describe("native content artifact installation chain", () => {
     try {
       missingResourceExecution = await withUnreadableAuthorDirectories(
         unreadableAuthorDirectories,
-        async () =>
+        async (nodeExecutable) =>
           await execa(
-            process.execPath,
+            nodeExecutable,
             [
               missingResourceDriverPath,
               targetRoot,
@@ -2682,9 +2663,9 @@ void describe("native content artifact installation chain", () => {
     );
     await withUnreadableAuthorDirectories(
       authorDirectoryStates,
-      async () =>
+      async (nodeExecutable) =>
         await execa(
-          process.execPath,
+          nodeExecutable,
           [driverPath, sourcePath, authorRootsPath, resultPath],
           {
             cwd: installedCollection,

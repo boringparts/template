@@ -365,16 +365,20 @@ void describe("Fixture Verification Evidence", () => {
           runAttempt: "1",
           enabledScenarioSets: sets,
         });
+        const matrixScenarioCount = (
+          await generatedScenariosFor("package-addition-matrix")
+        ).length;
+        assert.ok(matrixScenarioCount > 0);
         assert.strictEqual(coldHealth.healthy, true);
         assert.ok(
           coldHealth.stages.some(
             (stage) =>
               stage.scenarioSet === "package-addition-matrix" &&
-              stage.scenarios === 30 &&
+              stage.scenarios === matrixScenarioCount &&
               stage.hits === 0 &&
-              stage.misses.absent === 30 &&
-              stage.executions === 30 &&
-              stage.issuances === 30,
+              stage.misses.absent === matrixScenarioCount &&
+              stage.executions === matrixScenarioCount &&
+              stage.issuances === matrixScenarioCount,
           ),
         );
         assert.strictEqual(

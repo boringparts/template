@@ -21,7 +21,10 @@ import {
 import { loadContentSource } from "@boringparts/template-generator/content-source";
 import { execa } from "execa";
 
-import { unprivilegedProcessOptions } from "../test-support/unprivileged-process.ts";
+import {
+  unprivilegedProcessOptions,
+  withUnreadableAuthorDirectories,
+} from "../test-support/unprivileged-process.ts";
 
 const workspaceRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 const content = await loadContentSource({
@@ -70,25 +73,6 @@ const vuePreset = content.find(
     member.identity.packageName === "@boringparts/preset-vue-app",
 );
 assert.ok(vuePreset);
-
-async function withUnreadableAuthorDirectories<Result>(
-  directories: readonly { readonly path: string; readonly mode: number }[],
-  action: () => Promise<Result>,
-): Promise<Result> {
-  const orderedDirectories = [...directories].sort(
-    (left, right) => right.path.length - left.path.length,
-  );
-  try {
-    for (const directory of orderedDirectories) {
-      await chmod(directory.path, 0);
-    }
-    return await action();
-  } finally {
-    for (const directory of [...orderedDirectories].reverse()) {
-      await chmod(directory.path, directory.mode);
-    }
-  }
-}
 
 void it(
   "initializes, adds packages, and runs generated project tasks in fresh processes after installing packed Vue and Vue-Hono content",
@@ -285,9 +269,9 @@ void it(
             path: directory,
             mode: modes[index]!,
           })),
-          async () =>
+          async (nodeExecutable) =>
             await execa(
-              process.execPath,
+              nodeExecutable,
               [
                 driverPath,
                 phase,
