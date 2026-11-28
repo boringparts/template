@@ -541,9 +541,63 @@ void describe("CLI contract", () => {
         expectedCode: "INVALID_LINK_SPEC",
       },
       {
-        label: "invalid package leaf name",
+        label: "invalid package leaf name (uppercase)",
         dirName: "valid-repo",
         args: ["--preset", "ts-lib:BadName"],
+        expectedCode: "INVALID_PACKAGE_NAME",
+      },
+      {
+        label: "invalid package leaf name (Node builtin)",
+        dirName: "valid-repo",
+        args: ["--preset", "ts-lib:fs"],
+        expectedCode: "INVALID_PACKAGE_NAME",
+      },
+      {
+        label: "invalid package leaf name (reserved node_modules)",
+        dirName: "valid-repo",
+        args: ["--preset", "ts-lib:node_modules"],
+        expectedCode: "INVALID_PACKAGE_NAME",
+      },
+      {
+        label: "invalid package leaf name (reserved favicon.ico)",
+        dirName: "valid-repo",
+        args: ["--preset", "ts-lib:favicon.ico"],
+        expectedCode: "INVALID_PACKAGE_NAME",
+      },
+      {
+        label: "invalid package leaf name (leading dot)",
+        dirName: "valid-repo",
+        args: ["--preset", "ts-lib:.core"],
+        expectedCode: "INVALID_PACKAGE_NAME",
+      },
+      {
+        label: "invalid package leaf name (leading underscore)",
+        dirName: "valid-repo",
+        args: ["--preset", "ts-lib:_core"],
+        expectedCode: "INVALID_PACKAGE_NAME",
+      },
+      {
+        label: "invalid package leaf name (leading hyphen)",
+        dirName: "valid-repo",
+        args: ["--preset", "ts-lib:-core"],
+        expectedCode: "INVALID_PACKAGE_NAME",
+      },
+      {
+        label: "invalid package leaf name (exceeds 214 characters)",
+        dirName: "valid-repo",
+        args: ["--preset", `ts-lib:${"a".repeat(215)}`],
+        expectedCode: "INVALID_PACKAGE_NAME",
+      },
+      {
+        label:
+          "invalid scoped package name (combined @scope/name exceeds 214 characters)",
+        dirName: "valid-repo",
+        args: [
+          "--scope",
+          "a".repeat(200),
+          "--preset",
+          `ts-lib:${"b".repeat(20)}`,
+        ],
         expectedCode: "INVALID_PACKAGE_NAME",
       },
       {
@@ -578,6 +632,24 @@ void describe("CLI contract", () => {
         label: "invalid explicit scope",
         dirName: "valid-repo",
         args: ["--preset", "ts-lib", "--scope", "Bad Scope"],
+        expectedCode: "INVALID_PACKAGE_SCOPE",
+      },
+      {
+        label: "invalid explicit scope (leading underscore)",
+        dirName: "valid-repo",
+        args: ["--preset", "ts-lib", "--scope", "_bad"],
+        expectedCode: "INVALID_PACKAGE_SCOPE",
+      },
+      {
+        label: "invalid explicit scope (leading dot)",
+        dirName: "valid-repo",
+        args: ["--preset", "ts-lib", "--scope", ".bad"],
+        expectedCode: "INVALID_PACKAGE_SCOPE",
+      },
+      {
+        label: "invalid explicit scope (exceeds 214 characters)",
+        dirName: "valid-repo",
+        args: ["--preset", "ts-lib", "--scope", "a".repeat(215)],
         expectedCode: "INVALID_PACKAGE_SCOPE",
       },
       {
@@ -728,6 +800,22 @@ void describe("CLI contract", () => {
       );
       assert.equal(await executeCliRuntime(allowedRun.runtime), 0);
       assert.equal(allowedRun.stderr(), "");
+
+      // Valid restricted leaf names and scopes with dots, underscores, and hyphens succeed in dry-run
+      const validCustomRun = testOverrideRuntime(
+        [
+          "init",
+          path.join(workspaceDir, "custom-name-repo"),
+          "--scope",
+          "my_scope.v2-org",
+          "--preset",
+          "ts-lib:my_pkg.v2-core:packages/my-core",
+          "--dry-run",
+        ],
+        { presets: testPresets },
+      );
+      assert.equal(await executeCliRuntime(validCustomRun.runtime), 0);
+      assert.equal(validCustomRun.stderr(), "");
     });
   });
 

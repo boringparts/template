@@ -20,12 +20,11 @@
     "typecheck": "tsc -p tsconfig.node.json --noEmit --pretty false"
   },
   "dependencies": {
-    "validate-npm-package-name": "catalog:",
     "yaml": "catalog:"
   },
   "devDependencies": {
     "@boringparts/tooling-config": "workspace:*",
-    "@types/node": "catalog:",
+    "@types/node": "catalog:node-24",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",
