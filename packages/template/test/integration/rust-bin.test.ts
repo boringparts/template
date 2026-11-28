@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-import { resolveTemplateWorkspaceRoots } from "@boringparts/template-presets";
+import { loadBuiltInPresets } from "@boringparts/template-presets";
 import { parse as parseToml } from "smol-toml";
 import { parse as parseYaml } from "yaml";
 
@@ -16,7 +16,9 @@ import { runCli, type CliRuntime } from "../../src/main.ts";
 const identity = cliCommandIdentity(
   createRequire(import.meta.url)("../../package.json"),
 );
-const templateRoots = resolveTemplateWorkspaceRoots();
+const rustBinRefDir = loadBuiltInPresets().find(
+  (preset) => preset.alias === "rust-bin",
+)!.nodes[0]!.definition.packageDir;
 
 function testRuntime(args: readonly string[], cwd = process.cwd()) {
   let stdout = "";
@@ -109,95 +111,100 @@ void describe("rust-bin preset and polyglot workspace", () => {
           },
         ]);
 
-        // Subpackage Cargo.toml without subpackage Cargo.lock, and wrapper package.json
-        const crateManifest = parseToml(
-          readFileSync(
-            path.join(targetDir, spec.cratePath, "Cargo.toml"),
-            "utf8",
-          ),
-        ) as unknown as { readonly package: { readonly name: string } };
-        assert.equal(crateManifest.package.name, spec.crateName);
+        // Subpackage Cargo.toml, Cargo.lock, rust-toolchain.toml, turbo.json, and wrapper package.json
+        assert.equal(existsSync(path.join(targetDir, "Cargo.toml")), false);
+        assert.equal(existsSync(path.join(targetDir, "Cargo.lock")), false);
         assert.equal(
-          existsSync(path.join(targetDir, spec.cratePath, "Cargo.lock")),
+          existsSync(path.join(targetDir, "rust-toolchain.toml")),
           false,
         );
 
-        const rootLockPath = path.join(targetDir, "Cargo.lock");
-        assert.equal(existsSync(rootLockPath), true);
-        const rootLockRaw = readFileSync(rootLockPath, "utf8");
-        const rootLock = parseToml(rootLockRaw) as unknown as {
+        const crateDir = path.join(targetDir, spec.cratePath);
+        const crateManifest = parseToml(
+          readFileSync(path.join(crateDir, "Cargo.toml"), "utf8"),
+        ) as unknown as { readonly package: { readonly name: string } };
+        assert.equal(crateManifest.package.name, spec.crateName);
+
+        const crateLockPath = path.join(crateDir, "Cargo.lock");
+        assert.equal(existsSync(crateLockPath), true);
+        const crateLockRaw = readFileSync(crateLockPath, "utf8");
+        const crateLock = parseToml(crateLockRaw) as unknown as {
           readonly package: readonly {
             readonly name: string;
             readonly source?: string;
           }[];
         };
         assert.ok(
-          rootLock.package.some(
+          crateLock.package.some(
             (pkg) => pkg.name === spec.crateName && pkg.source === undefined,
           ),
         );
         assert.ok(
-          rootLock.package.some(
+          crateLock.package.some(
             (pkg) => pkg.name === "anyhow" && pkg.source !== undefined,
           ),
         );
         assert.equal(
-          rootLock.package.some(
+          crateLock.package.some(
             (pkg) => pkg.name === "app" && spec.crateName !== "app",
           ),
           false,
         );
 
-        execFileSync(
-          "cargo",
-          ["check", "--workspace", "--locked", "--offline"],
-          {
-            cwd: targetDir,
-            stdio: ["ignore", "pipe", "pipe"],
-          },
-        );
-        execFileSync(
-          "cargo",
-          ["test", "--workspace", "--locked", "--offline"],
-          {
-            cwd: targetDir,
-            stdio: ["ignore", "pipe", "pipe"],
-          },
-        );
-        assert.equal(readFileSync(rootLockPath, "utf8"), rootLockRaw);
         assert.equal(
-          existsSync(path.join(targetDir, spec.cratePath, "Cargo.lock")),
-          false,
+          readFileSync(path.join(crateDir, "rust-toolchain.toml"), "utf8"),
+          readFileSync(path.join(rustBinRefDir, "rust-toolchain.toml"), "utf8"),
         );
 
+        execFileSync("cargo", ["check", "--locked", "--offline"], {
+          cwd: crateDir,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        execFileSync("cargo", ["test", "--locked", "--offline"], {
+          cwd: crateDir,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        assert.equal(readFileSync(crateLockPath, "utf8"), crateLockRaw);
+
+        const crateTurbo = JSON.parse(
+          readFileSync(path.join(crateDir, "turbo.json"), "utf8"),
+        ) as {
+          readonly tasks: Record<
+            string,
+            {
+              readonly outputs?: readonly string[];
+              readonly passThroughEnv?: readonly string[];
+            }
+          >;
+        };
+        for (const taskName of [
+          "build",
+          "format:check",
+          "format:write",
+          "lint",
+          "test",
+        ]) {
+          assert.deepStrictEqual(crateTurbo.tasks[taskName]?.passThroughEnv, [
+            "CARGO_HOME",
+            "RUSTUP_HOME",
+            "RUSTUP_TOOLCHAIN",
+          ]);
+        }
+        assert.deepStrictEqual(crateTurbo.tasks.build?.outputs, [
+          "target/debug/**",
+        ]);
+
         const wrapperPkg = JSON.parse(
-          readFileSync(
-            path.join(targetDir, spec.cratePath, "package.json"),
-            "utf8",
-          ),
+          readFileSync(path.join(crateDir, "package.json"), "utf8"),
         ) as {
           readonly name: string;
           readonly exports?: Record<string, unknown>;
+          readonly scripts: Record<string, string>;
         };
         assert.equal(wrapperPkg.name, `@${spec.dirName}/${spec.crateName}`);
         assert.equal(wrapperPkg.exports, undefined);
-
-        // Root Cargo workspace and verbatim rust-toolchain.toml
-        const rootCargo = parseToml(
-          readFileSync(path.join(targetDir, "Cargo.toml"), "utf8"),
-        ) as unknown as {
-          readonly workspace: {
-            readonly resolver: string;
-            readonly members: readonly string[];
-          };
-        };
-        assert.equal(rootCargo.workspace.resolver, "3");
-        assert.deepStrictEqual(rootCargo.workspace.members, [spec.cratePath]);
-
-        assert.equal(
-          readFileSync(path.join(targetDir, "rust-toolchain.toml"), "utf8"),
-          readFileSync(templateRoots.rootRustToolchainPath, "utf8"),
-        );
+        assert.equal(wrapperPkg.scripts.build, "cargo build");
+        assert.equal(wrapperPkg.scripts.test, "cargo test");
 
         // pnpm-workspace.yaml includes crates/*
         const workspaceYaml = parseYaml(
@@ -205,14 +212,13 @@ void describe("rust-bin preset and polyglot workspace", () => {
         ) as { readonly packages: readonly string[] };
         assert.ok(workspaceYaml.packages.includes("crates/*"));
 
-        // Devcontainer Dockerfile appends rust.Dockerfile and devcontainer.json configures Rust
+        // Devcontainer Dockerfile appends rust.Dockerfile and devcontainer.json configures shared Cargo caches
         const dockerfile = readFileSync(
           path.join(targetDir, ".devcontainer/Dockerfile"),
           "utf8",
         );
-        assert.ok(templateRoots.rustLayerDockerfilePath !== undefined);
         const rustLayer = readFileSync(
-          templateRoots.rustLayerDockerfilePath,
+          path.join(rustBinRefDir, "resources/devcontainer/rust.Dockerfile"),
           "utf8",
         ).trimEnd();
         assert.ok(dockerfile.includes(rustLayer));
@@ -246,12 +252,11 @@ void describe("rust-bin preset and polyglot workspace", () => {
               m.target === "/usr/local/cargo/git",
           ),
         );
-        assert.ok(
+        assert.equal(
           devcontainerJson.mounts.some(
-            (m) =>
-              m.source === "${devcontainerId}-target" &&
-              m.target === "${containerWorkspaceFolder}/target",
+            (m) => m.target === "${containerWorkspaceFolder}/target",
           ),
+          false,
         );
 
         // VS Code rust-tooling extensions and settings
@@ -270,9 +275,12 @@ void describe("rust-bin preset and polyglot workspace", () => {
         ) as Record<string, unknown>;
         assert.equal(settings["rust-analyzer.check.command"], "clippy");
         assert.equal(settings["rust-analyzer.cargo.features"], "all");
+        assert.deepStrictEqual(settings["rust-analyzer.linkedProjects"], [
+          `${spec.cratePath}/Cargo.toml`,
+        ]);
         assert.equal(settings["rust-analyzer.procMacro.enable"], true);
 
-        // Dependabot includes cargo and rust-toolchain
+        // Dependabot monitors cargo and rust-toolchain under the crate directory, not at root
         const dependabot = parseYaml(
           readFileSync(path.join(targetDir, ".github/dependabot.yml"), "utf8"),
         ) as {
@@ -283,15 +291,26 @@ void describe("rust-bin preset and polyglot workspace", () => {
         };
         assert.ok(
           dependabot.updates.some(
-            (u) => u["package-ecosystem"] === "cargo" && u.directory === "/",
+            (u) =>
+              u["package-ecosystem"] === "cargo" &&
+              u.directory === `/${spec.cratePath}`,
           ),
         );
         assert.ok(
           dependabot.updates.some(
             (u) =>
               u["package-ecosystem"] === "rust-toolchain" &&
+              u.directory === `/${spec.cratePath}`,
+          ),
+        );
+        assert.equal(
+          dependabot.updates.some(
+            (u) =>
+              (u["package-ecosystem"] === "cargo" ||
+                u["package-ecosystem"] === "rust-toolchain") &&
               u.directory === "/",
           ),
+          false,
         );
 
         // No npm-publication assets when no JS/TS package is publishable
@@ -312,14 +331,26 @@ void describe("rust-bin preset and polyglot workspace", () => {
 
         const rootTurbo = JSON.parse(
           readFileSync(path.join(targetDir, "turbo.json"), "utf8"),
-        ) as { readonly tasks: Record<string, unknown> };
+        ) as {
+          readonly globalPassThroughEnv?: unknown;
+          readonly tasks: Record<string, unknown>;
+          readonly boundaries?: {
+            readonly tags?: Record<string, unknown>;
+          };
+        };
+        assert.equal(rootTurbo.globalPassThroughEnv, undefined);
+        assert.deepStrictEqual(rootTurbo.boundaries?.tags, {
+          app: { dependencies: { allow: ["app", "library"] } },
+          library: { dependencies: { allow: ["library"] } },
+          native: { dependencies: { allow: ["library"] } },
+        });
         assert.equal("//#publication:pack" in rootTurbo.tasks, false);
         assert.equal("//#publication:publish" in rootTurbo.tasks, false);
       }
     });
   });
 
-  void it("synthesizes a single deduplicated root Cargo.lock across multiple rust-bin instances", async () => {
+  void it("initializes standalone Cargo crates with merged linkedProjects and per-crate Dependabot across multiple rust-bin instances", async () => {
     await withTempDir(async (workspaceDir) => {
       const targetDir = path.join(workspaceDir, "multi-rust");
       const run = testRuntime([
@@ -333,64 +364,100 @@ void describe("rust-bin preset and polyglot workspace", () => {
       assert.equal(await runCli(run.runtime), 0, run.stderr());
       assert.equal(run.stderr(), "");
 
-      const rootCargo = parseToml(
-        readFileSync(path.join(targetDir, "Cargo.toml"), "utf8"),
-      ) as unknown as {
-        readonly workspace: { readonly members: readonly string[] };
-      };
-      assert.deepStrictEqual(rootCargo.workspace.members, [
-        "crates/a",
-        "crates/b",
+      assert.equal(existsSync(path.join(targetDir, "Cargo.toml")), false);
+      assert.equal(existsSync(path.join(targetDir, "Cargo.lock")), false);
+      assert.equal(
+        existsSync(path.join(targetDir, "rust-toolchain.toml")),
+        false,
+      );
+
+      for (const crate of [
+        { name: "a", path: "crates/a" },
+        { name: "b", path: "crates/b" },
+      ]) {
+        const crateDir = path.join(targetDir, crate.path);
+        const crateCargo = parseToml(
+          readFileSync(path.join(crateDir, "Cargo.toml"), "utf8"),
+        ) as unknown as {
+          readonly package: { readonly name: string };
+        };
+        assert.equal(crateCargo.package.name, crate.name);
+        assert.equal(
+          existsSync(path.join(crateDir, "rust-toolchain.toml")),
+          true,
+        );
+
+        const crateLockPath = path.join(crateDir, "Cargo.lock");
+        assert.equal(existsSync(crateLockPath), true);
+        const crateLockRaw = readFileSync(crateLockPath, "utf8");
+        const crateLock = parseToml(crateLockRaw) as unknown as {
+          readonly package: readonly {
+            readonly name: string;
+            readonly source?: string;
+          }[];
+        };
+        assert.ok(
+          crateLock.package.some(
+            (pkg) => pkg.name === crate.name && pkg.source === undefined,
+          ),
+        );
+        assert.equal(
+          crateLock.package.some((pkg) => pkg.name === "app"),
+          false,
+        );
+        assert.equal(
+          crateLock.package.filter((pkg) => pkg.name === "anyhow").length,
+          1,
+        );
+
+        execFileSync("cargo", ["check", "--locked", "--offline"], {
+          cwd: crateDir,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        execFileSync("cargo", ["test", "--locked", "--offline"], {
+          cwd: crateDir,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        assert.equal(readFileSync(crateLockPath, "utf8"), crateLockRaw);
+      }
+
+      const settings = JSON.parse(
+        readFileSync(path.join(targetDir, ".vscode/settings.json"), "utf8"),
+      ) as Record<string, unknown>;
+      assert.deepStrictEqual(settings["rust-analyzer.linkedProjects"], [
+        "crates/a/Cargo.toml",
+        "crates/b/Cargo.toml",
       ]);
 
-      assert.equal(
-        existsSync(path.join(targetDir, "crates/a/Cargo.lock")),
-        false,
-      );
-      assert.equal(
-        existsSync(path.join(targetDir, "crates/b/Cargo.lock")),
-        false,
-      );
-
-      const rootLockPath = path.join(targetDir, "Cargo.lock");
-      assert.equal(existsSync(rootLockPath), true);
-      const rootLockRaw = readFileSync(rootLockPath, "utf8");
-      const rootLock = parseToml(rootLockRaw) as unknown as {
-        readonly package: readonly {
-          readonly name: string;
-          readonly source?: string;
+      const dependabot = parseYaml(
+        readFileSync(path.join(targetDir, ".github/dependabot.yml"), "utf8"),
+      ) as {
+        readonly updates: readonly {
+          readonly "package-ecosystem": string;
+          readonly directory: string;
         }[];
       };
-      assert.ok(
-        rootLock.package.some(
-          (pkg) => pkg.name === "a" && pkg.source === undefined,
+      for (const dir of ["/crates/a", "/crates/b"]) {
+        assert.ok(
+          dependabot.updates.some(
+            (u) => u["package-ecosystem"] === "cargo" && u.directory === dir,
+          ),
+        );
+        assert.ok(
+          dependabot.updates.some(
+            (u) =>
+              u["package-ecosystem"] === "rust-toolchain" &&
+              u.directory === dir,
+          ),
+        );
+      }
+      assert.equal(
+        dependabot.updates.some(
+          (u) =>
+            (u["package-ecosystem"] === "cargo" ||
+              u["package-ecosystem"] === "rust-toolchain") &&
+            u.directory === "/",
         ),
-      );
-      assert.ok(
-        rootLock.package.some(
-          (pkg) => pkg.name === "b" && pkg.source === undefined,
-        ),
-      );
-      assert.equal(
-        rootLock.package.filter((pkg) => pkg.name === "anyhow").length,
-        1,
-      );
-
-      execFileSync("cargo", ["check", "--workspace", "--locked", "--offline"], {
-        cwd: targetDir,
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-      execFileSync("cargo", ["test", "--workspace", "--locked", "--offline"], {
-        cwd: targetDir,
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-      assert.equal(readFileSync(rootLockPath, "utf8"), rootLockRaw);
-      assert.equal(
-        existsSync(path.join(targetDir, "crates/a/Cargo.lock")),
-        false,
-      );
-      assert.equal(
-        existsSync(path.join(targetDir, "crates/b/Cargo.lock")),
         false,
       );
     });
@@ -431,8 +498,18 @@ void describe("rust-bin preset and polyglot workspace", () => {
         existsSync(path.join(targetDir, ".github/workflows/release.yml")),
         true,
       );
+      assert.equal(existsSync(path.join(targetDir, "Cargo.toml")), false);
+      assert.equal(existsSync(path.join(targetDir, "Cargo.lock")), false);
       assert.equal(
         existsSync(path.join(targetDir, "crates/worker/Cargo.toml")),
+        true,
+      );
+      assert.equal(
+        existsSync(path.join(targetDir, "crates/worker/Cargo.lock")),
+        true,
+      );
+      assert.equal(
+        existsSync(path.join(targetDir, "crates/worker/rust-toolchain.toml")),
         true,
       );
       assert.equal(
@@ -448,10 +525,25 @@ void describe("rust-bin preset and polyglot workspace", () => {
           readonly directory: string;
         }[];
       };
-      const ecosystems = dependabot.updates.map((u) => u["package-ecosystem"]);
-      assert.ok(ecosystems.includes("npm"));
-      assert.ok(ecosystems.includes("cargo"));
-      assert.ok(ecosystems.includes("rust-toolchain"));
+      assert.ok(
+        dependabot.updates.some(
+          (u) => u["package-ecosystem"] === "npm" && u.directory === "/",
+        ),
+      );
+      assert.ok(
+        dependabot.updates.some(
+          (u) =>
+            u["package-ecosystem"] === "cargo" &&
+            u.directory === "/crates/worker",
+        ),
+      );
+      assert.ok(
+        dependabot.updates.some(
+          (u) =>
+            u["package-ecosystem"] === "rust-toolchain" &&
+            u.directory === "/crates/worker",
+        ),
+      );
     });
   });
 

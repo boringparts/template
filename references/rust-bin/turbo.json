@@ -6,12 +6,14 @@
       "dependsOn": [],
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": ["target/debug/**"],
+      "passThroughEnv": ["CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN"],
       "tags": ["quality:light"]
     },
     "format:check": {
       "dependsOn": [],
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": [],
+      "passThroughEnv": ["CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN"],
       "tags": ["quality:light"]
     },
     "format:write": {
@@ -19,18 +21,21 @@
       "inputs": [],
       "outputs": [],
       "cache": false,
+      "passThroughEnv": ["CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN"],
       "tags": ["work:repair"]
     },
     "lint": {
       "dependsOn": [],
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": [],
+      "passThroughEnv": ["CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN"],
       "tags": ["quality:light"]
     },
     "test": {
       "dependsOn": [],
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": [],
+      "passThroughEnv": ["CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN"],
       "tags": ["quality:light"]
     }
   }
