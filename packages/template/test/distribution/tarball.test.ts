@@ -71,7 +71,15 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
       assert.ok(entries.includes("package/dist/main.d.ts"));
       assert.ok(entries.includes("package/templates/root/package.json"));
       assert.ok(entries.includes("package/templates/root/pnpm-workspace.yaml"));
-      assert.ok(entries.includes("package/templates/root/rust-toolchain.toml"));
+      assert.equal(
+        entries.includes("package/templates/root/rust-toolchain.toml"),
+        false,
+      );
+      assert.ok(
+        entries.includes(
+          "package/templates/references/rust-bin/rust-toolchain.toml",
+        ),
+      );
       assert.equal(
         entries.includes("package/templates/root/oxfmt.config.ts"),
         false,

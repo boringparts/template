@@ -24,7 +24,9 @@ updates:
           - version-update:semver-minor
           - version-update:semver-patch
   - package-ecosystem: rust-toolchain
-    directory: /
+    directories:
+      - /
+      - /references/rust-bin
     schedule:
       interval: weekly
   - package-ecosystem: cargo

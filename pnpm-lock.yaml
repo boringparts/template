@@ -339,9 +339,6 @@ importers:
 
   packages/engine:
     dependencies:
-      smol-toml:
-        specifier: 'catalog:'
-        version: 1.9.1
       validate-npm-package-name:
         specifier: 'catalog:'
         version: 8.0.0

@@ -16,11 +16,7 @@ import { build as esbuild } from "esbuild";
 
 const packageRoot = path.resolve(import.meta.dirname, "..");
 
-const rootBaselineFiles = [
-  "package.json",
-  "pnpm-workspace.yaml",
-  "rust-toolchain.toml",
-] as const;
+const rootBaselineFiles = ["package.json", "pnpm-workspace.yaml"] as const;
 
 function resolveExecutable(name: string, searchRoot: string): string {
   const candidate = path.join(searchRoot, "node_modules", ".bin", name);

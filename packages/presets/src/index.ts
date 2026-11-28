@@ -19,6 +19,7 @@ export {
   type DevcontainerLayerHandle,
   type DevcontainerMount,
   type MergedWorkspaceEnvironmentMeta,
+  type StaticWorkspaceEnvironmentMeta,
   type WorkspaceEnvironmentMeta,
 } from "./environment-meta.ts";
 export {

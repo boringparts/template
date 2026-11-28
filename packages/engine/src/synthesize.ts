@@ -8,12 +8,10 @@ import {
   collectManifestCatalogUsage,
   formatJson,
   isBinaryContent,
-  rewriteCargoToml,
   rewriteSubpackageManifest,
   rewriteSubpackageTurboConfig,
   rewriteTextSpecifiers,
   summarizePackageManifest,
-  synthesizeWorkspaceCargoLock,
 } from "./transform.ts";
 import {
   ProjectValidationError,
@@ -127,7 +125,6 @@ function synthesizeRootBaseManifest<TMeta>(options: {
 
 function synthesizeRootBaseTurboJson(options: {
   readonly hasDevScript: boolean;
-  readonly hasRustWorkspace: boolean;
 }): string {
   const tasks: Record<string, unknown> = {
     "//#boundaries": { tags: ["quality:light"] },
@@ -155,15 +152,6 @@ function synthesizeRootBaseTurboJson(options: {
   }
 
   return formatJson({
-    ...(options.hasRustWorkspace
-      ? {
-          globalPassThroughEnv: [
-            "CARGO_HOME",
-            "RUSTUP_HOME",
-            "RUSTUP_TOOLCHAIN",
-          ],
-        }
-      : {}),
     globalDependencies: [
       "oxfmt.config.ts",
       "oxlint.config.ts",
@@ -318,14 +306,11 @@ function collectBaseInstanceFiles<TMeta>(
   instance: GeneratedInstance<TMeta>,
   options: {
     readonly blueprint: ProjectBlueprint<TMeta>;
-    readonly roots: WorkspaceTemplateRoots<TMeta>;
     readonly authorRootJson: Record<string, unknown>;
     readonly hasDevScript: boolean;
-    readonly hasRustWorkspace: boolean;
   },
 ): Map<string, PackageFileContribution> {
   const localFiles = new Map<string, PackageFileContribution>();
-  const excluded = new Set(instance.definition.excludeFiles ?? []);
 
   const setLocalFile = (
     rawTargetPath: string,
@@ -424,7 +409,6 @@ function collectBaseInstanceFiles<TMeta>(
           encoder.encode(
             synthesizeRootBaseTurboJson({
               hasDevScript: options.hasDevScript,
-              hasRustWorkspace: options.hasRustWorkspace,
             }),
           ),
           executable,
@@ -444,24 +428,6 @@ function collectBaseInstanceFiles<TMeta>(
       return;
     }
 
-    if (
-      instance.definition.rustPackageName !== undefined &&
-      targetPath === "Cargo.toml"
-    ) {
-      setLocalFile(
-        targetPath,
-        encoder.encode(
-          rewriteCargoToml({
-            rawToml: rawText,
-            fromPackageName: instance.definition.rustPackageName,
-            toPackageName: instance.leafName,
-          }),
-        ),
-        executable,
-      );
-      return;
-    }
-
     setLocalFile(
       targetPath,
       encoder.encode(
@@ -475,9 +441,6 @@ function collectBaseInstanceFiles<TMeta>(
   };
 
   for (const file of scanned) {
-    if (excluded.has(file.relativePath)) {
-      continue;
-    }
     const { bytes, executable } = readBytes(file.absPath);
     rewriteEntry(file.relativePath, bytes, executable);
   }
@@ -603,10 +566,6 @@ export function buildProjectProjection<TMeta>(
   const hasPublishable = blueprint.instances.some(
     (instance) => instance.definition.publishable,
   );
-  const rustInstances = blueprint.instances.filter(
-    (instance) => instance.definition.rustPackageName !== undefined,
-  );
-  const hasRustWorkspace = rustInstances.length > 0;
 
   const manifests = new Map<string, PackageManifestSummary>();
   const nonRootOutputs = new Map<
@@ -621,10 +580,8 @@ export function buildProjectProjection<TMeta>(
   for (const instance of nonRootInstances) {
     const baseFiles = collectBaseInstanceFiles(instance, {
       blueprint,
-      roots,
       authorRootJson,
       hasDevScript: false,
-      hasRustWorkspace,
     });
     const manifestEntry = baseFiles.get("package.json");
     if (manifestEntry !== undefined) {
@@ -698,10 +655,8 @@ export function buildProjectProjection<TMeta>(
   for (const rootInstance of rootInstances) {
     const baseFiles = collectBaseInstanceFiles(rootInstance, {
       blueprint,
-      roots,
       authorRootJson,
       hasDevScript: finalHasDevScript,
-      hasRustWorkspace,
     });
     const finalFiles =
       rootInstance.definition.transformFiles !== undefined
@@ -730,47 +685,7 @@ export function buildProjectProjection<TMeta>(
     }
   }
 
-  // 3. Transitional Cargo workspace synthesis (removed by Ticket 03).
-  if (hasRustWorkspace) {
-    const toolchainText = readText(roots.rootRustToolchainPath);
-    const crateMembers = rustInstances.map((instance) => instance.path);
-    const addRootFallback = (targetPath: string, textContent: string): void => {
-      if (entriesByPath.has(targetPath)) {
-        throw new ProjectValidationError([
-          {
-            code: "DIRECTORY_OWNERSHIP_VIOLATION",
-            message: `Conflicting generated file path "${targetPath}" in ProjectProjection.`,
-          },
-        ]);
-      }
-      entriesByPath.set(targetPath, {
-        path: targetPath,
-        content: encoder.encode(textContent),
-        executable: false,
-      });
-    };
-
-    addRootFallback("rust-toolchain.toml", toolchainText);
-    addRootFallback(
-      "Cargo.toml",
-      `[workspace]\nresolver = "3"\nmembers = ${JSON.stringify(crateMembers)}\n\n[profile.release]\nstrip = "symbols"\nlto = "thin"\ncodegen-units = 1\n`,
-    );
-    addRootFallback(
-      "Cargo.lock",
-      synthesizeWorkspaceCargoLock(
-        rustInstances.map((instance) => ({
-          fromPackageName: instance.definition.rustPackageName!,
-          toPackageName: instance.leafName,
-          rawLockfile: readText(
-            roots.rustLockfilePath ??
-              path.join(instance.definition.packageDir, "Cargo.lock"),
-          ),
-        })),
-      ),
-    );
-  }
-
-  // 4. Collect final catalog usage across all generated manifests and emit `pnpm-workspace.yaml`.
+  // 3. Collect final catalog usage across all generated manifests and emit `pnpm-workspace.yaml`.
   const defaultCatalogDeps = new Set<string>();
   const namedCatalogDeps = new Map<string, Set<string>>();
   for (const entry of entriesByPath.values()) {
