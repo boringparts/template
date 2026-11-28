@@ -22,7 +22,6 @@ export {
   type MaterializeResult,
   type PackageContribution,
   type PackageInstance,
-  type PackageManifestSummary,
   type PackageRole,
   type PackageTransformContext,
   type PlanProjectRequest,

@@ -1,7 +1,8 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+
+import { resolveTemplatePackageDir } from "./template-package-dir.ts";
 
 /**
  * Validated pnpm workspace dependency catalogs, overrides, and install policy
@@ -29,23 +30,6 @@ let cachedSourceWorkspacePolicy: WorkspacePolicy | undefined;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function resolveTemplatePackageDir(): string {
-  let current = path.dirname(fileURLToPath(import.meta.url));
-  for (let depth = 0; depth < 4; depth++) {
-    if (existsSync(path.join(current, "package.json"))) {
-      return current;
-    }
-    const parent = path.dirname(current);
-    if (parent === current) {
-      break;
-    }
-    current = parent;
-  }
-  throw new Error(
-    "Unable to locate @boringparts/template package directory for workspace policy resolution.",
-  );
 }
 
 function expectStringRecord(
@@ -261,6 +245,11 @@ export function loadWorkspacePolicy(templatesRoot?: string): WorkspacePolicy {
   }
 
   const packageDir = resolveTemplatePackageDir();
+  if (packageDir === undefined) {
+    throw new Error(
+      "Unable to locate @boringparts/template package directory for workspace policy resolution.",
+    );
+  }
   const stdout = execFileSync("pnpm", ["config", "list", "--json"], {
     cwd: packageDir,
     encoding: "utf8",

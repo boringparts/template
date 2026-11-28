@@ -1,35 +1,35 @@
 import path from "node:path";
 
 import type { PresetDefinition } from "../../core/index.ts";
+import { resolveReferencePackageDir } from "../../sources/index.ts";
 import {
   browserTestDevcontainerMeta,
   frontendVscodeMeta,
 } from "../environment-meta.ts";
-import { resolvePackageDir } from "../roots.ts";
 
 /** Builds the fixed-topology `vike-app` preset backed by the four Vike reference packages. */
 export function createVikeAppPreset(templatesRoot?: string): PresetDefinition {
-  const webDir = resolvePackageDir(
+  const webDir = resolveReferencePackageDir(
     "@boringparts/reference-vike-web",
     import.meta.url,
     templatesRoot,
   );
-  const dbDir = resolvePackageDir(
+  const dbDir = resolveReferencePackageDir(
     "@boringparts/reference-vike-db",
     import.meta.url,
     templatesRoot,
   );
-  const migrationsDir = resolvePackageDir(
+  const migrationsDir = resolveReferencePackageDir(
     "@boringparts/reference-vike-migrations",
     import.meta.url,
     templatesRoot,
   );
-  const deploymentDir = resolvePackageDir(
+  const deploymentDir = resolveReferencePackageDir(
     "@boringparts/reference-vike-deployment",
     import.meta.url,
     templatesRoot,
   );
-  const workspaceRootRefDir = resolvePackageDir(
+  const workspaceRootRefDir = resolveReferencePackageDir(
     "@boringparts/reference-workspace-root",
     import.meta.url,
     templatesRoot,

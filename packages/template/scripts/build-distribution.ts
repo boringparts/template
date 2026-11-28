@@ -1,7 +1,6 @@
 import { execFileSync } from "node:child_process";
 import {
   chmodSync,
-  copyFileSync,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -14,10 +13,10 @@ import { pathToFileURL } from "node:url";
 
 import { build as esbuild } from "esbuild";
 
+import { collectRegisteredReferencePackages } from "../src/presets/index.ts";
 import {
   loadPackageSourceFiles,
   loadWorkspacePolicy,
-  resolveRegisteredReferencePackages,
 } from "../src/sources/index.ts";
 
 const packageRoot = path.resolve(import.meta.dirname, "..");
@@ -71,7 +70,7 @@ function copyTemplatePackage(sourceDir: string, targetDir: string): void {
   for (const file of files) {
     const targetPath = path.join(targetDir, file.relativePath);
     mkdirSync(path.dirname(targetPath), { recursive: true });
-    copyFileSync(file.absPath, targetPath);
+    writeFileSync(targetPath, file.content);
     chmodSync(targetPath, file.mode);
   }
 }
@@ -145,7 +144,7 @@ async function main(): Promise<void> {
   }
 
   // Copy static template assets using Git-tracked/unignored source listing and persist WorkspacePolicy.
-  const referencePackages = resolveRegisteredReferencePackages();
+  const referencePackages = collectRegisteredReferencePackages();
 
   for (const refPkg of referencePackages) {
     copyTemplatePackage(

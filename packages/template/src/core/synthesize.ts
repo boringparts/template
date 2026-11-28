@@ -1,11 +1,10 @@
-import { readFileSync, statSync } from "node:fs";
-import path from "node:path";
-
 import { stringify as stringifyYaml } from "yaml";
 
 import {
   loadPackageSourceFiles,
   normalizeRelativePackagePath,
+  readPackageSourceFile,
+  readSourceTextFile,
   type WorkspacePolicy,
 } from "../sources/index.ts";
 import { mergeWorkspaceEnvironment } from "./environment.ts";
@@ -13,17 +12,16 @@ import {
   collectManifestCatalogUsage,
   collectManifestDependencyNames,
   formatJson,
+  hasManifestDevScript,
   isBinaryContent,
   rewriteSubpackageManifest,
   rewriteSubpackageTurboConfig,
   rewriteTextSpecifiers,
-  summarizePackageManifest,
 } from "./transform.ts";
 import {
   ProjectValidationError,
   type PackageContribution,
   type PackageInstance,
-  type PackageManifestSummary,
   type ProjectBlueprint,
   type ProjectProjection,
   type ProjectProjectionEntry,
@@ -38,17 +36,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function readText(filePath: string): string {
-  return readFileSync(filePath, "utf8");
-}
-
-function readBytes(filePath: string): {
-  readonly bytes: Uint8Array;
-  readonly executable: boolean;
-} {
-  const bytes = readFileSync(filePath);
-  const stats = statSync(filePath);
-  return { bytes, executable: (stats.mode & 0o111) !== 0 };
+function compareStrings(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
 }
 
 function extractOverrideLeadingPackage(overrideKey: string): string {
@@ -176,7 +165,9 @@ function buildRootPackageManifestObject(options: {
   }
 
   const sortedDevDeps = Object.fromEntries(
-    Object.entries(devDependencies).toSorted(([a], [b]) => a.localeCompare(b)),
+    Object.entries(devDependencies).toSorted(([a], [b]) =>
+      compareStrings(a, b),
+    ),
   );
 
   return {
@@ -325,7 +316,7 @@ function synthesizePnpmWorkspaceYaml(options: {
   const prunedNamedCatalogs: Record<string, Record<string, string>> = {};
   for (const [catalogName, deps] of [
     ...options.namedCatalogDeps.entries(),
-  ].toSorted(([a], [b]) => a.localeCompare(b))) {
+  ].toSorted(([a], [b]) => compareStrings(a, b))) {
     const sourceCatalog = workspacePolicy.catalogs[catalogName];
     if (sourceCatalog === undefined) {
       throw new Error(`Workspace policy catalogs is missing "${catalogName}"`);
@@ -356,7 +347,7 @@ function synthesizePnpmWorkspaceYaml(options: {
     (item) => selectedPackages.has(item),
   );
 
-  const prunedAllowBuilds: Record<string, boolean> = {
+  const allowBuilds: Record<string, boolean> = {
     ...workspacePolicy.allowBuilds,
   };
 
@@ -380,9 +371,7 @@ function synthesizePnpmWorkspaceYaml(options: {
     ],
     minimumReleaseAge: workspacePolicy.minimumReleaseAge,
     minimumReleaseAgeStrict: workspacePolicy.minimumReleaseAgeStrict,
-    ...(Object.keys(prunedAllowBuilds).length > 0
-      ? { allowBuilds: prunedAllowBuilds }
-      : {}),
+    ...(Object.keys(allowBuilds).length > 0 ? { allowBuilds } : {}),
     ...(Object.keys(prunedOverrides).length > 0
       ? { overrides: prunedOverrides }
       : {}),
@@ -404,35 +393,6 @@ function collectInstanceFiles(
   templatesRoot?: string,
 ): Map<string, PackageContribution> {
   const localFiles = new Map<string, PackageContribution>();
-
-  const setLocalFile = (
-    rawTargetPath: string,
-    content: Uint8Array,
-    executable: boolean,
-  ): void => {
-    const normalized = normalizeRelativePackagePath(rawTargetPath);
-    if (normalized === undefined) {
-      throw new ProjectValidationError([
-        {
-          code: "DIRECTORY_OWNERSHIP_VIOLATION",
-          message: `Package "${instance.path}" emitted invalid path "${rawTargetPath}".`,
-        },
-      ]);
-    }
-    if (localFiles.has(normalized)) {
-      throw new ProjectValidationError([
-        {
-          code: "DIRECTORY_OWNERSHIP_VIOLATION",
-          message: `Package "${instance.path}" emitted conflicting duplicate path "${normalized}".`,
-        },
-      ]);
-    }
-    localFiles.set(normalized, {
-      targetPath: normalized,
-      content,
-      executable,
-    });
-  };
 
   const scanned = loadPackageSourceFiles(instance.referencePackage.packageDir, {
     includeResources: false,
@@ -461,16 +421,14 @@ function collectInstanceFiles(
         },
       ]);
     }
-    if (isBinaryContent(normalized, bytes)) {
-      setLocalFile(normalized, bytes, executable);
-      return;
-    }
 
-    const rawText = decoder.decode(bytes);
-    if (normalized === "package.json") {
-      setLocalFile(
-        targetPath,
-        encoder.encode(
+    let finalContent: Uint8Array;
+    if (isBinaryContent(normalized, bytes)) {
+      finalContent = bytes;
+    } else {
+      const rawText = decoder.decode(bytes);
+      if (normalized === "package.json") {
+        finalContent = encoder.encode(
           rewriteSubpackageManifest({
             rawJson: rawText,
             leafName: instance.leafName,
@@ -478,41 +436,33 @@ function collectInstanceFiles(
             dependencyBindings: instance.dependencyBindings,
             linkedProviders: instance.linkedProviders,
           }),
-        ),
-        executable,
-      );
-      return;
-    }
-
-    if (normalized === "turbo.json") {
-      setLocalFile(
-        targetPath,
-        encoder.encode(
+        );
+      } else if (normalized === "turbo.json") {
+        finalContent = encoder.encode(
           rewriteSubpackageTurboConfig({
             rawJson: rawText,
             dependencyBindings: instance.dependencyBindings,
           }),
-        ),
-        executable,
-      );
-      return;
+        );
+      } else {
+        finalContent = encoder.encode(
+          rewriteTextSpecifiers({
+            text: rawText,
+            dependencyBindings: instance.dependencyBindings,
+          }),
+        );
+      }
     }
 
-    setLocalFile(
-      targetPath,
-      encoder.encode(
-        rewriteTextSpecifiers({
-          text: rawText,
-          dependencyBindings: instance.dependencyBindings,
-        }),
-      ),
+    localFiles.set(normalized, {
+      targetPath: normalized,
+      content: finalContent,
       executable,
-    );
+    });
   };
 
   for (const file of scanned) {
-    const { bytes, executable } = readBytes(file.absPath);
-    rewriteEntry(file.relativePath, bytes, executable);
+    rewriteEntry(file.relativePath, file.content, file.executable);
   }
 
   for (const resource of instance.referencePackage.resources ?? []) {
@@ -526,15 +476,14 @@ function collectInstanceFiles(
         },
       ]);
     }
-    const sourceAbs = path.join(
+    const sourceFile = readPackageSourceFile(
       instance.referencePackage.packageDir,
       normalizedSource,
     );
-    const { bytes, executable: sourceExecutable } = readBytes(sourceAbs);
     rewriteEntry(
       normalizedTarget,
-      bytes,
-      resource.executable ?? sourceExecutable,
+      sourceFile.content,
+      resource.executable ?? sourceFile.executable,
     );
   }
 
@@ -603,7 +552,9 @@ function synthesizeWorkspaceRoot(options: {
   };
 
   const refRootJson = JSON.parse(
-    readText(path.join(workspaceRoot.packageDir, "package.json")),
+    decoder.decode(
+      readPackageSourceFile(workspaceRoot.packageDir, "package.json").content,
+    ),
   ) as unknown;
   if (!isRecord(refRootJson)) {
     throw new Error("Reference workspace-root package.json must be an object.");
@@ -646,17 +597,16 @@ function synthesizeWorkspaceRoot(options: {
     ) {
       continue;
     }
-    const { bytes, executable } = readBytes(file.absPath);
-    if (isBinaryContent(file.relativePath, bytes)) {
-      commitRootContribution(file.relativePath, bytes, executable);
+    if (isBinaryContent(file.relativePath, file.content)) {
+      commitRootContribution(file.relativePath, file.content, file.executable);
     } else {
       commitRootText(
         file.relativePath,
         rewriteTextSpecifiers({
-          text: decoder.decode(bytes),
+          text: decoder.decode(file.content),
           dependencyBindings: rootDependencyBindings,
         }),
-        executable,
+        file.executable,
       );
     }
   }
@@ -679,17 +629,18 @@ function synthesizeWorkspaceRoot(options: {
         },
       ]);
     }
-    const { bytes, executable: sourceExecutable } = readBytes(
-      path.join(workspaceRoot.packageDir, normalizedSource),
+    const sourceFile = readPackageSourceFile(
+      workspaceRoot.packageDir,
+      normalizedSource,
     );
-    const executable = resource.executable ?? sourceExecutable;
-    if (isBinaryContent(normalizedTarget, bytes)) {
-      commitRootContribution(normalizedTarget, bytes, executable);
+    const executable = resource.executable ?? sourceFile.executable;
+    if (isBinaryContent(normalizedTarget, sourceFile.content)) {
+      commitRootContribution(normalizedTarget, sourceFile.content, executable);
     } else {
       commitRootText(
         normalizedTarget,
         rewriteTextSpecifiers({
-          text: decoder.decode(bytes),
+          text: decoder.decode(sourceFile.content),
           dependencyBindings: rootDependencyBindings,
         }),
         executable,
@@ -729,8 +680,8 @@ function synthesizeWorkspaceRoot(options: {
     }
   }
   const rootTurboJson = rootifyWorkspaceTurboConfig({
-    rawRefTurboJson: readText(
-      path.join(workspaceRoot.packageDir, "turbo.json"),
+    rawRefTurboJson: decoder.decode(
+      readPackageSourceFile(workspaceRoot.packageDir, "turbo.json").content,
     ),
     singletonConfigPaths,
     hasDevScript: options.hasDevScript,
@@ -776,9 +727,14 @@ function synthesizeWorkspaceRoot(options: {
   }
 
   const dockerfileFragments = [
-    readText(path.join(workspaceRoot.packageDir, baseDockerfilePath)).trimEnd(),
+    decoder
+      .decode(
+        readPackageSourceFile(workspaceRoot.packageDir, baseDockerfilePath)
+          .content,
+      )
+      .trimEnd(),
     ...merged.devcontainer.layers.map((layer) =>
-      readText(layer.dockerfilePath).trimEnd(),
+      readSourceTextFile(layer.dockerfilePath).trimEnd(),
     ),
   ];
   commitRootText(
@@ -787,7 +743,9 @@ function synthesizeWorkspaceRoot(options: {
   );
 
   const templateJson = JSON.parse(
-    readText(path.join(workspaceRoot.packageDir, baseTemplatePath)),
+    decoder.decode(
+      readPackageSourceFile(workspaceRoot.packageDir, baseTemplatePath).content,
+    ),
   ) as Record<string, unknown>;
 
   const buildConfig: Record<string, unknown> = isRecord(templateJson.build)
@@ -924,65 +882,28 @@ export function buildProjectProjection(
     (instance) => instance.referencePackage.publishable,
   );
 
-  const manifests = new Map<string, PackageManifestSummary>();
-  const instanceBaseFiles = new Map<
-    PackageInstance,
-    ReadonlyMap<string, PackageContribution>
-  >();
-
-  // 1. Collect and rewrite all homogeneous PackageInstances first.
-  for (const instance of blueprint.instances) {
-    const baseFiles = collectInstanceFiles(instance, roots.templatesRoot);
-    const manifestEntry = baseFiles.get("package.json");
-    if (manifestEntry !== undefined) {
-      manifests.set(
-        instance.path,
-        summarizePackageManifest({
-          rawJson: decoder.decode(manifestEntry.content),
-          packageName: instance.packageName,
-          path: instance.path,
-          leafName: instance.leafName,
-          role: instance.referencePackage.role,
-          publishable: instance.referencePackage.publishable,
-        }),
-      );
-    }
-    instanceBaseFiles.set(instance, baseFiles);
-  }
-
-  const hasDevScript = [...manifests.values()].some((m) => m.hasDevScript);
+  let hasDevScript = false;
   const defaultCatalogDeps = new Set<string>();
   const namedCatalogDeps = new Map<string, Set<string>>();
 
+  // 1. Collect, rewrite, and validate all homogeneous PackageInstances.
   for (const instance of blueprint.instances) {
-    const baseFiles = instanceBaseFiles.get(instance)!;
+    const baseFiles = collectInstanceFiles(instance, roots.templatesRoot);
     const finalFiles =
       instance.referencePackage.transformFiles !== undefined
         ? instance.referencePackage.transformFiles(baseFiles, {
             scope: blueprint.scope,
             repositoryName: blueprint.repositoryName,
             instance,
-            instances: blueprint.instances,
-            manifests,
-            hasDevScript,
-            hasPublishable,
           })
         : baseFiles;
 
     const finalManifestEntry = finalFiles.get("package.json");
     if (finalManifestEntry !== undefined) {
       const finalManifestRaw = decoder.decode(finalManifestEntry.content);
-      manifests.set(
-        instance.path,
-        summarizePackageManifest({
-          rawJson: finalManifestRaw,
-          packageName: instance.packageName,
-          path: instance.path,
-          leafName: instance.leafName,
-          role: instance.referencePackage.role,
-          publishable: instance.referencePackage.publishable,
-        }),
-      );
+      if (hasManifestDevScript(finalManifestRaw)) {
+        hasDevScript = true;
+      }
       collectManifestCatalogUsage(
         JSON.parse(finalManifestRaw) as Record<string, unknown>,
         defaultCatalogDeps,
@@ -1012,8 +933,6 @@ export function buildProjectProjection(
     }
   }
 
-  const finalHasDevScript = [...manifests.values()].some((m) => m.hasDevScript);
-
   // 2. Synthesize WorkspaceRoot in a single in-memory pass.
   const toolchain = synthesizeWorkspaceRoot({
     blueprint,
@@ -1022,7 +941,7 @@ export function buildProjectProjection(
     ...(roots.templatesRoot === undefined
       ? {}
       : { templatesRoot: roots.templatesRoot }),
-    hasDevScript: finalHasDevScript,
+    hasDevScript,
     hasPublishable,
     defaultCatalogDeps,
     namedCatalogDeps,
@@ -1030,7 +949,7 @@ export function buildProjectProjection(
   });
 
   const sortedEntries = [...entriesByPath.values()].toSorted((a, b) =>
-    a.path.localeCompare(b.path),
+    compareStrings(a.path, b.path),
   );
 
   return {

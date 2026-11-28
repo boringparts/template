@@ -1,5 +1,3 @@
-import type { PackageManifestSummary, PackageRole } from "./types.ts";
-
 const binaryExtensions = new Set([
   ".png",
   ".jpg",
@@ -169,30 +167,15 @@ export function collectManifestCatalogUsage(
   }
 }
 
-/** Summarizes a parsed package `package.json` for read-only workspace inspection. */
-export function summarizePackageManifest(options: {
-  readonly rawJson: string;
-  readonly packageName: string;
-  readonly path: string;
-  readonly leafName: string;
-  readonly role: PackageRole;
-  readonly publishable: boolean;
-}): PackageManifestSummary {
-  const manifest = JSON.parse(options.rawJson) as Record<string, unknown>;
-  const hasDevScript =
+/** Returns whether a serialized `package.json` declares a non-empty `scripts.dev` entry. */
+export function hasManifestDevScript(rawJson: string): boolean {
+  const manifest = JSON.parse(rawJson) as unknown;
+  return (
+    isRecord(manifest) &&
     isRecord(manifest.scripts) &&
     typeof manifest.scripts.dev === "string" &&
-    manifest.scripts.dev.length > 0;
-  const binNames = isRecord(manifest.bin) ? Object.keys(manifest.bin) : [];
-  return {
-    packageName: options.packageName,
-    path: options.path,
-    leafName: options.leafName,
-    role: options.role,
-    publishable: options.publishable,
-    hasDevScript,
-    binNames,
-  };
+    manifest.scripts.dev.length > 0
+  );
 }
 
 /**
