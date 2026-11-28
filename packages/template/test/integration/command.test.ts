@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import {
   chmodSync,
   cpSync,
@@ -938,43 +939,105 @@ void describe("CLI contract", () => {
   });
 
   void it("excludes .gitignore-ignored files from source-mode reference packages while preserving data/ and failing when workspace-root toolchain fields are missing", async () => {
-    const tsLibRefDir = loadBuiltInPresets().find(
+    const defaultRoots = resolveTemplateWorkspaceRoots();
+    const baseTsLibPreset = loadBuiltInPresets().find(
       (preset) => preset.alias === "ts-lib",
-    )!.nodes[0]!.referencePackage.packageDir;
-    const localDir = path.join(tsLibRefDir, ".local");
-    const localExisted = existsSync(localDir);
-    const ignoredLocalFile = path.join(localDir, "mc02-ignored-probe.txt");
-    const ignoredEnvFile = path.join(tsLibRefDir, ".env");
+    )!;
+    const baseTsLibNode = baseTsLibPreset.nodes[0]!;
+    const tsLibRefDir = baseTsLibNode.referencePackage.packageDir;
 
     await withTempDir(async (workspaceDir) => {
-      try {
-        mkdirSync(localDir, { recursive: true });
-        writeFileSync(ignoredLocalFile, "secret local state\n", "utf8");
-        writeFileSync(ignoredEnvFile, "SECRET_TOKEN=local\n", "utf8");
+      const isolatedRepoDir = path.join(workspaceDir, "isolated-git-source");
+      const isolatedTsLibDir = path.join(
+        isolatedRepoDir,
+        "references",
+        "ts-lib",
+      );
+      mkdirSync(isolatedRepoDir, { recursive: true });
+      cpSync(
+        path.join(
+          defaultRoots.workspaceRoot.packageDir,
+          "resources",
+          "gitignore",
+        ),
+        path.join(isolatedRepoDir, ".gitignore"),
+      );
+      cpSync(tsLibRefDir, isolatedTsLibDir, {
+        recursive: true,
+        filter: (src) => {
+          const base = path.basename(src);
+          return (
+            base !== "node_modules" &&
+            base !== ".local" &&
+            base !== "dist" &&
+            !base.endsWith(".tsbuildinfo")
+          );
+        },
+      });
 
-        const targetDir = path.join(workspaceDir, "clean-source-repo");
-        const run = testRuntime(["init", targetDir, "--preset", "ts-lib"]);
-        assert.equal(await runCli(run.runtime), 0, run.stderr());
-        assert.equal(
-          existsSync(
-            path.join(targetDir, "packages/lib/.local/mc02-ignored-probe.txt"),
-          ),
-          false,
-        );
-        assert.equal(
-          existsSync(path.join(targetDir, "packages/lib/.env")),
-          false,
-        );
-      } finally {
-        rmSync(ignoredLocalFile, { force: true });
-        rmSync(ignoredEnvFile, { force: true });
-        if (!localExisted) {
-          rmSync(localDir, { recursive: true, force: true });
-        }
-      }
+      execFileSync("git", ["init"], { cwd: isolatedRepoDir, stdio: "ignore" });
+      execFileSync("git", ["add", "."], {
+        cwd: isolatedRepoDir,
+        stdio: "ignore",
+      });
+
+      const isolatedLocalDir = path.join(isolatedTsLibDir, ".local");
+      mkdirSync(isolatedLocalDir, { recursive: true });
+      writeFileSync(
+        path.join(isolatedLocalDir, "mc02-ignored-probe.txt"),
+        "secret local state\n",
+        "utf8",
+      );
+      writeFileSync(
+        path.join(isolatedTsLibDir, ".env"),
+        "SECRET_TOKEN=local\n",
+        "utf8",
+      );
+      mkdirSync(path.join(isolatedTsLibDir, "data"), { recursive: true });
+      writeFileSync(
+        path.join(isolatedTsLibDir, "data", "untracked-clean.json"),
+        '{"clean":true}\n',
+        "utf8",
+      );
+
+      const isolatedTsLibPreset: PresetDefinition = {
+        ...baseTsLibPreset,
+        nodes: [
+          {
+            ...baseTsLibNode,
+            referencePackage: {
+              ...baseTsLibNode.referencePackage,
+              packageDir: isolatedTsLibDir,
+            },
+          },
+        ],
+      };
+
+      const targetDir = path.join(workspaceDir, "clean-source-repo");
+      const run = testOverrideRuntime(
+        ["init", targetDir, "--preset", "ts-lib"],
+        { presets: [isolatedTsLibPreset] },
+      );
+      assert.equal(await executeCliRuntime(run.runtime), 0, run.stderr());
+      assert.equal(
+        existsSync(
+          path.join(targetDir, "packages/lib/.local/mc02-ignored-probe.txt"),
+        ),
+        false,
+      );
+      assert.equal(
+        existsSync(path.join(targetDir, "packages/lib/.env")),
+        false,
+      );
+      assert.equal(
+        readFileSync(
+          path.join(targetDir, "packages/lib/data/untracked-clean.json"),
+          "utf8",
+        ),
+        '{"clean":true}\n',
+      );
 
       // Removing packageManager from workspace-root/package.json must fail rather than falling back to hardcoded defaults.
-      const defaultRoots = resolveTemplateWorkspaceRoots();
       const customRootRefDir = path.join(workspaceDir, "custom-workspace-root");
       cpSync(defaultRoots.workspaceRoot.packageDir, customRootRefDir, {
         recursive: true,

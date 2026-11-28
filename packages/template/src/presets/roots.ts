@@ -1,28 +1,70 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-
 import { parse as parseToml } from "smol-toml";
 
 import type { WorkspaceTemplateRoots } from "../core/index.ts";
 import {
   loadWorkspacePolicy,
+  readPackageSourceFile,
   resolveReferencePackageDir,
+  type RegisteredReferencePackage,
 } from "../sources/index.ts";
 import {
   createSingletonPackages,
   createWorkspaceRoot,
 } from "./base-packages.ts";
+import { loadBuiltInPresets } from "./built-in.ts";
+
+const decoder = new TextDecoder();
+const referencePackagePrefix = "@boringparts/reference-";
 
 /**
- * Resolves a workspace package directory either from an explicit bundled `templatesRoot`
- * or via Node module resolution against the caller's `import.meta.url` in source mode.
+ * Collects all declared `@boringparts/reference-*` packages from the workspace root,
+ * singleton packages, and built-in presets, deduplicated and sorted by slug.
  */
-export function resolvePackageDir(
-  packageName: string,
-  callerMetaUrl: string,
+export function collectRegisteredReferencePackages(
   templatesRoot?: string,
-): string {
-  return resolveReferencePackageDir(packageName, callerMetaUrl, templatesRoot);
+): readonly RegisteredReferencePackage[] {
+  const workspaceRoot = createWorkspaceRoot(templatesRoot);
+  const candidates: readonly {
+    readonly packageName: string;
+    readonly packageDir: string;
+  }[] = [
+    {
+      packageName: workspaceRoot.packageName,
+      packageDir: workspaceRoot.packageDir,
+    },
+    ...createSingletonPackages(templatesRoot).map(
+      (singleton) => singleton.referencePackage,
+    ),
+    ...loadBuiltInPresets(templatesRoot).flatMap((preset) =>
+      preset.nodes.map((node) => node.referencePackage),
+    ),
+  ];
+
+  const bySlug = new Map<string, RegisteredReferencePackage>();
+  for (const candidate of candidates) {
+    if (!candidate.packageName.startsWith(referencePackagePrefix)) {
+      continue;
+    }
+    const slug = candidate.packageName.slice(referencePackagePrefix.length);
+    const existing = bySlug.get(slug);
+    if (existing !== undefined) {
+      if (existing.packageDir !== candidate.packageDir) {
+        throw new Error(
+          `Conflicting packageDir for reference package "${candidate.packageName}": "${existing.packageDir}" vs "${candidate.packageDir}".`,
+        );
+      }
+      continue;
+    }
+    bySlug.set(slug, {
+      slug,
+      packageName: candidate.packageName,
+      packageDir: candidate.packageDir,
+    });
+  }
+
+  return [...bySlug.values()].toSorted((left, right) =>
+    left.slug < right.slug ? -1 : left.slug > right.slug ? 1 : 0,
+  );
 }
 
 /** Reads `@playwright/test` version from the loaded `WorkspacePolicy` catalog. */
@@ -37,14 +79,18 @@ export function resolvePlaywrightVersion(templatesRoot?: string): string {
 
 /** Reads `toolchain.channel` from `@boringparts/reference-rust-bin`'s `rust-toolchain.toml`. */
 export function resolveRustToolchainChannel(templatesRoot?: string): string {
-  const rustBinRefDir = resolvePackageDir(
+  const rustBinRefDir = resolveReferencePackageDir(
     "@boringparts/reference-rust-bin",
     import.meta.url,
     templatesRoot,
   );
-  const parsed = parseToml(
-    readFileSync(path.join(rustBinRefDir, "rust-toolchain.toml"), "utf8"),
-  ) as { readonly toolchain?: Readonly<Record<string, unknown>> };
+  const toolchainFile = readPackageSourceFile(
+    rustBinRefDir,
+    "rust-toolchain.toml",
+  );
+  const parsed = parseToml(decoder.decode(toolchainFile.content)) as {
+    readonly toolchain?: Readonly<Record<string, unknown>>;
+  };
   const channel = parsed.toolchain?.channel;
   if (typeof channel !== "string" || channel.trim().length === 0) {
     throw new Error(

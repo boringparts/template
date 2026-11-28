@@ -1,9 +1,9 @@
 import type { PresetDefinition } from "../../core/index.ts";
+import { resolveReferencePackageDir } from "../../sources/index.ts";
 import {
   browserTestDevcontainerMeta,
   frontendVscodeMeta,
 } from "../environment-meta.ts";
-import { resolvePackageDir } from "../roots.ts";
 
 /**
  * Builds the fixed-topology `vue-hono-app` preset combining `apps/api`, `apps/web`,
@@ -12,17 +12,17 @@ import { resolvePackageDir } from "../roots.ts";
 export function createVueHonoAppPreset(
   templatesRoot?: string,
 ): PresetDefinition {
-  const apiDir = resolvePackageDir(
+  const apiDir = resolveReferencePackageDir(
     "@boringparts/reference-hono-api",
     import.meta.url,
     templatesRoot,
   );
-  const webDir = resolvePackageDir(
+  const webDir = resolveReferencePackageDir(
     "@boringparts/reference-vue-hono-web",
     import.meta.url,
     templatesRoot,
   );
-  const e2eDir = resolvePackageDir(
+  const e2eDir = resolveReferencePackageDir(
     "@boringparts/reference-vue-hono-e2e",
     import.meta.url,
     templatesRoot,

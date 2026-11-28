@@ -1,9 +1,9 @@
 import type { PresetDefinition } from "../../core/index.ts";
-import { resolvePackageDir } from "../roots.ts";
+import { resolveReferencePackageDir } from "../../sources/index.ts";
 
 /** Builds the `node-lib` preset backed by `@boringparts/reference-node-lib`. */
 export function createNodeLibPreset(templatesRoot?: string): PresetDefinition {
-  const packageDir = resolvePackageDir(
+  const packageDir = resolveReferencePackageDir(
     "@boringparts/reference-node-lib",
     import.meta.url,
     templatesRoot,

@@ -1,6 +1,6 @@
-import { readFileSync } from "node:fs";
 import { isDeepStrictEqual } from "node:util";
 
+import { tryReadSourceTextFile } from "../sources/index.ts";
 import type {
   InvalidRequestIssue,
   PackageInstance,
@@ -94,14 +94,13 @@ function areLayersEquivalent(
   if (existing.dockerfilePath === candidate.dockerfilePath) {
     return true;
   }
-  try {
-    return (
-      readFileSync(existing.dockerfilePath, "utf8") ===
-      readFileSync(candidate.dockerfilePath, "utf8")
-    );
-  } catch {
-    return false;
-  }
+  const existingText = tryReadSourceTextFile(existing.dockerfilePath);
+  const candidateText = tryReadSourceTextFile(candidate.dockerfilePath);
+  return (
+    existingText !== undefined &&
+    candidateText !== undefined &&
+    existingText === candidateText
+  );
 }
 
 /**

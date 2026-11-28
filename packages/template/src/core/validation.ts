@@ -1,8 +1,10 @@
-import { existsSync, readFileSync } from "node:fs";
 import { isBuiltin } from "node:module";
 import path from "node:path";
 
-import { normalizeRelativePackagePath } from "../sources/index.ts";
+import {
+  normalizeRelativePackagePath,
+  tryReadSourceTextFile,
+} from "../sources/index.ts";
 import { mergeWorkspaceEnvironment } from "./environment.ts";
 import { collectManifestDependencyNames } from "./transform.ts";
 import type {
@@ -11,7 +13,6 @@ import type {
   PackageRole,
   PlanProjectRequest,
   PlanProjectResult,
-  PresetDefinition,
   ProjectLink,
   ReferencePackage,
   ResourceFileMapping,
@@ -31,12 +32,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function readManifestJson(
   packageDir: string,
 ): Record<string, unknown> | undefined {
-  const manifestPath = path.join(packageDir, "package.json");
-  if (!existsSync(manifestPath)) {
+  const rawManifest = tryReadSourceTextFile(
+    path.join(packageDir, "package.json"),
+  );
+  if (rawManifest === undefined) {
     return undefined;
   }
   try {
-    const parsed = JSON.parse(readFileSync(manifestPath, "utf8")) as unknown;
+    const parsed = JSON.parse(rawManifest) as unknown;
     return isRecord(parsed) ? parsed : undefined;
   } catch {
     return undefined;
@@ -110,11 +113,13 @@ function resolveReservedTopLevelDirs(
   if (normalizedSource === undefined) {
     return new Set();
   }
-  const gitignorePath = path.join(workspaceRoot.packageDir, normalizedSource);
-  if (!existsSync(gitignorePath)) {
+  const rawGitignore = tryReadSourceTextFile(
+    path.join(workspaceRoot.packageDir, normalizedSource),
+  );
+  if (rawGitignore === undefined) {
     return new Set();
   }
-  return parseGitignoreTopLevelDirs(readFileSync(gitignorePath, "utf8"));
+  return parseGitignoreTopLevelDirs(rawGitignore);
 }
 
 function isValidRestrictedIdentifier(value: string): boolean {
@@ -325,7 +330,7 @@ type MutablePlannedNode = {
 };
 
 /**
- * Validates CLI initialization inputs in memory without touching disk and produces a deterministic `ProjectBlueprint`.
+ * Validates CLI initialization inputs without writing to disk and produces a deterministic `ProjectBlueprint`.
  */
 export function planProject(request: PlanProjectRequest): PlanProjectResult {
   const issues: InvalidRequestIssue[] = [];
@@ -411,8 +416,6 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
     });
   }
 
-  const selectedPresets: PresetDefinition[] = [];
-
   for (const rawSpec of request.presetSpecs) {
     const parts = rawSpec.split(":");
     if (
@@ -436,7 +439,6 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
       });
       continue;
     }
-    selectedPresets.push(preset);
 
     if (preset.topology === "fixed") {
       if (parts.length > 1) {

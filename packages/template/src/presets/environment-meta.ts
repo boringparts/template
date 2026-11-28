@@ -1,13 +1,14 @@
 import path from "node:path";
 
 import type { WorkspaceEnvironment } from "../core/index.ts";
-import { resolvePackageDir, resolvePlaywrightVersion } from "./roots.ts";
+import { resolveReferencePackageDir } from "../sources/index.ts";
+import { resolvePlaywrightVersion } from "./roots.ts";
 
 /** Shared devcontainer Playwright browser layer and build argument for browser-tested packages. */
 export function browserTestDevcontainerMeta(
   templatesRoot?: string,
 ): WorkspaceEnvironment {
-  const workspaceRootRefDir = resolvePackageDir(
+  const workspaceRootRefDir = resolveReferencePackageDir(
     "@boringparts/reference-workspace-root",
     import.meta.url,
     templatesRoot,

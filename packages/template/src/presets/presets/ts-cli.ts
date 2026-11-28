@@ -1,9 +1,9 @@
 import type { PresetDefinition } from "../../core/index.ts";
-import { resolvePackageDir } from "../roots.ts";
+import { resolveReferencePackageDir } from "../../sources/index.ts";
 
 /** Builds the `ts-cli` preset backed by `@boringparts/reference-ts-cli`. */
 export function createTsCliPreset(templatesRoot?: string): PresetDefinition {
-  const packageDir = resolvePackageDir(
+  const packageDir = resolveReferencePackageDir(
     "@boringparts/reference-ts-cli",
     import.meta.url,
     templatesRoot,

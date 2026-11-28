@@ -1,13 +1,13 @@
 import type { PresetDefinition } from "../../core/index.ts";
+import { resolveReferencePackageDir } from "../../sources/index.ts";
 import {
   browserTestDevcontainerMeta,
   frontendVscodeMeta,
 } from "../environment-meta.ts";
-import { resolvePackageDir } from "../roots.ts";
 
 /** Builds the `vue-app` preset backed by `@boringparts/reference-vue-app`. */
 export function createVueAppPreset(templatesRoot?: string): PresetDefinition {
-  const packageDir = resolvePackageDir(
+  const packageDir = resolveReferencePackageDir(
     "@boringparts/reference-vue-app",
     import.meta.url,
     templatesRoot,

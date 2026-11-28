@@ -30,26 +30,11 @@ export type PackageContribution = {
   readonly executable: boolean;
 };
 
-/** Rewritten manifest summary exposed read-only to package transform hooks. */
-export type PackageManifestSummary = {
-  readonly packageName: string;
-  readonly path: string;
-  readonly leafName: string;
-  readonly role: PackageRole;
-  readonly publishable: boolean;
-  readonly hasDevScript: boolean;
-  readonly binNames: readonly string[];
-};
-
 /** Read-only workspace context provided to a package's optional file transform hook. */
 export type PackageTransformContext = {
   readonly scope: string;
   readonly repositoryName: string;
   readonly instance: PackageInstance;
-  readonly instances: readonly PackageInstance[];
-  readonly manifests: ReadonlyMap<string, PackageManifestSummary>;
-  readonly hasDevScript: boolean;
-  readonly hasPublishable: boolean;
 };
 
 /**

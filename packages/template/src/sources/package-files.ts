@@ -1,19 +1,33 @@
 import { execFileSync } from "node:child_process";
 import {
-  existsSync,
   lstatSync,
   readdirSync,
+  readFileSync,
   realpathSync,
   statSync,
 } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+
+import { resolveTemplatePackageDir } from "./template-package-dir.ts";
 
 export type ScannedPackageFile = {
   /** Normalized POSIX path relative to the scanned package root. */
   readonly relativePath: string;
   /** Absolute filesystem path to the source file. */
   readonly absPath: string;
+  /** Raw file contents read during source enumeration. */
+  readonly content: Uint8Array;
+  /** Whether any executable bit (`0o111`) is set on the source file. */
+  readonly executable: boolean;
+  /** Raw permission mode bits (`stats.mode & 0o777`). */
+  readonly mode: number;
+};
+
+export type ReadPackageSourceFileResult = {
+  /** Normalized POSIX path relative to the package root. */
+  readonly relativePath: string;
+  /** Raw file contents. */
+  readonly content: Uint8Array;
   /** Whether any executable bit (`0o111`) is set on the source file. */
   readonly executable: boolean;
   /** Raw permission mode bits (`stats.mode & 0o777`). */
@@ -22,28 +36,16 @@ export type ScannedPackageFile = {
 
 let cachedAuthorRepoTopLevel: string | null | undefined;
 
-function resolveTemplatePackageDir(): string {
-  let current = path.dirname(fileURLToPath(import.meta.url));
-  for (let depth = 0; depth < 4; depth++) {
-    if (existsSync(path.join(current, "package.json"))) {
-      return current;
-    }
-    const parent = path.dirname(current);
-    if (parent === current) {
-      break;
-    }
-    current = parent;
-  }
-  return path.dirname(fileURLToPath(import.meta.url));
-}
-
 function resolveAuthorRepoTopLevel(): string | undefined {
   if (cachedAuthorRepoTopLevel !== undefined) {
     return cachedAuthorRepoTopLevel ?? undefined;
   }
 
   const templatePkgDir = resolveTemplatePackageDir();
-  if (templatePkgDir.split(path.sep).includes("node_modules")) {
+  if (
+    templatePkgDir === undefined ||
+    templatePkgDir.split(path.sep).includes("node_modules")
+  ) {
     cachedAuthorRepoTopLevel = null;
     return undefined;
   }
@@ -69,27 +71,36 @@ function resolveAuthorRepoTopLevel(): string | undefined {
   }
 }
 
-function isAuthorSourcePackageDir(
+function isGitManagedPackageDir(
   packageDir: string,
   templatesRoot?: string,
 ): boolean {
-  // Never invoke `git ls-files` in packaged `templatesRoot` mode or inside `node_modules` / temp dirs.
+  // Never invoke `git ls-files` in packaged `templatesRoot` mode.
   if (templatesRoot !== undefined) {
     return false;
   }
-  const topLevel = resolveAuthorRepoTopLevel();
-  if (topLevel === undefined) {
-    return false;
-  }
 
+  let resolvedTopLevel: string;
   let resolvedPkgDir: string;
   try {
+    const rawTopLevel = execFileSync(
+      "git",
+      ["-C", packageDir, "rev-parse", "--show-toplevel"],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    ).trim();
+    if (rawTopLevel.length === 0) {
+      return false;
+    }
+    resolvedTopLevel = realpathSync(rawTopLevel);
     resolvedPkgDir = realpathSync(packageDir);
   } catch {
     return false;
   }
 
-  const relativeFromRepo = path.relative(topLevel, resolvedPkgDir);
+  const relativeFromRepo = path.relative(resolvedTopLevel, resolvedPkgDir);
   if (relativeFromRepo.startsWith("..") || path.isAbsolute(relativeFromRepo)) {
     return false;
   }
@@ -99,12 +110,30 @@ function isAuthorSourcePackageDir(
   if (
     segments.includes("templates") ||
     segments.includes("node_modules") ||
-    segments.includes("dist")
+    segments.includes("dist") ||
+    segments.some((segment) => segment.startsWith("."))
   ) {
     return false;
   }
 
-  return true;
+  if (resolvedTopLevel === resolveAuthorRepoTopLevel()) {
+    return true;
+  }
+
+  // Only treat external directories as Git-managed if they already have tracked files in their Git index.
+  try {
+    const cachedFiles = execFileSync(
+      "git",
+      ["-C", resolvedPkgDir, "ls-files", "--cached", "-z", "."],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    return cachedFiles.length > 0;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -188,6 +217,7 @@ function loadGitListedPackageFiles(
     results.push({
       relativePath,
       absPath,
+      content: readFileSync(absPath),
       executable: (mode & 0o111) !== 0,
       mode,
     });
@@ -238,6 +268,7 @@ function collectStaticDirectoryEntries(
     results.push({
       relativePath,
       absPath,
+      content: readFileSync(absPath),
       executable: (mode & 0o111) !== 0,
       mode,
     });
@@ -245,10 +276,10 @@ function collectStaticDirectoryEntries(
 }
 
 /**
- * Lists clean source files for a template package directory while preserving executable bits.
- * Uses `git ls-files --cached --others --exclude-standard` inside the author Git worktree
- * (making `.gitignore` the single source of truth), and pure static directory traversal for
- * bundled `templatesRoot` directories or external synthetic test fixtures.
+ * Lists clean source files and reads their contents for a template package directory
+ * while preserving executable bits. Uses `git ls-files --cached --others --exclude-standard`
+ * for Git-managed package directories (making `.gitignore` the single source of truth),
+ * and static directory traversal for bundled `templatesRoot` directories or non-Git fixtures.
  */
 export function loadPackageSourceFiles(
   packageDir: string,
@@ -257,7 +288,7 @@ export function loadPackageSourceFiles(
     readonly templatesRoot?: string;
   },
 ): readonly ScannedPackageFile[] {
-  if (isAuthorSourcePackageDir(packageDir, options.templatesRoot)) {
+  if (isGitManagedPackageDir(packageDir, options.templatesRoot)) {
     return loadGitListedPackageFiles(packageDir, options.includeResources);
   }
 
@@ -269,4 +300,41 @@ export function loadPackageSourceFiles(
     results,
   );
   return results;
+}
+
+/**
+ * Reads a package-relative source file inside `packageDir` and returns its bytes and mode.
+ * Rejects path traversal or invalid package-relative paths.
+ */
+export function readPackageSourceFile(
+  packageDir: string,
+  relativePath: string,
+): ReadPackageSourceFileResult {
+  const normalized = normalizeRelativePackagePath(relativePath);
+  if (normalized === undefined) {
+    throw new Error(`Invalid package-relative source path "${relativePath}".`);
+  }
+  const absPath = path.join(packageDir, normalized);
+  const content = readFileSync(absPath);
+  const mode = statSync(absPath).mode & 0o777;
+  return {
+    relativePath: normalized,
+    content,
+    executable: (mode & 0o111) !== 0,
+    mode,
+  };
+}
+
+/** Reads a checked source text file as UTF-8. */
+export function readSourceTextFile(filePath: string): string {
+  return readFileSync(filePath, "utf8");
+}
+
+/** Reads a checked source text file as UTF-8, returning `undefined` if absent or unreadable. */
+export function tryReadSourceTextFile(filePath: string): string | undefined {
+  try {
+    return readFileSync(filePath, "utf8");
+  } catch {
+    return undefined;
+  }
 }

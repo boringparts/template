@@ -7,7 +7,8 @@ import type {
   PackageTransformContext,
   PresetDefinition,
 } from "../../core/index.ts";
-import { resolvePackageDir, resolveRustToolchainChannel } from "../roots.ts";
+import { resolveReferencePackageDir } from "../../sources/index.ts";
+import { resolveRustToolchainChannel } from "../roots.ts";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -89,7 +90,7 @@ function transformRustBinFiles(
 
 /** Builds the `rust-bin` preset backed by `@boringparts/reference-rust-bin`. */
 export function createRustBinPreset(templatesRoot?: string): PresetDefinition {
-  const packageDir = resolvePackageDir(
+  const packageDir = resolveReferencePackageDir(
     "@boringparts/reference-rust-bin",
     import.meta.url,
     templatesRoot,

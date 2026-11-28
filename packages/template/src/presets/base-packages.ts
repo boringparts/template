@@ -1,13 +1,13 @@
 import path from "node:path";
 
 import type { SingletonPackage, WorkspaceRoot } from "../core/index.ts";
-import { resolvePackageDir } from "./roots.ts";
+import { resolveReferencePackageDir } from "../sources/index.ts";
 
 /**
  * Builds the declarative `WorkspaceRoot` handle backed by `@boringparts/reference-workspace-root`.
  */
 export function createWorkspaceRoot(templatesRoot?: string): WorkspaceRoot {
-  const workspaceRootRefDir = resolvePackageDir(
+  const workspaceRootRefDir = resolveReferencePackageDir(
     "@boringparts/reference-workspace-root",
     import.meta.url,
     templatesRoot,
@@ -129,7 +129,7 @@ export function createWorkspaceRoot(templatesRoot?: string): WorkspaceRoot {
 export function createSingletonPackages(
   templatesRoot?: string,
 ): readonly SingletonPackage[] {
-  const toolingConfigDir = resolvePackageDir(
+  const toolingConfigDir = resolveReferencePackageDir(
     "@boringparts/reference-tooling-config",
     import.meta.url,
     templatesRoot,
