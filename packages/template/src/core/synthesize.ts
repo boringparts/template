@@ -8,8 +8,10 @@ import {
   normalizeRelativePackagePath,
   type WorkspacePolicy,
 } from "../sources/index.ts";
+import { mergeWorkspaceEnvironment } from "./environment.ts";
 import {
   collectManifestCatalogUsage,
+  collectManifestDependencyNames,
   formatJson,
   isBinaryContent,
   rewriteSubpackageManifest,
@@ -19,12 +21,13 @@ import {
 } from "./transform.ts";
 import {
   ProjectValidationError,
-  type GeneratedInstance,
-  type PackageFileContribution,
+  type PackageContribution,
+  type PackageInstance,
   type PackageManifestSummary,
   type ProjectBlueprint,
   type ProjectProjection,
   type ProjectProjectionEntry,
+  type WorkspaceRoot,
   type WorkspaceTemplateRoots,
 } from "./types.ts";
 
@@ -58,11 +61,43 @@ function extractOverrideLeadingPackage(overrideKey: string): string {
   return versionSep === -1 ? firstSegment : firstSegment.slice(0, versionSep);
 }
 
-function resolveAuthorToolchain(refRootJson: Record<string, unknown>): {
+function validateWorkspaceRootManifest(refRootJson: Record<string, unknown>): {
+  readonly scripts: Record<string, string>;
+  readonly devDependencies: Record<string, string>;
   readonly devEngines: Record<string, unknown>;
   readonly nodeVersion: string;
   readonly packageManagerPin: string;
 } {
+  if (!isRecord(refRootJson.scripts)) {
+    throw new Error(
+      'Reference workspace-root package.json must declare a "scripts" object.',
+    );
+  }
+  const scripts: Record<string, string> = {};
+  for (const [name, cmd] of Object.entries(refRootJson.scripts)) {
+    if (typeof cmd !== "string") {
+      throw new Error(
+        `Reference workspace-root package.json script "${name}" must be a string.`,
+      );
+    }
+    scripts[name] = cmd;
+  }
+
+  if (!isRecord(refRootJson.devDependencies)) {
+    throw new Error(
+      'Reference workspace-root package.json must declare a "devDependencies" object.',
+    );
+  }
+  const devDependencies: Record<string, string> = {};
+  for (const [dep, spec] of Object.entries(refRootJson.devDependencies)) {
+    if (typeof spec !== "string") {
+      throw new Error(
+        `Reference workspace-root package.json devDependency "${dep}" must be a string.`,
+      );
+    }
+    devDependencies[dep] = spec;
+  }
+
   const devEngines = refRootJson.devEngines;
   if (!isRecord(devEngines)) {
     throw new Error(
@@ -90,29 +125,45 @@ function resolveAuthorToolchain(refRootJson: Record<string, unknown>): {
       'Reference workspace-root package.json must declare "packageManager" as a non-empty string.',
     );
   }
-  return { devEngines, nodeVersion, packageManagerPin };
+
+  return {
+    scripts,
+    devDependencies,
+    devEngines,
+    nodeVersion,
+    packageManagerPin,
+  };
 }
 
-function synthesizeRootBaseManifest<TMeta>(options: {
-  readonly blueprint: ProjectBlueprint<TMeta>;
+function buildRootPackageManifestObject(options: {
+  readonly repositoryName: string;
+  readonly scripts: Record<string, string>;
+  readonly devDependencies: Record<string, string>;
   readonly devEngines: Record<string, unknown>;
   readonly packageManagerPin: string;
-  readonly refRootJson: Record<string, unknown>;
   readonly rootDependencyBindings: ReadonlyMap<string, string>;
   readonly hasDevScript: boolean;
-}): string {
-  const scripts: Record<string, string> = isRecord(options.refRootJson.scripts)
-    ? { ...(options.refRootJson.scripts as Record<string, string>) }
-    : {};
+  readonly hasPublishable: boolean;
+}): Record<string, unknown> {
+  const scripts: Record<string, string> = {};
+  for (const [scriptName, scriptCmd] of Object.entries(options.scripts)) {
+    scripts[scriptName] = rewriteTextSpecifiers({
+      text: scriptCmd,
+      dependencyBindings: options.rootDependencyBindings,
+    });
+  }
   if (options.hasDevScript) {
     scripts.dev = "turbo run dev";
   }
+  if (options.hasPublishable) {
+    scripts["publication:pack"] =
+      "turbo run build && changeset pack --out-dir .changeset/packed";
+    scripts["publication:publish"] =
+      "changeset publish --from-pack-dir .changeset/packed";
+  }
 
   const devDependencies: Record<string, string> = {};
-  const refDevDeps = isRecord(options.refRootJson.devDependencies)
-    ? (options.refRootJson.devDependencies as Record<string, string>)
-    : {};
-  for (const [dep, spec] of Object.entries(refDevDeps)) {
+  for (const [dep, spec] of Object.entries(options.devDependencies)) {
     const bound = options.rootDependencyBindings.get(dep);
     if (bound !== undefined) {
       devDependencies[bound] = "workspace:*";
@@ -120,13 +171,16 @@ function synthesizeRootBaseManifest<TMeta>(options: {
       devDependencies[dep] = spec;
     }
   }
+  if (options.hasPublishable) {
+    devDependencies["@changesets/cli"] = "catalog:";
+  }
 
   const sortedDevDeps = Object.fromEntries(
     Object.entries(devDependencies).toSorted(([a], [b]) => a.localeCompare(b)),
   );
 
-  const rootManifest: Record<string, unknown> = {
-    name: options.blueprint.repositoryName,
+  return {
+    name: options.repositoryName,
     private: true,
     type: "module",
     scripts,
@@ -134,67 +188,121 @@ function synthesizeRootBaseManifest<TMeta>(options: {
     devEngines: options.devEngines,
     packageManager: options.packageManagerPin,
   };
-
-  return `${JSON.stringify(rootManifest, null, 2)}\n`;
 }
 
-function synthesizeRootBaseTurboJson(options: {
+/**
+ * Deterministically rootifies the checked `workspace-root/turbo.json` into the generated
+ * repository's root `turbo.json`:
+ * - strips subpackage `extends`, `tags`, and empty-tag bridge tasks (e.g. `build`)
+ * - prefixes task names and intra-package `dependsOn` entries with `//#`
+ * - restores public gate entry roles (`quality:entry` / `work:repair`)
+ * - constructs `globalDependencies` dynamically from root configs and singleton config files
+ * - sets generic monorepo `boundaries.tags` and conditional `//#dev` / `//#publication:*` tasks
+ */
+function rootifyWorkspaceTurboConfig(options: {
+  readonly rawRefTurboJson: string;
+  readonly singletonConfigPaths: readonly string[];
   readonly hasDevScript: boolean;
+  readonly hasPublishable: boolean;
 }): string {
-  const tasks: Record<string, unknown> = {
-    "//#boundaries": { tags: ["quality:light"] },
-    "//#check": { tags: ["quality:entry"] },
-    "//#check:full": { tags: ["quality:entry"] },
-    "//#check:heavy": { tags: ["quality:entry"] },
-    "//#fix": { tags: ["work:repair"] },
-    "//#format:check": { outputs: [], tags: ["quality:light"] },
-    "//#format:write": {
-      cache: false,
-      dependsOn: ["//#lint:fix"],
-      tags: ["work:repair"],
-    },
-    "//#lint": { dependsOn: ["^lint"], outputs: [], tags: ["quality:light"] },
-    "//#lint:fix": { cache: false, tags: ["work:repair"] },
-    "//#typecheck": { outputs: [], tags: ["quality:light"] },
-  };
+  const parsed = JSON.parse(options.rawRefTurboJson) as unknown;
+  if (!isRecord(parsed) || !isRecord(parsed.tasks)) {
+    throw new Error(
+      'Reference workspace-root turbo.json must declare a "tasks" object.',
+    );
+  }
+
+  const rootTasks: Record<string, unknown> = {};
+  for (const [taskName, rawTask] of Object.entries(parsed.tasks)) {
+    if (!isRecord(rawTask)) {
+      continue;
+    }
+    if (Array.isArray(rawTask.tags) && rawTask.tags.length === 0) {
+      continue;
+    }
+
+    const rootTaskName = `//#${taskName}`;
+    const taskConfig: Record<string, unknown> = { ...rawTask };
+    if (Array.isArray(rawTask.dependsOn)) {
+      taskConfig.dependsOn = rawTask.dependsOn.map((dep: unknown) => {
+        if (typeof dep !== "string") {
+          return dep;
+        }
+        return dep.includes("^") || dep.includes("#") ? dep : `//#${dep}`;
+      });
+    }
+
+    if (
+      rootTaskName === "//#check" ||
+      rootTaskName === "//#check:heavy" ||
+      rootTaskName === "//#check:full"
+    ) {
+      taskConfig.tags = ["quality:entry"];
+    } else if (rootTaskName === "//#fix") {
+      taskConfig.tags = ["work:repair"];
+    }
+
+    rootTasks[rootTaskName] = taskConfig;
+  }
 
   if (options.hasDevScript) {
-    tasks["//#dev"] = {
+    rootTasks["//#dev"] = {
       cache: false,
       persistent: true,
       tags: ["work:development"],
     };
   }
 
-  return formatJson({
-    globalDependencies: [
-      "oxfmt.config.ts",
-      "oxlint.config.ts",
-      "packages/tooling-config/oxfmt.config.ts",
-      "packages/tooling-config/oxlint.config.ts",
-    ],
-    tasks,
-    boundaries: {
-      tags: {
-        app: { dependencies: { allow: ["app", "library"] } },
-        library: { dependencies: { allow: ["library"] } },
-        native: { dependencies: { allow: ["library"] } },
-      },
+  if (options.hasPublishable) {
+    rootTasks["//#publication:pack"] = {
+      tags: ["work:release"],
+      cache: false,
+    };
+    rootTasks["//#publication:publish"] = {
+      tags: ["work:release"],
+      cache: false,
+    };
+  }
+
+  const rootConfigObj: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(parsed)) {
+    if (
+      key === "extends" ||
+      key === "tags" ||
+      key === "globalDependencies" ||
+      key === "tasks" ||
+      key === "boundaries"
+    ) {
+      continue;
+    }
+    rootConfigObj[key] = value;
+  }
+
+  rootConfigObj.globalDependencies = [
+    "oxfmt.config.ts",
+    "oxlint.config.ts",
+    ...options.singletonConfigPaths,
+  ];
+  rootConfigObj.tasks = rootTasks;
+  rootConfigObj.boundaries = {
+    tags: {
+      app: { dependencies: { allow: ["app", "library"] } },
+      library: { dependencies: { allow: ["library"] } },
+      native: { dependencies: { allow: ["library"] } },
     },
-  });
+  };
+
+  return formatJson(rootConfigObj);
 }
 
-function synthesizePnpmWorkspaceYaml<TMeta>(options: {
-  readonly blueprint: ProjectBlueprint<TMeta>;
+function synthesizePnpmWorkspaceYaml(options: {
+  readonly instances: readonly PackageInstance[];
   readonly workspacePolicy: WorkspacePolicy;
   readonly defaultCatalogDeps: ReadonlySet<string>;
   readonly namedCatalogDeps: ReadonlyMap<string, ReadonlySet<string>>;
 }): string {
-  const collections = new Set<string>(["packages/*"]);
-  for (const instance of options.blueprint.instances) {
-    if (instance.path === ".") {
-      continue;
-    }
+  const collections = new Set<string>();
+  for (const instance of options.instances) {
     const firstSegment = instance.path.split("/", 1)[0];
     if (firstSegment !== undefined && firstSegment.length > 0) {
       collections.add(`${firstSegment}/*`);
@@ -291,17 +399,11 @@ function synthesizePnpmWorkspaceYaml<TMeta>(options: {
   return stringifyYaml(workspaceObj);
 }
 
-function collectBaseInstanceFiles<TMeta>(
-  instance: GeneratedInstance<TMeta>,
-  options: {
-    readonly blueprint: ProjectBlueprint<TMeta>;
-    readonly devEngines: Record<string, unknown>;
-    readonly packageManagerPin: string;
-    readonly hasDevScript: boolean;
-    readonly templatesRoot?: string;
-  },
-): Map<string, PackageFileContribution> {
-  const localFiles = new Map<string, PackageFileContribution>();
+function collectInstanceFiles(
+  instance: PackageInstance,
+  templatesRoot?: string,
+): Map<string, PackageContribution> {
+  const localFiles = new Map<string, PackageContribution>();
 
   const setLocalFile = (
     rawTargetPath: string,
@@ -332,11 +434,9 @@ function collectBaseInstanceFiles<TMeta>(
     });
   };
 
-  const scanned = loadPackageSourceFiles(instance.definition.packageDir, {
+  const scanned = loadPackageSourceFiles(instance.referencePackage.packageDir, {
     includeResources: false,
-    ...(options.templatesRoot === undefined
-      ? {}
-      : { templatesRoot: options.templatesRoot }),
+    ...(templatesRoot === undefined ? {} : { templatesRoot }),
   });
 
   const rewriteEntry = (
@@ -368,58 +468,33 @@ function collectBaseInstanceFiles<TMeta>(
 
     const rawText = decoder.decode(bytes);
     if (normalized === "package.json") {
-      if (instance.path === ".") {
-        const refRootJson = JSON.parse(rawText) as Record<string, unknown>;
-        const rootPackageJson = synthesizeRootBaseManifest({
-          blueprint: options.blueprint,
-          devEngines: options.devEngines,
-          packageManagerPin: options.packageManagerPin,
-          refRootJson,
-          rootDependencyBindings: instance.dependencyBindings,
-          hasDevScript: options.hasDevScript,
-        });
-        setLocalFile(targetPath, encoder.encode(rootPackageJson), executable);
-      } else {
-        setLocalFile(
-          targetPath,
-          encoder.encode(
-            rewriteSubpackageManifest({
-              rawJson: rawText,
-              leafName: instance.leafName,
-              packageName: instance.packageName,
-              dependencyBindings: instance.dependencyBindings,
-              linkedProviders: instance.linkedProviders,
-            }),
-          ),
-          executable,
-        );
-      }
+      setLocalFile(
+        targetPath,
+        encoder.encode(
+          rewriteSubpackageManifest({
+            rawJson: rawText,
+            leafName: instance.leafName,
+            packageName: instance.packageName,
+            dependencyBindings: instance.dependencyBindings,
+            linkedProviders: instance.linkedProviders,
+          }),
+        ),
+        executable,
+      );
       return;
     }
 
-    if (targetPath === "turbo.json") {
-      if (instance.path === ".") {
-        setLocalFile(
-          targetPath,
-          encoder.encode(
-            synthesizeRootBaseTurboJson({
-              hasDevScript: options.hasDevScript,
-            }),
-          ),
-          executable,
-        );
-      } else {
-        setLocalFile(
-          targetPath,
-          encoder.encode(
-            rewriteSubpackageTurboConfig({
-              rawJson: rawText,
-              dependencyBindings: instance.dependencyBindings,
-            }),
-          ),
-          executable,
-        );
-      }
+    if (normalized === "turbo.json") {
+      setLocalFile(
+        targetPath,
+        encoder.encode(
+          rewriteSubpackageTurboConfig({
+            rawJson: rawText,
+            dependencyBindings: instance.dependencyBindings,
+          }),
+        ),
+        executable,
+      );
       return;
     }
 
@@ -440,7 +515,7 @@ function collectBaseInstanceFiles<TMeta>(
     rewriteEntry(file.relativePath, bytes, executable);
   }
 
-  for (const resource of instance.definition.resources ?? []) {
+  for (const resource of instance.referencePackage.resources ?? []) {
     const normalizedSource = normalizeRelativePackagePath(resource.sourcePath);
     const normalizedTarget = normalizeRelativePackagePath(resource.targetPath);
     if (normalizedSource === undefined || normalizedTarget === undefined) {
@@ -452,7 +527,7 @@ function collectBaseInstanceFiles<TMeta>(
       ]);
     }
     const sourceAbs = path.join(
-      instance.definition.packageDir,
+      instance.referencePackage.packageDir,
       normalizedSource,
     );
     const { bytes, executable: sourceExecutable } = readBytes(sourceAbs);
@@ -466,22 +541,346 @@ function collectBaseInstanceFiles<TMeta>(
   return localFiles;
 }
 
+function synthesizeWorkspaceRoot(options: {
+  readonly blueprint: ProjectBlueprint;
+  readonly workspaceRoot: WorkspaceRoot;
+  readonly workspacePolicy: WorkspacePolicy;
+  readonly templatesRoot?: string;
+  readonly hasDevScript: boolean;
+  readonly hasPublishable: boolean;
+  readonly defaultCatalogDeps: Set<string>;
+  readonly namedCatalogDeps: Map<string, Set<string>>;
+  readonly entriesByPath: Map<string, ProjectProjectionEntry>;
+}): { readonly nodeVersion: string; readonly packageManagerPin: string } {
+  const { workspaceRoot, blueprint, entriesByPath } = options;
+  const subpackagePaths = blueprint.instances.map((instance) => instance.path);
+
+  const commitRootContribution = (
+    rawTargetPath: string,
+    content: Uint8Array,
+    executable: boolean,
+  ): void => {
+    const normalized = normalizeRelativePackagePath(rawTargetPath);
+    if (normalized === undefined) {
+      throw new ProjectValidationError([
+        {
+          code: "DIRECTORY_OWNERSHIP_VIOLATION",
+          message: `Workspace root attempted to emit out-of-bounds path "${rawTargetPath}".`,
+        },
+      ]);
+    }
+    for (const subPath of subpackagePaths) {
+      if (normalized === subPath || normalized.startsWith(`${subPath}/`)) {
+        throw new ProjectValidationError([
+          {
+            code: "DIRECTORY_OWNERSHIP_VIOLATION",
+            message: `Workspace root attempted to emit "${normalized}" inside subpackage "${subPath}".`,
+          },
+        ]);
+      }
+    }
+    if (entriesByPath.has(normalized)) {
+      throw new ProjectValidationError([
+        {
+          code: "DIRECTORY_OWNERSHIP_VIOLATION",
+          message: `Conflicting generated file path "${normalized}" in ProjectProjection.`,
+        },
+      ]);
+    }
+    entriesByPath.set(normalized, {
+      path: normalized,
+      content,
+      executable,
+    });
+  };
+
+  const commitRootText = (
+    targetPath: string,
+    text: string,
+    executable = false,
+  ): void => {
+    commitRootContribution(targetPath, encoder.encode(text), executable);
+  };
+
+  const refRootJson = JSON.parse(
+    readText(path.join(workspaceRoot.packageDir, "package.json")),
+  ) as unknown;
+  if (!isRecord(refRootJson)) {
+    throw new Error("Reference workspace-root package.json must be an object.");
+  }
+  const {
+    scripts,
+    devDependencies,
+    devEngines,
+    nodeVersion,
+    packageManagerPin,
+  } = validateWorkspaceRootManifest(refRootJson);
+
+  // Bind only singleton reference packages actually declared in workspace-root/package.json.
+  const declaredRootDeps = collectManifestDependencyNames(refRootJson);
+  const rootDependencyBindings = new Map<string, string>();
+  for (const instance of blueprint.instances) {
+    if (
+      instance.singleton &&
+      declaredRootDeps.has(instance.referencePackage.packageName)
+    ) {
+      rootDependencyBindings.set(
+        instance.referencePackage.packageName,
+        instance.packageName,
+      );
+    }
+  }
+
+  // 1. Copy/rewrite non-manifest regular files from workspace-root reference package.
+  const scannedRootFiles = loadPackageSourceFiles(workspaceRoot.packageDir, {
+    includeResources: false,
+    ...(options.templatesRoot === undefined
+      ? {}
+      : { templatesRoot: options.templatesRoot }),
+  });
+
+  for (const file of scannedRootFiles) {
+    if (
+      file.relativePath === "package.json" ||
+      file.relativePath === "turbo.json"
+    ) {
+      continue;
+    }
+    const { bytes, executable } = readBytes(file.absPath);
+    if (isBinaryContent(file.relativePath, bytes)) {
+      commitRootContribution(file.relativePath, bytes, executable);
+    } else {
+      commitRootText(
+        file.relativePath,
+        rewriteTextSpecifiers({
+          text: decoder.decode(bytes),
+          dependencyBindings: rootDependencyBindings,
+        }),
+        executable,
+      );
+    }
+  }
+
+  // 2. Emit declared root resources and (if publishable) publication resources.
+  const rootResourceMappings = [
+    ...(workspaceRoot.resources ?? []),
+    ...(options.hasPublishable
+      ? (workspaceRoot.publicationResources ?? [])
+      : []),
+  ];
+  for (const resource of rootResourceMappings) {
+    const normalizedSource = normalizeRelativePackagePath(resource.sourcePath);
+    const normalizedTarget = normalizeRelativePackagePath(resource.targetPath);
+    if (normalizedSource === undefined || normalizedTarget === undefined) {
+      throw new ProjectValidationError([
+        {
+          code: "DIRECTORY_OWNERSHIP_VIOLATION",
+          message: `Workspace root resource "${resource.sourcePath}" -> "${resource.targetPath}" escapes package directory.`,
+        },
+      ]);
+    }
+    const { bytes, executable: sourceExecutable } = readBytes(
+      path.join(workspaceRoot.packageDir, normalizedSource),
+    );
+    const executable = resource.executable ?? sourceExecutable;
+    if (isBinaryContent(normalizedTarget, bytes)) {
+      commitRootContribution(normalizedTarget, bytes, executable);
+    } else {
+      commitRootText(
+        normalizedTarget,
+        rewriteTextSpecifiers({
+          text: decoder.decode(bytes),
+          dependencyBindings: rootDependencyBindings,
+        }),
+        executable,
+      );
+    }
+  }
+
+  // 3. Synthesize root package.json once in memory and collect its catalog references directly.
+  const rootManifest = buildRootPackageManifestObject({
+    repositoryName: blueprint.repositoryName,
+    scripts,
+    devDependencies,
+    devEngines,
+    packageManagerPin,
+    rootDependencyBindings,
+    hasDevScript: options.hasDevScript,
+    hasPublishable: options.hasPublishable,
+  });
+  collectManifestCatalogUsage(
+    rootManifest,
+    options.defaultCatalogDeps,
+    options.namedCatalogDeps,
+  );
+  commitRootText("package.json", `${JSON.stringify(rootManifest, null, 2)}\n`);
+
+  // 4. Deterministically rootify checked workspace-root/turbo.json in a single pass.
+  const singletonConfigPaths: string[] = [];
+  for (const instance of blueprint.instances) {
+    if (!instance.singleton) {
+      continue;
+    }
+    for (const configFile of ["oxfmt.config.ts", "oxlint.config.ts"] as const) {
+      const candidate = `${instance.path}/${configFile}`;
+      if (entriesByPath.has(candidate)) {
+        singletonConfigPaths.push(candidate);
+      }
+    }
+  }
+  const rootTurboJson = rootifyWorkspaceTurboConfig({
+    rawRefTurboJson: readText(
+      path.join(workspaceRoot.packageDir, "turbo.json"),
+    ),
+    singletonConfigPaths,
+    hasDevScript: options.hasDevScript,
+    hasPublishable: options.hasPublishable,
+  });
+  commitRootText("turbo.json", rootTurboJson);
+
+  // 5. Merge workspace environment declarations and emit .vscode, .devcontainer, and dependabot.yml.
+  const envMerge = mergeWorkspaceEnvironment(
+    workspaceRoot,
+    blueprint.instances,
+  );
+  if (!envMerge.ok) {
+    throw new ProjectValidationError(envMerge.issues);
+  }
+  const { merged } = envMerge;
+
+  commitRootText(
+    ".vscode/extensions.json",
+    formatJson({ recommendations: merged.vscode.extensions }),
+  );
+  commitRootText(".vscode/settings.json", formatJson(merged.vscode.settings));
+
+  if (workspaceRoot.devcontainerBase === undefined) {
+    throw new Error(
+      "WorkspaceRoot must declare devcontainerBase paths for environment synthesis.",
+    );
+  }
+  const baseDockerfilePath = normalizeRelativePackagePath(
+    workspaceRoot.devcontainerBase.dockerfileSourcePath,
+  );
+  const baseTemplatePath = normalizeRelativePackagePath(
+    workspaceRoot.devcontainerBase.templateSourcePath,
+  );
+  if (baseDockerfilePath === undefined || baseTemplatePath === undefined) {
+    throw new ProjectValidationError([
+      {
+        code: "DIRECTORY_OWNERSHIP_VIOLATION",
+        message:
+          "Workspace root devcontainerBase paths escape package directory.",
+      },
+    ]);
+  }
+
+  const dockerfileFragments = [
+    readText(path.join(workspaceRoot.packageDir, baseDockerfilePath)).trimEnd(),
+    ...merged.devcontainer.layers.map((layer) =>
+      readText(layer.dockerfilePath).trimEnd(),
+    ),
+  ];
+  commitRootText(
+    ".devcontainer/Dockerfile",
+    `${dockerfileFragments.join("\n\n")}\n`,
+  );
+
+  const templateJson = JSON.parse(
+    readText(path.join(workspaceRoot.packageDir, baseTemplatePath)),
+  ) as Record<string, unknown>;
+
+  const buildConfig: Record<string, unknown> = isRecord(templateJson.build)
+    ? { ...templateJson.build }
+    : { dockerfile: "Dockerfile" };
+  if (Object.keys(merged.devcontainer.buildArgs).length > 0) {
+    buildConfig.args = merged.devcontainer.buildArgs;
+  } else {
+    delete buildConfig.args;
+  }
+
+  const baseContainerEnv = isRecord(templateJson.containerEnv)
+    ? { ...templateJson.containerEnv }
+    : {};
+  const mergedContainerEnv: Record<string, unknown> = {
+    ...baseContainerEnv,
+    ...merged.devcontainer.containerEnv,
+  };
+
+  const devcontainerObj: Record<string, unknown> = {
+    ...templateJson,
+    name: blueprint.repositoryName,
+    build: buildConfig,
+    customizations: {
+      vscode: {
+        extensions: merged.vscode.extensions,
+      },
+    },
+    ...(Object.keys(mergedContainerEnv).length > 0
+      ? { containerEnv: mergedContainerEnv }
+      : {}),
+    mounts: merged.devcontainer.mounts,
+  };
+  commitRootText(
+    ".devcontainer/devcontainer.json",
+    formatJson(devcontainerObj),
+  );
+
+  const hasNpmGroups = Object.keys(merged.dependabot.npmGroups).length > 0;
+  const dependabotUpdates = merged.dependabot.updates.map((update) => {
+    const isRootNpm =
+      update.packageEcosystem === "npm" && update.directory === "/";
+    return {
+      "package-ecosystem": update.packageEcosystem,
+      directory: update.directory,
+      schedule: { interval: update.interval ?? "weekly" },
+      ...(isRootNpm && hasNpmGroups
+        ? { groups: merged.dependabot.npmGroups }
+        : {}),
+      ...(update.ignore !== undefined && update.ignore.length > 0
+        ? {
+            ignore: update.ignore.map((rule) => ({
+              "dependency-name": rule.dependencyName,
+              ...(rule.updateTypes !== undefined
+                ? { "update-types": [...rule.updateTypes] }
+                : {}),
+            })),
+          }
+        : {}),
+    };
+  });
+  commitRootText(
+    ".github/dependabot.yml",
+    stringifyYaml({ version: 2, updates: dependabotUpdates }),
+  );
+
+  // 6. Emit pruned pnpm-workspace.yaml from instance top-level directories and collected catalog usage.
+  commitRootText(
+    "pnpm-workspace.yaml",
+    synthesizePnpmWorkspaceYaml({
+      instances: blueprint.instances,
+      workspacePolicy: options.workspacePolicy,
+      defaultCatalogDeps: options.defaultCatalogDeps,
+      namedCatalogDeps: options.namedCatalogDeps,
+    }),
+  );
+
+  return { nodeVersion, packageManagerPin };
+}
+
 /**
  * Synthesizes the complete in-memory `ProjectProjection` from a validated `ProjectBlueprint`
  * and workspace template roots. Performs zero disk writes and enforces strict directory ownership.
  */
-export function buildProjectProjection<TMeta>(
-  blueprint: ProjectBlueprint<TMeta>,
-  roots: WorkspaceTemplateRoots<TMeta>,
-): ProjectProjection<TMeta> {
+export function buildProjectProjection(
+  blueprint: ProjectBlueprint,
+  roots: WorkspaceTemplateRoots,
+): ProjectProjection {
   const entriesByPath = new Map<string, ProjectProjectionEntry>();
-  const nonRootPaths = blueprint.instances
-    .filter((instance) => instance.path !== ".")
-    .map((instance) => instance.path);
 
   const commitInstanceContribution = (
-    instance: GeneratedInstance<TMeta>,
-    contribution: PackageFileContribution,
+    instance: PackageInstance,
+    contribution: PackageContribution,
   ): void => {
     const normalizedLocal = normalizeRelativePackagePath(
       contribution.targetPath,
@@ -495,26 +894,8 @@ export function buildProjectProjection<TMeta>(
       ]);
     }
 
-    const repoTargetPath =
-      instance.path === "."
-        ? normalizedLocal
-        : `${instance.path}/${normalizedLocal}`;
-
-    if (instance.path === ".") {
-      for (const subPath of nonRootPaths) {
-        if (
-          repoTargetPath === subPath ||
-          repoTargetPath.startsWith(`${subPath}/`)
-        ) {
-          throw new ProjectValidationError([
-            {
-              code: "DIRECTORY_OWNERSHIP_VIOLATION",
-              message: `Root package attempted to emit "${repoTargetPath}" inside subpackage "${subPath}".`,
-            },
-          ]);
-        }
-      }
-    } else if (!repoTargetPath.startsWith(`${instance.path}/`)) {
+    const repoTargetPath = `${instance.path}/${normalizedLocal}`;
+    if (!repoTargetPath.startsWith(`${instance.path}/`)) {
       throw new ProjectValidationError([
         {
           code: "DIRECTORY_OWNERSHIP_VIOLATION",
@@ -539,45 +920,19 @@ export function buildProjectProjection<TMeta>(
     });
   };
 
-  const rootInstances = blueprint.instances.filter(
-    (instance) => instance.path === ".",
-  );
-  const rootInstanceForToolchain = rootInstances[0];
-  if (rootInstanceForToolchain === undefined) {
-    throw new Error("Missing workspace-root base package in ProjectBlueprint.");
-  }
-  const refRootJson = JSON.parse(
-    readText(
-      path.join(rootInstanceForToolchain.definition.packageDir, "package.json"),
-    ),
-  ) as Record<string, unknown>;
-  const { devEngines, nodeVersion, packageManagerPin } =
-    resolveAuthorToolchain(refRootJson);
-
   const hasPublishable = blueprint.instances.some(
-    (instance) => instance.definition.publishable,
+    (instance) => instance.referencePackage.publishable,
   );
 
   const manifests = new Map<string, PackageManifestSummary>();
-  const nonRootOutputs = new Map<
-    GeneratedInstance<TMeta>,
-    ReadonlyMap<string, PackageFileContribution>
+  const instanceBaseFiles = new Map<
+    PackageInstance,
+    ReadonlyMap<string, PackageContribution>
   >();
 
-  // 1. Collect and transform all non-root instances first so root synthesis sees final manifests.
-  const nonRootInstances = blueprint.instances.filter(
-    (instance) => instance.path !== ".",
-  );
-  for (const instance of nonRootInstances) {
-    const baseFiles = collectBaseInstanceFiles(instance, {
-      blueprint,
-      devEngines,
-      packageManagerPin,
-      hasDevScript: false,
-      ...(roots.templatesRoot === undefined
-        ? {}
-        : { templatesRoot: roots.templatesRoot }),
-    });
+  // 1. Collect and rewrite all homogeneous PackageInstances first.
+  for (const instance of blueprint.instances) {
+    const baseFiles = collectInstanceFiles(instance, roots.templatesRoot);
     const manifestEntry = baseFiles.get("package.json");
     if (manifestEntry !== undefined) {
       manifests.set(
@@ -587,21 +942,23 @@ export function buildProjectProjection<TMeta>(
           packageName: instance.packageName,
           path: instance.path,
           leafName: instance.leafName,
-          role: instance.definition.role,
-          publishable: instance.definition.publishable,
+          role: instance.referencePackage.role,
+          publishable: instance.referencePackage.publishable,
         }),
       );
     }
-    nonRootOutputs.set(instance, baseFiles);
+    instanceBaseFiles.set(instance, baseFiles);
   }
 
   const hasDevScript = [...manifests.values()].some((m) => m.hasDevScript);
+  const defaultCatalogDeps = new Set<string>();
+  const namedCatalogDeps = new Map<string, Set<string>>();
 
-  for (const instance of nonRootInstances) {
-    const baseFiles = nonRootOutputs.get(instance)!;
+  for (const instance of blueprint.instances) {
+    const baseFiles = instanceBaseFiles.get(instance)!;
     const finalFiles =
-      instance.definition.transformFiles !== undefined
-        ? instance.definition.transformFiles(baseFiles, {
+      instance.referencePackage.transformFiles !== undefined
+        ? instance.referencePackage.transformFiles(baseFiles, {
             scope: blueprint.scope,
             repositoryName: blueprint.repositoryName,
             instance,
@@ -614,16 +971,22 @@ export function buildProjectProjection<TMeta>(
 
     const finalManifestEntry = finalFiles.get("package.json");
     if (finalManifestEntry !== undefined) {
+      const finalManifestRaw = decoder.decode(finalManifestEntry.content);
       manifests.set(
         instance.path,
         summarizePackageManifest({
-          rawJson: decoder.decode(finalManifestEntry.content),
+          rawJson: finalManifestRaw,
           packageName: instance.packageName,
           path: instance.path,
           leafName: instance.leafName,
-          role: instance.definition.role,
-          publishable: instance.definition.publishable,
+          role: instance.referencePackage.role,
+          publishable: instance.referencePackage.publishable,
         }),
+      );
+      collectManifestCatalogUsage(
+        JSON.parse(finalManifestRaw) as Record<string, unknown>,
+        defaultCatalogDeps,
+        namedCatalogDeps,
       );
     }
 
@@ -651,74 +1014,19 @@ export function buildProjectProjection<TMeta>(
 
   const finalHasDevScript = [...manifests.values()].some((m) => m.hasDevScript);
 
-  // 2. Collect and transform root instances (`path === "."`) using the homogeneous model.
-  for (const rootInstance of rootInstances) {
-    const baseFiles = collectBaseInstanceFiles(rootInstance, {
-      blueprint,
-      devEngines,
-      packageManagerPin,
-      hasDevScript: finalHasDevScript,
-      ...(roots.templatesRoot === undefined
-        ? {}
-        : { templatesRoot: roots.templatesRoot }),
-    });
-    const finalFiles =
-      rootInstance.definition.transformFiles !== undefined
-        ? rootInstance.definition.transformFiles(baseFiles, {
-            scope: blueprint.scope,
-            repositoryName: blueprint.repositoryName,
-            instance: rootInstance,
-            instances: blueprint.instances,
-            manifests,
-            hasDevScript: finalHasDevScript,
-            hasPublishable,
-          })
-        : baseFiles;
-
-    for (const [key, contribution] of finalFiles) {
-      if (key !== contribution.targetPath) {
-        throw new ProjectValidationError([
-          {
-            code: "DIRECTORY_OWNERSHIP_VIOLATION",
-            message: `Root package returned mismatched contribution key "${key}" vs "${contribution.targetPath}".`,
-          },
-        ]);
-      }
-      commitInstanceContribution(rootInstance, contribution);
-    }
-  }
-
-  // 3. Collect final catalog usage across all generated manifests and emit `pnpm-workspace.yaml`.
-  const defaultCatalogDeps = new Set<string>();
-  const namedCatalogDeps = new Map<string, Set<string>>();
-  for (const entry of entriesByPath.values()) {
-    if (entry.path === "package.json" || entry.path.endsWith("/package.json")) {
-      const parsed = JSON.parse(decoder.decode(entry.content)) as Record<
-        string,
-        unknown
-      >;
-      collectManifestCatalogUsage(parsed, defaultCatalogDeps, namedCatalogDeps);
-    }
-  }
-
-  const workspaceYaml = synthesizePnpmWorkspaceYaml({
+  // 2. Synthesize WorkspaceRoot in a single in-memory pass.
+  const toolchain = synthesizeWorkspaceRoot({
     blueprint,
+    workspaceRoot: blueprint.workspaceRoot,
     workspacePolicy: roots.workspacePolicy,
+    ...(roots.templatesRoot === undefined
+      ? {}
+      : { templatesRoot: roots.templatesRoot }),
+    hasDevScript: finalHasDevScript,
+    hasPublishable,
     defaultCatalogDeps,
     namedCatalogDeps,
-  });
-  if (entriesByPath.has("pnpm-workspace.yaml")) {
-    throw new ProjectValidationError([
-      {
-        code: "DIRECTORY_OWNERSHIP_VIOLATION",
-        message: 'Conflicting generated file path "pnpm-workspace.yaml".',
-      },
-    ]);
-  }
-  entriesByPath.set("pnpm-workspace.yaml", {
-    path: "pnpm-workspace.yaml",
-    content: encoder.encode(workspaceYaml),
-    executable: false,
+    entriesByPath,
   });
 
   const sortedEntries = [...entriesByPath.values()].toSorted((a, b) =>
@@ -728,9 +1036,6 @@ export function buildProjectProjection<TMeta>(
   return {
     blueprint,
     entries: sortedEntries,
-    toolchain: {
-      nodeVersion,
-      packageManagerPin,
-    },
+    toolchain,
   };
 }

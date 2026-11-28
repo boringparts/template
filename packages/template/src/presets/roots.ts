@@ -8,8 +8,10 @@ import {
   loadWorkspacePolicy,
   resolveReferencePackageDir,
 } from "../sources/index.ts";
-import { createBasePackages } from "./base-packages.ts";
-import type { WorkspaceEnvironmentMeta } from "./environment-meta.ts";
+import {
+  createSingletonPackages,
+  createWorkspaceRoot,
+} from "./base-packages.ts";
 
 /**
  * Resolves a workspace package directory either from an explicit bundled `templatesRoot`
@@ -52,12 +54,13 @@ export function resolveRustToolchainChannel(templatesRoot?: string): string {
   return channel;
 }
 
-/** Resolves the shared monorepo base packages and workspace policy for engine synthesis. */
+/** Resolves the workspace root, singleton subpackages, and workspace policy for synthesis. */
 export function resolveTemplateWorkspaceRoots(
   templatesRoot?: string,
-): WorkspaceTemplateRoots<WorkspaceEnvironmentMeta> {
+): WorkspaceTemplateRoots {
   return {
-    basePackages: createBasePackages(templatesRoot),
+    workspaceRoot: createWorkspaceRoot(templatesRoot),
+    singletonPackages: createSingletonPackages(templatesRoot),
     workspacePolicy: loadWorkspacePolicy(templatesRoot),
     ...(templatesRoot === undefined ? {} : { templatesRoot }),
   };

@@ -3,11 +3,10 @@ import path from "node:path";
 import { parse as parseToml, stringify as stringifyToml } from "smol-toml";
 
 import type {
-  PackageFileContribution,
+  PackageContribution,
   PackageTransformContext,
   PresetDefinition,
 } from "../../core/index.ts";
-import type { WorkspaceEnvironmentMeta } from "../environment-meta.ts";
 import { resolvePackageDir, resolveRustToolchainChannel } from "../roots.ts";
 
 const encoder = new TextEncoder();
@@ -39,9 +38,9 @@ function compareLockPackages(left: unknown, right: unknown): number {
 }
 
 function transformRustBinFiles(
-  files: ReadonlyMap<string, PackageFileContribution>,
-  context: PackageTransformContext<WorkspaceEnvironmentMeta>,
-): ReadonlyMap<string, PackageFileContribution> {
+  files: ReadonlyMap<string, PackageContribution>,
+  context: PackageTransformContext,
+): ReadonlyMap<string, PackageContribution> {
   const nextFiles = new Map(files);
   const crateName = context.instance.leafName;
 
@@ -89,9 +88,7 @@ function transformRustBinFiles(
 }
 
 /** Builds the `rust-bin` preset backed by `@boringparts/reference-rust-bin`. */
-export function createRustBinPreset(
-  templatesRoot?: string,
-): PresetDefinition<WorkspaceEnvironmentMeta> {
+export function createRustBinPreset(templatesRoot?: string): PresetDefinition {
   const packageDir = resolvePackageDir(
     "@boringparts/reference-rust-bin",
     import.meta.url,
@@ -109,9 +106,8 @@ export function createRustBinPreset(
       {
         nodeId: "binary",
         defaultName: "app",
-        defaultCollection: "crates",
         defaultPath: "crates/app",
-        definition: {
+        referencePackage: {
           packageName: "@boringparts/reference-rust-bin",
           packageDir,
           role: "native-package",
@@ -120,7 +116,7 @@ export function createRustBinPreset(
             { sourcePath: "resources/gitignore", targetPath: ".gitignore" },
           ],
           transformFiles: transformRustBinFiles,
-          meta: (instance) => ({
+          environment: (instance) => ({
             devcontainer: {
               layers: [
                 {

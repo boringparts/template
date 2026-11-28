@@ -30,7 +30,6 @@ import {
 import {
   loadBuiltInPresets,
   resolveTemplateWorkspaceRoots,
-  type WorkspaceEnvironmentMeta,
 } from "./presets/index.ts";
 
 export type InternalCliRuntime = {
@@ -38,14 +37,14 @@ export type InternalCliRuntime = {
   readonly write: WriteCliOutput;
   readonly identity: CliCommandIdentity;
   readonly cwd: string;
-  readonly presets?: readonly PresetDefinition<WorkspaceEnvironmentMeta>[];
-  readonly workspaceRoots?: WorkspaceTemplateRoots<WorkspaceEnvironmentMeta>;
+  readonly presets?: readonly PresetDefinition[];
+  readonly workspaceRoots?: WorkspaceTemplateRoots;
 };
 
 type ResolvedRuntime = {
   readonly cwd: string;
-  readonly presets: readonly PresetDefinition<WorkspaceEnvironmentMeta>[];
-  readonly workspaceRoots: WorkspaceTemplateRoots<WorkspaceEnvironmentMeta>;
+  readonly presets: readonly PresetDefinition[];
+  readonly workspaceRoots: WorkspaceTemplateRoots;
 };
 
 const packageRoleSchema = z.enum([
@@ -340,7 +339,9 @@ function createCliContract(identity: CliCommandIdentity) {
                 linkSpecs: input.link,
                 ...(input.scope === undefined ? {} : { scope: input.scope }),
                 presets: dependencies.presets,
-                basePackages: dependencies.workspaceRoots.basePackages,
+                workspaceRoot: dependencies.workspaceRoots.workspaceRoot,
+                singletonPackages:
+                  dependencies.workspaceRoots.singletonPackages,
               });
               if (!planned.ok) {
                 return outcome.failure.invalidRequest({
@@ -379,11 +380,11 @@ function createCliContract(identity: CliCommandIdentity) {
                 repositoryName: projection.blueprint.repositoryName,
                 scope: projection.blueprint.scope,
                 packages: projection.blueprint.instances
-                  .filter((instance) => instance.kind === "package")
+                  .filter((instance) => !instance.singleton)
                   .map((instance) => ({
                     name: instance.packageName,
                     path: instance.path,
-                    role: instance.definition.role,
+                    role: instance.referencePackage.role,
                     preset: instance.presetAlias,
                   })),
                 links: projection.blueprint.links.map((link) => ({

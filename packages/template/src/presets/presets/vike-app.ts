@@ -4,14 +4,11 @@ import type { PresetDefinition } from "../../core/index.ts";
 import {
   browserTestDevcontainerMeta,
   frontendVscodeMeta,
-  type WorkspaceEnvironmentMeta,
 } from "../environment-meta.ts";
 import { resolvePackageDir } from "../roots.ts";
 
 /** Builds the fixed-topology `vike-app` preset backed by the four Vike reference packages. */
-export function createVikeAppPreset(
-  templatesRoot?: string,
-): PresetDefinition<WorkspaceEnvironmentMeta> {
+export function createVikeAppPreset(templatesRoot?: string): PresetDefinition {
   const webDir = resolvePackageDir(
     "@boringparts/reference-vike-web",
     import.meta.url,
@@ -48,18 +45,17 @@ export function createVikeAppPreset(
       {
         nodeId: "web",
         defaultName: "web",
-        defaultCollection: "apps",
         defaultPath: "apps/web",
         dependencyBindings: {
           "@boringparts/reference-vike-db": "db",
           "@boringparts/reference-vike-deployment": "deployment",
         },
-        definition: {
+        referencePackage: {
           packageName: "@boringparts/reference-vike-web",
           packageDir: webDir,
           role: "runtime-service",
           publishable: false,
-          meta: {
+          environment: {
             ...browserTestDevcontainerMeta(templatesRoot),
             ...frontendVscodeMeta,
           },
@@ -68,17 +64,16 @@ export function createVikeAppPreset(
       {
         nodeId: "db",
         defaultName: "db",
-        defaultCollection: "packages",
         defaultPath: "packages/db",
         dependencyBindings: {
           "@boringparts/reference-vike-deployment": "deployment",
         },
-        definition: {
+        referencePackage: {
           packageName: "@boringparts/reference-vike-db",
           packageDir: dbDir,
           role: "node-library",
           publishable: false,
-          meta: {
+          environment: {
             dependabot: {
               npmGroups: {
                 drizzle: {
@@ -92,12 +87,11 @@ export function createVikeAppPreset(
       {
         nodeId: "migrations",
         defaultName: "migrations",
-        defaultCollection: "packages",
         defaultPath: "packages/migrations",
         dependencyBindings: {
           "@boringparts/reference-vike-db": "db",
         },
-        definition: {
+        referencePackage: {
           packageName: "@boringparts/reference-vike-migrations",
           packageDir: migrationsDir,
           role: "node-library",
@@ -107,19 +101,18 @@ export function createVikeAppPreset(
       {
         nodeId: "deployment",
         defaultName: "deployment",
-        defaultCollection: "packages",
         defaultPath: "packages/deployment",
         dependencyBindings: {
           "@boringparts/reference-vike-db": "db",
           "@boringparts/reference-vike-migrations": "migrations",
           "@boringparts/reference-vike-web": "web",
         },
-        definition: {
+        referencePackage: {
           packageName: "@boringparts/reference-vike-deployment",
           packageDir: deploymentDir,
           role: "native-package",
           publishable: false,
-          meta: {
+          environment: {
             devcontainer: {
               layers: [
                 {

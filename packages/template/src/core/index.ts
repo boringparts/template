@@ -1,18 +1,27 @@
 import type { PresetDefinition, PresetSummary } from "./types.ts";
 
+export {
+  mergeWorkspaceEnvironment,
+  type DependabotIgnoreRule,
+  type DependabotNpmGroup,
+  type DependabotUpdateRule,
+  type DevcontainerLayerHandle,
+  type DevcontainerMount,
+  type MergedWorkspaceEnvironment,
+  type WorkspaceEnvironment,
+  type WorkspaceEnvironmentContributor,
+} from "./environment.ts";
 export { writeProjectProjection } from "./materialize.ts";
 export { buildProjectProjection } from "./synthesize.ts";
 export { formatJson } from "./transform.ts";
 export {
   invalidRequestIssueCodes,
   ProjectValidationError,
-  type BasePackageNode,
-  type GeneratedInstance,
   type InvalidRequestIssue,
   type InvalidRequestIssueCode,
   type MaterializeResult,
-  type PackageDefinition,
-  type PackageFileContribution,
+  type PackageContribution,
+  type PackageInstance,
   type PackageManifestSummary,
   type PackageRole,
   type PackageTransformContext,
@@ -26,8 +35,10 @@ export {
   type ProjectLink,
   type ProjectProjection,
   type ProjectProjectionEntry,
+  type ReferencePackage,
   type ResourceFileMapping,
-  type WorkspaceCollection,
+  type SingletonPackage,
+  type WorkspaceRoot,
   type WorkspaceTemplateRoots,
 } from "./types.ts";
 export {
@@ -39,14 +50,14 @@ export {
 } from "./validation.ts";
 
 /** Returns CLI-ready metadata summaries for a list of preset definitions. */
-export function summarizePresets<TMeta>(
-  presets: readonly PresetDefinition<TMeta>[],
+export function summarizePresets(
+  presets: readonly PresetDefinition[],
 ): readonly PresetSummary[] {
   return presets.map((preset) => ({
     name: preset.alias,
     title: preset.title,
     description: preset.description,
     topology: preset.topology,
-    roles: preset.nodes.map((node) => node.definition.role),
+    roles: preset.nodes.map((node) => node.referencePackage.role),
   }));
 }

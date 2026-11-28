@@ -14,8 +14,8 @@ import type { MaterializeResult, ProjectProjection } from "./types.ts";
  * Writes a `ProjectProjection` to disk if the target directory is absent or empty.
  * Leaves existing non-empty directories untouched and returns a structured operation failure.
  */
-export function writeProjectProjection<TMeta>(
-  projection: ProjectProjection<TMeta>,
+export function writeProjectProjection(
+  projection: ProjectProjection,
 ): MaterializeResult {
   const { targetDir } = projection.blueprint;
 

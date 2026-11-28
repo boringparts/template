@@ -1,11 +1,8 @@
 import type { PresetDefinition } from "../../core/index.ts";
-import type { WorkspaceEnvironmentMeta } from "../environment-meta.ts";
 import { resolvePackageDir } from "../roots.ts";
 
 /** Builds the `ts-lib` preset backed by `@boringparts/reference-ts-lib`. */
-export function createTsLibPreset(
-  templatesRoot?: string,
-): PresetDefinition<WorkspaceEnvironmentMeta> {
+export function createTsLibPreset(templatesRoot?: string): PresetDefinition {
   const packageDir = resolvePackageDir(
     "@boringparts/reference-ts-lib",
     import.meta.url,
@@ -22,9 +19,8 @@ export function createTsLibPreset(
       {
         nodeId: "library",
         defaultName: "lib",
-        defaultCollection: "packages",
         defaultPath: "packages/lib",
-        definition: {
+        referencePackage: {
           packageName: "@boringparts/reference-ts-lib",
           packageDir,
           role: "shared-library",

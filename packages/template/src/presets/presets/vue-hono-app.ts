@@ -2,7 +2,6 @@ import type { PresetDefinition } from "../../core/index.ts";
 import {
   browserTestDevcontainerMeta,
   frontendVscodeMeta,
-  type WorkspaceEnvironmentMeta,
 } from "../environment-meta.ts";
 import { resolvePackageDir } from "../roots.ts";
 
@@ -12,7 +11,7 @@ import { resolvePackageDir } from "../roots.ts";
  */
 export function createVueHonoAppPreset(
   templatesRoot?: string,
-): PresetDefinition<WorkspaceEnvironmentMeta> {
+): PresetDefinition {
   const apiDir = resolvePackageDir(
     "@boringparts/reference-hono-api",
     import.meta.url,
@@ -39,9 +38,8 @@ export function createVueHonoAppPreset(
       {
         nodeId: "api",
         defaultName: "api",
-        defaultCollection: "apps",
         defaultPath: "apps/api",
-        definition: {
+        referencePackage: {
           packageName: "@boringparts/reference-hono-api",
           packageDir: apiDir,
           role: "runtime-service",
@@ -51,34 +49,32 @@ export function createVueHonoAppPreset(
       {
         nodeId: "web",
         defaultName: "web",
-        defaultCollection: "apps",
         defaultPath: "apps/web",
         dependencyBindings: {
           "@boringparts/reference-hono-api": "api",
         },
-        definition: {
+        referencePackage: {
           packageName: "@boringparts/reference-vue-hono-web",
           packageDir: webDir,
           role: "browser-app",
           publishable: false,
-          meta: frontendVscodeMeta,
+          environment: frontendVscodeMeta,
         },
       },
       {
         nodeId: "e2e",
         defaultName: "e2e",
-        defaultCollection: "packages",
         defaultPath: "packages/e2e",
         dependencyBindings: {
           "@boringparts/reference-hono-api": "api",
           "@boringparts/reference-vue-hono-web": "web",
         },
-        definition: {
+        referencePackage: {
           packageName: "@boringparts/reference-vue-hono-e2e",
           packageDir: e2eDir,
           role: "native-package",
           publishable: false,
-          meta: browserTestDevcontainerMeta(templatesRoot),
+          environment: browserTestDevcontainerMeta(templatesRoot),
         },
       },
     ],
