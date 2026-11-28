@@ -39,13 +39,13 @@
       "tags": ["work:lifecycle"]
     },
     "test": {
-      "dependsOn": [],
+      "dependsOn": ["^build"],
       "inputs": [],
       "outputs": [],
       "tags": ["quality:light"]
     },
-    "test:e2e": {
-      "dependsOn": [],
+    "test:dist": {
+      "dependsOn": ["^build", "build"],
       "inputs": [],
       "outputs": [],
       "cache": false,

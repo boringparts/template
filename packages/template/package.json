@@ -56,7 +56,6 @@
   "dependencies": {
     "@boringparts/cli-contract": "catalog:",
     "smol-toml": "catalog:",
-    "validate-npm-package-name": "catalog:",
     "yaml": "catalog:",
     "zod": "catalog:"
   },
@@ -64,14 +63,21 @@
     "@boringparts/template-engine": "workspace:*",
     "@boringparts/template-presets": "workspace:*",
     "@boringparts/tooling-config": "workspace:*",
-    "@types/node": "catalog:",
+    "@types/node": "catalog:node-24",
     "esbuild": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",
     "typescript-7": "catalog:"
   },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.0.0",
+      "onFail": "download"
+    }
+  },
   "engines": {
-    "node": "^26.13.1"
+    "node": ">=24.0.0"
   }
 }

@@ -36,7 +36,8 @@ function runExec(
 }
 
 void describe("CLI distribution tarball and isolated consumer installation", () => {
-  void it("packs a lightweight tarball with bundled dist, static templates, pure declarations, and executes all presets outside the repo", () => {
+  void it("runs under locked Node 24.0.0 and packs a lightweight tarball with bundled dist, static templates, pure declarations, and executes all presets outside the repo", () => {
+    assert.equal(process.versions.node, "24.0.0");
     const tempRoot = mkdtempSync(path.join(tmpdir(), "template-dist-test-"));
     try {
       const packDir = path.join(tempRoot, "packed");
@@ -163,12 +164,14 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
         readonly name: string;
         readonly version: string;
         readonly private: boolean;
+        readonly engines?: { readonly node?: string };
         readonly dependencies: Record<string, string>;
         readonly bundleDependencies?: unknown;
       };
       assert.equal(packedManifest.name, "@boringparts/template");
       assert.equal(packedManifest.version, "0.4.0");
       assert.equal(packedManifest.private, false);
+      assert.deepStrictEqual(packedManifest.engines, { node: ">=24.0.0" });
       assert.equal(packedManifest.bundleDependencies, undefined);
       assert.equal(
         Object.hasOwn(
@@ -188,10 +191,13 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
         Object.hasOwn(packedManifest.dependencies, "typescript"),
         false,
       );
+      assert.equal(
+        Object.hasOwn(packedManifest.dependencies, "validate-npm-package-name"),
+        false,
+      );
       for (const expectedDep of [
         "@boringparts/cli-contract",
         "smol-toml",
-        "validate-npm-package-name",
         "yaml",
         "zod",
       ]) {

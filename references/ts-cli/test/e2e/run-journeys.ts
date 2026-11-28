@@ -18,71 +18,6 @@ function assertNever(value: never): never {
   throw new Error(`Unsupported journey mode: ${String(value)}`);
 }
 
-type JourneyRunTarget = {
-  readonly mode: CliJourneyMode;
-  readonly packedBin?: string;
-};
-
-const journeyRunnerUsage = [
-  "Usage:",
-  "  run-journeys.ts source",
-  "  run-journeys.ts packed <bin-path>",
-].join("\n");
-
-function invalidArguments(message: string): never {
-  throw new Error(`${message}\n${journeyRunnerUsage}`);
-}
-
-function parseJourneyRunTargets(
-  args: readonly string[],
-): readonly JourneyRunTarget[] {
-  const first = args[0];
-  if (first === undefined) {
-    invalidArguments("Missing journey mode.");
-  }
-
-  if (first === "packed") {
-    if (args.length === 1) {
-      invalidArguments("packed mode requires a path to the installed binary.");
-    }
-    if (args.length !== 2) {
-      invalidArguments(
-        "packed mode accepts only a single binary path and cannot be combined with other modes.",
-      );
-    }
-    const packedBin = args[1]!;
-    if (packedBin === "source" || packedBin === "packed") {
-      invalidArguments(
-        `Packed binary path cannot be the journey mode ${JSON.stringify(packedBin)}.`,
-      );
-    }
-    return [{ mode: "packed", packedBin }];
-  }
-
-  const seen = new Set<CliJourneyMode>();
-  const targets: JourneyRunTarget[] = [];
-  for (const argument of args) {
-    switch (argument) {
-      case "source":
-        if (seen.has(argument)) {
-          invalidArguments(
-            `Duplicate journey mode ${JSON.stringify(argument)}; specify each mode at most once.`,
-          );
-        }
-        seen.add(argument);
-        targets.push({ mode: argument });
-        break;
-      case "packed":
-        invalidArguments("packed mode cannot be combined with source mode.");
-      default:
-        invalidArguments(
-          `Unknown journey mode ${JSON.stringify(argument)}; valid values: source, packed.`,
-        );
-    }
-  }
-  return targets;
-}
-
 async function discoverJourneys(): Promise<readonly CliJourney[]> {
   const journeyRoot = path.join(e2eRoot, "journeys");
   const entries = await readdir(journeyRoot, { withFileTypes: true });
@@ -114,6 +49,7 @@ function invocation(
       return {
         executable: process.execPath,
         prefix: [
+          "--disable-warning=ExperimentalWarning",
           "--conditions=source",
           path.join(packageRoot, "src", "cli.ts"),
         ],
@@ -201,43 +137,4 @@ export async function runJourneys(options: {
     }
   }
   return passed;
-}
-
-async function runJourneyTargets(
-  targets: readonly JourneyRunTarget[],
-): Promise<readonly string[]> {
-  const passed: string[] = [];
-  for (const target of targets) {
-    switch (target.mode) {
-      case "source":
-        passed.push(...(await runJourneys({ mode: target.mode })));
-        break;
-      case "packed":
-        passed.push(
-          ...(await runJourneys({
-            mode: target.mode,
-            ...(target.packedBin === undefined
-              ? {}
-              : { packedBin: target.packedBin }),
-          })),
-        );
-        break;
-      default:
-        assertNever(target.mode);
-    }
-  }
-  return passed;
-}
-
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
-  try {
-    const passed = await runJourneyTargets(
-      parseJourneyRunTargets(process.argv.slice(2)),
-    );
-    process.stdout.write(`${passed.join("\n")}\n`);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`Error: ${message}\n`);
-    process.exitCode = 1;
-  }
 }

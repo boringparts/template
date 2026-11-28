@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { createRequire, isBuiltin } from "node:module";
+import { isBuiltin } from "node:module";
 import path from "node:path";
 
 import { normalizeRelativePackagePath } from "./scan.ts";
@@ -14,31 +14,9 @@ import type {
   ProjectLink,
 } from "./types.ts";
 
-const require = createRequire(import.meta.url);
-const rawValidateNpmPackageName: unknown = require("validate-npm-package-name");
-
-function validateNpmPackageName(name: string): {
-  readonly validForNewPackages: boolean;
-} {
-  if (typeof rawValidateNpmPackageName !== "function") {
-    throw new Error("validate-npm-package-name did not export a function");
-  }
-  const result: unknown = (
-    rawValidateNpmPackageName as (value: string) => unknown
-  )(name);
-  if (
-    typeof result !== "object" ||
-    result === null ||
-    !("validForNewPackages" in result) ||
-    typeof result.validForNewPackages !== "boolean"
-  ) {
-    throw new Error("validate-npm-package-name returned an unexpected result");
-  }
-  return { validForNewPackages: result.validForNewPackages };
-}
-
+const maxNpmPackageNameLength = 214;
 const defaultPackagePathPattern = /^[a-z0-9][a-z0-9-]*\/[a-z0-9][a-z0-9-]*$/u;
-const defaultPackageScopePattern = /^[a-z0-9][a-z0-9._-]*$/u;
+const restrictedPackageIdentifierPattern = /^[a-z0-9][a-z0-9._-]*$/u;
 const reservedPackageNames = new Set([
   "node_modules",
   "favicon.ico",
@@ -74,33 +52,30 @@ function readManifestBinKeys(packageDir: string): readonly string[] {
   }
 }
 
+function isValidRestrictedIdentifier(value: string): boolean {
+  return (
+    value.length > 0 &&
+    value.length <= maxNpmPackageNameLength &&
+    value === value.trim() &&
+    value === value.toLowerCase() &&
+    restrictedPackageIdentifierPattern.test(value) &&
+    encodeURIComponent(value) === value
+  );
+}
+
 /** Validates an unscoped npm package leaf name under the default workspace policy. */
 export function isValidPackageLeafName(value: string): boolean {
-  if (
-    value.length === 0 ||
-    value.length > 214 ||
-    value !== value.trim() ||
-    value !== value.toLowerCase() ||
-    value.startsWith(".") ||
-    isBuiltin(value) ||
-    value === "node_modules" ||
-    value === "favicon.ico" ||
-    /[~'!()*]/u.test(value) ||
-    encodeURIComponent(value) !== value
-  ) {
-    return false;
-  }
-  return validateNpmPackageName(`@x/${value}`).validForNewPackages;
+  return (
+    isValidRestrictedIdentifier(value) &&
+    !isBuiltin(value) &&
+    value !== "node_modules" &&
+    value !== "favicon.ico"
+  );
 }
 
 /** Validates a normalized npm package scope (without leading `@`). */
 export function isValidPackageScope(value: string): boolean {
-  return (
-    value.length > 0 &&
-    value.length <= 214 &&
-    defaultPackageScopePattern.test(value) &&
-    validateNpmPackageName(`@${value}/pkg`).validForNewPackages
-  );
+  return isValidRestrictedIdentifier(value);
 }
 
 /** Validates a two-segment relative package path and detects reserved workspace directories. */
@@ -244,6 +219,15 @@ export function planProject<TMeta>(
     const packageName =
       base.path === "." ? repositoryName : `@${resolvedScope}/${base.leafName}`;
     if (base.path !== ".") {
+      if (packageName.length > maxNpmPackageNameLength) {
+        issues.push({
+          code:
+            request.scope !== undefined
+              ? "INVALID_PACKAGE_SCOPE"
+              : "INVALID_REPOSITORY_SCOPE",
+          message: `Scoped package name "${packageName}" exceeds ${String(maxNpmPackageNameLength)} characters.`,
+        });
+      }
       sharedBaseBindings.set(base.definition.packageName, packageName);
     }
     baseNodes.push({
@@ -306,10 +290,17 @@ export function planProject<TMeta>(
 
       const nodePackageById = new Map<string, string>();
       for (const node of preset.nodes) {
-        nodePackageById.set(
-          node.nodeId,
-          `@${resolvedScope}/${node.defaultName}`,
-        );
+        const nodePackageName = `@${resolvedScope}/${node.defaultName}`;
+        if (nodePackageName.length > maxNpmPackageNameLength) {
+          issues.push({
+            code:
+              request.scope !== undefined
+                ? "INVALID_PACKAGE_SCOPE"
+                : "INVALID_REPOSITORY_SCOPE",
+            message: `Scoped package name "${nodePackageName}" exceeds ${String(maxNpmPackageNameLength)} characters.`,
+          });
+        }
+        nodePackageById.set(node.nodeId, nodePackageName);
       }
 
       for (const node of preset.nodes) {
@@ -368,6 +359,17 @@ export function planProject<TMeta>(
     }
 
     const packageName = `@${resolvedScope}/${leafName}`;
+    if (packageName.length > maxNpmPackageNameLength) {
+      issues.push({
+        code:
+          customName !== undefined
+            ? "INVALID_PACKAGE_NAME"
+            : request.scope !== undefined
+              ? "INVALID_PACKAGE_SCOPE"
+              : "INVALID_REPOSITORY_SCOPE",
+        message: `Scoped package name "${packageName}" exceeds ${String(maxNpmPackageNameLength)} characters.`,
+      });
+    }
     const dependencyBindings = new Map<string, string>(sharedBaseBindings);
     dependencyBindings.set(primary.definition.packageName, packageName);
 

@@ -21,12 +21,11 @@
   },
   "dependencies": {
     "smol-toml": "catalog:",
-    "validate-npm-package-name": "catalog:",
     "yaml": "catalog:"
   },
   "devDependencies": {
     "@boringparts/tooling-config": "workspace:*",
-    "@types/node": "catalog:",
+    "@types/node": "catalog:node-24",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",

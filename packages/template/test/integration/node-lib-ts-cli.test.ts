@@ -142,7 +142,7 @@ void describe("node-lib and ts-cli presets", () => {
     });
   });
 
-  void it("initializes ts-cli with custom bin name, ^26.13.1 engines, minimumReleaseAgeExclude, and npm-publication", async () => {
+  void it("initializes ts-cli with custom bin name, >=24.0.0 engines, devEngines, test:dist, catalog:node-24, minimumReleaseAgeExclude, and npm-publication", async () => {
     await withTempDir(async (workspaceDir) => {
       const targetDir = path.join(workspaceDir, "acme-cli-repo");
       const run = testRuntime([
@@ -180,16 +180,37 @@ void describe("node-lib and ts-cli presets", () => {
         ),
       ) as {
         readonly name: string;
+        readonly version?: string;
         readonly bin: Record<string, string>;
         readonly exports?: unknown;
+        readonly scripts: Record<string, string>;
         readonly engines: { readonly node: string };
+        readonly devEngines: {
+          readonly runtime: { readonly name: string; readonly version: string };
+        };
         readonly dependencies: Record<string, string>;
+        readonly devDependencies: Record<string, string>;
       };
       assert.equal(pkg.name, "@acme-cli-repo/my-tool");
+      assert.equal(pkg.version, "0.0.0");
       assert.deepStrictEqual(pkg.bin, { "my-tool": "./dist/cli.js" });
       assert.equal(pkg.exports, undefined);
-      assert.deepStrictEqual(pkg.engines, { node: "^26.13.1" });
+      assert.deepStrictEqual(pkg.engines, { node: ">=24.0.0" });
+      assert.equal(pkg.devEngines.runtime.name, "node");
+      assert.equal(pkg.devEngines.runtime.version, "24.0.0");
+      assert.equal(pkg.devDependencies["@types/node"], "catalog:node-24");
       assert.equal(pkg.dependencies["@boringparts/cli-contract"], "catalog:");
+      assert.equal("test:dist" in pkg.scripts, true);
+      assert.equal("test:e2e" in pkg.scripts, false);
+
+      const cliTurbo = JSON.parse(
+        readFileSync(
+          path.join(targetDir, "packages/my-tool/turbo.json"),
+          "utf8",
+        ),
+      ) as { readonly tasks: Record<string, unknown> };
+      assert.equal("test:dist" in cliTurbo.tasks, true);
+      assert.equal("test:e2e" in cliTurbo.tasks, false);
 
       for (const relPath of [
         "packages/my-tool/src/cli.ts",
@@ -227,7 +248,9 @@ void describe("node-lib and ts-cli presets", () => {
         readonly minimumReleaseAgeExclude?: readonly string[];
       };
       assert.ok("@boringparts/cli-contract" in workspaceYaml.catalog);
-      assert.equal(workspaceYaml.catalogs, undefined);
+      assert.deepStrictEqual(workspaceYaml.catalogs, {
+        "node-24": { "@types/node": "~24.0.0" },
+      });
       assert.deepStrictEqual(workspaceYaml.minimumReleaseAgeExclude, [
         "@boringparts/cli-contract",
       ]);

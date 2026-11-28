@@ -260,9 +260,6 @@ catalogs:
     typescript-7:
       specifier: npm:typescript@^7.0.2
       version: 7.0.2
-    validate-npm-package-name:
-      specifier: ^8.0.0
-      version: 8.0.0
     vike:
       specifier: ^0.4.270
       version: 0.4.270
@@ -342,9 +339,6 @@ importers:
       smol-toml:
         specifier: 'catalog:'
         version: 1.9.1
-      validate-npm-package-name:
-        specifier: 'catalog:'
-        version: 8.0.0
       yaml:
         specifier: 'catalog:'
         version: 2.9.1
@@ -353,8 +347,8 @@ importers:
         specifier: workspace:*
         version: link:../tooling-config
       '@types/node':
-        specifier: 'catalog:'
-        version: 26.6.11
+        specifier: catalog:node-24
+        version: 24.0.15
       oxfmt:
         specifier: 'catalog:'
         version: 0.79.0
@@ -426,8 +420,8 @@ importers:
         specifier: workspace:*
         version: link:../tooling-config
       '@types/node':
-        specifier: 'catalog:'
-        version: 26.6.11
+        specifier: catalog:node-24
+        version: 24.0.15
       oxfmt:
         specifier: 'catalog:'
         version: 0.79.0
@@ -449,9 +443,6 @@ importers:
       smol-toml:
         specifier: 'catalog:'
         version: 1.9.1
-      validate-npm-package-name:
-        specifier: 'catalog:'
-        version: 8.0.0
       yaml:
         specifier: 'catalog:'
         version: 2.9.1
@@ -469,11 +460,14 @@ importers:
         specifier: workspace:*
         version: link:../tooling-config
       '@types/node':
-        specifier: 'catalog:'
-        version: 26.6.11
+        specifier: catalog:node-24
+        version: 24.0.15
       esbuild:
         specifier: 'catalog:'
         version: 0.27.7
+      node:
+        specifier: runtime:24.0.0
+        version: runtime:24.0.0
       oxfmt:
         specifier: 'catalog:'
         version: 0.79.0
@@ -598,8 +592,11 @@ importers:
         specifier: workspace:*
         version: link:../tooling-config
       '@types/node':
-        specifier: 'catalog:'
-        version: 26.6.11
+        specifier: catalog:node-24
+        version: 24.0.15
+      node:
+        specifier: runtime:24.0.0
+        version: runtime:24.0.0
       oxfmt:
         specifier: 'catalog:'
         version: 0.79.0
@@ -3449,10 +3446,6 @@ packages:
     peerDependencies:
       browserslist: '>= 4.21.0'
 
-  validate-npm-package-name@8.0.0:
-    resolution: {integrity: sha512-SCv6OOV6Xj2/3cXy3dGmADluJTNcL3o7hZAglNPTe+WYuEuvxgJzxPrSDLZhF+CwyQOubqgecjMmTJGMVLWjYQ==}
-    engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
-
   vike-vue@0.9.16:
     resolution: {integrity: sha512-mxq+vvzxzjCX6cJsU7xiVGlYR9zg0uhMtZQv5+GtWWEu+RU2yXmPtHlwAIKLd8LFapbH+E1q/lUrk5Kjui64uA==}
     peerDependencies:
@@ -5380,8 +5373,6 @@ snapshots:
       browserslist: 4.29.6
       escalade: 3.2.0
       picocolors: 1.1.1
-
-  validate-npm-package-name@8.0.0: {}
 
   vike-vue@0.9.16(vike@0.4.270(hono@4.13.22)(srvx@1.0.8)(vite@8.4.0(@types/node@26.6.11)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.1)))(vue@3.5.46):
     dependencies:
