@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { isBuiltin } from "node:module";
 import path from "node:path";
 
-import { normalizeRelativePackagePath } from "./scan.ts";
+import { normalizeRelativePackagePath } from "../sources/index.ts";
 import type {
   GeneratedInstance,
   InvalidRequestIssue,

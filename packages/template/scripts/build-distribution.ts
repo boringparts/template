@@ -7,18 +7,21 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  writeFileSync,
 } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { build as esbuild } from "esbuild";
 
-import { scanPackageDirectory } from "../src/core/index.ts";
-import { resolveTemplateDistributionSources } from "../src/presets/index.ts";
+import {
+  loadPackageSourceFiles,
+  loadWorkspacePolicy,
+  resolveRegisteredReferencePackages,
+} from "../src/sources/index.ts";
 
 const packageRoot = path.resolve(import.meta.dirname, "..");
 
-const rootBaselineFiles = ["package.json", "pnpm-workspace.yaml"] as const;
 const publicDeclarationFiles = new Set([
   "main.d.ts",
   "cli-command-identity.d.ts",
@@ -54,7 +57,7 @@ function pruneInternalDeclarations(dir: string, distRoot: string): boolean {
 }
 
 function copyTemplatePackage(sourceDir: string, targetDir: string): void {
-  const files = scanPackageDirectory(sourceDir, { includeResources: true });
+  const files = loadPackageSourceFiles(sourceDir, { includeResources: true });
   for (const file of files) {
     const targetPath = path.join(targetDir, file.relativePath);
     mkdirSync(path.dirname(targetPath), { recursive: true });
@@ -131,24 +134,22 @@ async function main(): Promise<void> {
     }
   }
 
-  // Copy static template assets using the registered reference package resolution.
-  const sources = resolveTemplateDistributionSources();
+  // Copy static template assets using Git-tracked/unignored source listing and persist WorkspacePolicy.
+  const referencePackages = resolveRegisteredReferencePackages();
 
-  for (const refPkg of sources.referencePackages) {
+  for (const refPkg of referencePackages) {
     copyTemplatePackage(
       refPkg.packageDir,
       path.join(templatesDir, "references", refPkg.slug),
     );
   }
 
-  const rootTargetDir = path.join(templatesDir, "root");
-  mkdirSync(rootTargetDir, { recursive: true });
-  for (const fileName of rootBaselineFiles) {
-    copyFileSync(
-      path.join(sources.rootBaseDir, fileName),
-      path.join(rootTargetDir, fileName),
-    );
-  }
+  const workspacePolicy = loadWorkspacePolicy();
+  mkdirSync(templatesDir, { recursive: true });
+  writeFileSync(
+    path.join(templatesDir, "workspace-policy.json"),
+    `${JSON.stringify(workspacePolicy, null, 2)}\n`,
+  );
 }
 
 const mainFile = process.argv[1];

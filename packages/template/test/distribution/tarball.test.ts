@@ -89,13 +89,20 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
           .toSorted(),
         ["package/dist/cli-command-identity.d.ts", "package/dist/main.d.ts"],
       );
-      assert.ok(entries.includes("package/templates/root/package.json"));
-      assert.ok(entries.includes("package/templates/root/pnpm-workspace.yaml"));
-      const templateTopDirs = collectTarDirSegments(
+      assert.ok(entries.includes("package/templates/workspace-policy.json"));
+      assert.equal(
+        entries.some((entry) => entry.startsWith("package/templates/root/")),
+        false,
+        "Unexpected templates/root/ directory in tarball",
+      );
+      const templateTopEntries = collectTarDirSegments(
         entries,
         "package/templates/",
       );
-      assert.deepStrictEqual(templateTopDirs, ["references", "root"]);
+      assert.deepStrictEqual(templateTopEntries, [
+        "references",
+        "workspace-policy.json",
+      ]);
 
       const expectedReferenceSlugs = [
         "hono-api",
@@ -148,11 +155,33 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
           false,
           `Unexpected Rust target entry: ${entry}`,
         );
+        assert.equal(
+          entry.endsWith(".tsbuildinfo"),
+          false,
+          `Unexpected tsbuildinfo entry: ${entry}`,
+        );
       }
 
-      // Inspect unpacked manifest, declaration purity, and executable bits.
+      // Inspect unpacked manifest, workspace policy, declaration purity, and executable bits.
       execFileSync("mkdir", ["-p", unpackDir]);
       runExec("tar", ["-xzf", tarballPath, "-C", unpackDir], tempRoot);
+
+      const packedPolicy = JSON.parse(
+        readFileSync(
+          path.join(unpackDir, "package/templates/workspace-policy.json"),
+          "utf8",
+        ),
+      ) as {
+        readonly nodeLinker: string;
+        readonly minimumReleaseAge: number;
+        readonly catalog: Record<string, string>;
+        readonly catalogs: Record<string, Record<string, string>>;
+      };
+      assert.equal(packedPolicy.nodeLinker, "isolated");
+      assert.equal(typeof packedPolicy.minimumReleaseAge, "number");
+      assert.ok("@playwright/test" in packedPolicy.catalog);
+      assert.equal(Object.hasOwn(packedPolicy.catalogs, "default"), false);
+      assert.ok("node-24" in packedPolicy.catalogs);
 
       const packedManifest = JSON.parse(
         readFileSync(path.join(unpackDir, "package/package.json"), "utf8"),

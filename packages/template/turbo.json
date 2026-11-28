@@ -3,7 +3,7 @@
   "tags": ["cli"],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": [],
       "outputs": ["dist/**", "templates/**"],
       "cache": false,
       "tags": ["work:preparation"]

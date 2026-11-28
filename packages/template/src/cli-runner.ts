@@ -125,11 +125,11 @@ const initOperationFailedSchema = z.object({
 });
 
 function detectBundledTemplatesRoot(): string | undefined {
-  const candidate = path.resolve(
-    path.dirname(fileURLToPath(import.meta.url)),
-    "..",
-    "templates",
-  );
+  const entryDir = path.dirname(fileURLToPath(import.meta.url));
+  if (path.basename(entryDir) !== "dist") {
+    return undefined;
+  }
+  const candidate = path.resolve(entryDir, "..", "templates");
   return existsSync(candidate) ? candidate : undefined;
 }
 
