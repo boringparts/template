@@ -46,60 +46,12 @@ export function databaseStorageTarget(): string {
   throw new Error("Deployment requires an absolute DATABASE_FILE path");
 }
 
+const SQLITE_SIDECAR_SUFFIXES = ["", "-journal", "-wal", "-shm"] as const;
+
 /** Removes the local SQLite database file and sidecar WAL/journal files for the active `DATABASE_PROFILE`. */
 export function resetDatabaseStorageTarget(): void {
-  switch (localProfile()) {
-    case "dev":
-      rmSync(fileURLToPath(new URL("../.local/dev.sqlite", import.meta.url)), {
-        force: true,
-      });
-      rmSync(
-        fileURLToPath(new URL("../.local/dev.sqlite-journal", import.meta.url)),
-        { force: true },
-      );
-      rmSync(
-        fileURLToPath(new URL("../.local/dev.sqlite-wal", import.meta.url)),
-        { force: true },
-      );
-      rmSync(
-        fileURLToPath(new URL("../.local/dev.sqlite-shm", import.meta.url)),
-        { force: true },
-      );
-      return;
-    case "test":
-      rmSync(fileURLToPath(new URL("../.local/test.sqlite", import.meta.url)), {
-        force: true,
-      });
-      rmSync(
-        fileURLToPath(
-          new URL("../.local/test.sqlite-journal", import.meta.url),
-        ),
-        { force: true },
-      );
-      rmSync(
-        fileURLToPath(new URL("../.local/test.sqlite-wal", import.meta.url)),
-        { force: true },
-      );
-      rmSync(
-        fileURLToPath(new URL("../.local/test.sqlite-shm", import.meta.url)),
-        { force: true },
-      );
-      return;
-    case "e2e":
-      rmSync(fileURLToPath(new URL("../.local/e2e.sqlite", import.meta.url)), {
-        force: true,
-      });
-      rmSync(
-        fileURLToPath(new URL("../.local/e2e.sqlite-journal", import.meta.url)),
-        { force: true },
-      );
-      rmSync(
-        fileURLToPath(new URL("../.local/e2e.sqlite-wal", import.meta.url)),
-        { force: true },
-      );
-      rmSync(
-        fileURLToPath(new URL("../.local/e2e.sqlite-shm", import.meta.url)),
-        { force: true },
-      );
+  const targetPath = localDatabaseStorageTarget(localProfile());
+  for (const suffix of SQLITE_SIDECAR_SUFFIXES) {
+    rmSync(`${targetPath}${suffix}`, { force: true });
   }
 }

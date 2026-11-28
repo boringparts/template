@@ -43,7 +43,7 @@
       "tags": ["work:repair"]
     },
     "typecheck": {
-      "dependsOn": [],
+      "dependsOn": ["^typecheck"],
       "outputs": [],
       "inputs": ["$TURBO_DEFAULT$"],
       "tags": ["quality:light"]

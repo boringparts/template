@@ -158,20 +158,23 @@ export type ProjectProjection<TMeta = unknown> = {
   };
 };
 
-export type InvalidRequestIssueCode =
-  | "PRESET_UNKNOWN"
-  | "FIXED_TOPOLOGY_OVERRIDE"
-  | "INVALID_PRESET_SPEC"
-  | "INVALID_PACKAGE_NAME"
-  | "INVALID_PACKAGE_PATH"
-  | "RESERVED_PACKAGE_PATH"
-  | "INVALID_PACKAGE_SCOPE"
-  | "INVALID_REPOSITORY_SCOPE"
-  | "CONFLICTING_PACKAGE_IDENTITY"
-  | "CONFLICTING_ENVIRONMENT_METADATA"
-  | "DIRECTORY_OWNERSHIP_VIOLATION"
-  | "INVALID_LINK_SPEC"
-  | "UNSUPPORTED_LINK";
+export const invalidRequestIssueCodes = [
+  "PRESET_UNKNOWN",
+  "FIXED_TOPOLOGY_OVERRIDE",
+  "INVALID_PRESET_SPEC",
+  "INVALID_PACKAGE_NAME",
+  "INVALID_PACKAGE_PATH",
+  "RESERVED_PACKAGE_PATH",
+  "INVALID_PACKAGE_SCOPE",
+  "INVALID_REPOSITORY_SCOPE",
+  "CONFLICTING_PACKAGE_IDENTITY",
+  "CONFLICTING_ENVIRONMENT_METADATA",
+  "DIRECTORY_OWNERSHIP_VIOLATION",
+  "INVALID_LINK_SPEC",
+  "UNSUPPORTED_LINK",
+] as const;
+
+export type InvalidRequestIssueCode = (typeof invalidRequestIssueCodes)[number];
 
 export type InvalidRequestIssue = {
   readonly code: InvalidRequestIssueCode;
