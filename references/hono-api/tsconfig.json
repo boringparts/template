@@ -1,9 +1,0 @@
-{
-  "extends": "@boringparts/reference-tooling-config/node.json",
-  "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.tsbuildinfo",
-    "composite": true,
-    "types": ["node"]
-  },
-  "include": ["src/**/*.ts", "test/**/*.ts", "*.config.ts"]
-}

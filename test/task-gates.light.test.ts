@@ -14,7 +14,7 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const taskGatesPath = fileURLToPath(
-  import.meta.resolve("@boringparts/reference-workspace-root/task-gates"),
+  import.meta.resolve("@boringparts/tooling-config/task-gates"),
 );
 const rootTaskGatesEntryPath = fileURLToPath(
   new URL("../scripts/task-gates.ts", import.meta.url),

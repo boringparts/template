@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -19,20 +20,6 @@ const packageRoot = path.resolve(
   "..",
 );
 
-function collectTarDirSegments(
-  entries: readonly string[],
-  prefix: string,
-): readonly string[] {
-  return [
-    ...new Set(
-      entries
-        .filter((entry) => entry.startsWith(prefix))
-        .map((entry) => entry.slice(prefix.length).split("/")[0] ?? "")
-        .filter((segment) => segment.length > 0),
-    ),
-  ].toSorted((a, b) => a.localeCompare(b));
-}
-
 function runExec(
   command: string,
   args: readonly string[],
@@ -45,16 +32,15 @@ function runExec(
   });
 }
 
-void describe("CLI distribution tarball and isolated consumer installation", () => {
-  void it("runs under locked Node 24.0.0 and packs a lightweight tarball with bundled dist, static templates, pure declarations, and executes all presets outside the repo", () => {
+void describe("@boringparts/template distribution tarball and out-of-repo consumer installation", () => {
+  void it("runs under locked Node 24.0.0, packs pure JS + d.ts with yaml-only runtime dependency, and runs isolated single-package and snapshot consumers", () => {
     assert.equal(process.versions.node, "24.0.0");
     const tempRoot = mkdtempSync(path.join(tmpdir(), "template-dist-test-"));
     try {
       const packDir = path.join(tempRoot, "packed");
-      const consumerDir = path.join(tempRoot, "consumer");
       const unpackDir = path.join(tempRoot, "unpacked");
+      const consumerDir = path.join(tempRoot, "consumer");
 
-      // Pack from the built package directory using pnpm so catalog:/publishConfig are resolved.
       const packStdout = runExec(
         "pnpm",
         ["pack", "--pack-destination", packDir],
@@ -66,69 +52,29 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
         `Packed tarball missing: ${tarballPath}`,
       );
 
-      // Tarball should stay lightweight (well under 2 MB without TypeScript or nested tarballs).
       const tarballSize = statSync(tarballPath).size;
       assert.ok(
-        tarballSize < 2 * 1024 * 1024,
-        `Expected lightweight tarball (< 2 MiB), got ${String(tarballSize)} bytes`,
+        tarballSize > 0 && tarballSize < 512 * 1024,
+        `Expected lightweight tarball (< 512 KiB), got ${String(tarballSize)} bytes`,
       );
 
       const entries = runExec("tar", ["-tzf", tarballPath], tempRoot)
         .split(/\r?\n/u)
         .filter(Boolean);
 
-      assert.ok(entries.includes("package/dist/cli.js"));
-      assert.ok(entries.includes("package/dist/main.js"));
-      assert.ok(entries.includes("package/dist/main.d.ts"));
-      assert.deepStrictEqual(
-        entries
-          .filter(
-            (entry) =>
-              entry.startsWith("package/dist/") && entry.endsWith(".d.ts"),
-          )
-          .toSorted(),
-        ["package/dist/cli-command-identity.d.ts", "package/dist/main.d.ts"],
-      );
-      const templateTopEntries = collectTarDirSegments(
-        entries,
-        "package/templates/",
-      );
-      assert.deepStrictEqual(templateTopEntries, [
-        "references",
-        "workspace-policy.json",
-      ]);
-
-      const expectedReferenceSlugs = [
-        "hono-api",
-        "node-lib",
-        "rust-bin",
-        "tooling-config",
-        "ts-cli",
-        "ts-lib",
-        "vike-db",
-        "vike-deployment",
-        "vike-migrations",
-        "vike-web",
-        "vue-app",
-        "vue-hono-e2e",
-        "vue-hono-web",
-        "workspace-root",
-      ];
-      const actualReferenceSlugs = collectTarDirSegments(
-        entries,
-        "package/templates/references/",
-      );
-      assert.deepStrictEqual(actualReferenceSlugs, expectedReferenceSlugs);
-
-      for (const slug of expectedReferenceSlugs) {
-        assert.ok(
-          entries.includes(`package/templates/references/${slug}/package.json`),
-          `Missing reference template in tarball: ${slug}`,
-        );
-      }
-
-      // Ensure zero nested tarballs, node_modules, build caches, or runtime sqlite data.
+      assert.ok(entries.includes("package/dist/index.js"));
+      assert.ok(entries.includes("package/dist/index.d.ts"));
       for (const entry of entries) {
+        assert.equal(
+          entry.startsWith("package/templates/"),
+          false,
+          `Unexpected templates entry: ${entry}`,
+        );
+        assert.equal(
+          entry.startsWith("package/src/"),
+          false,
+          `Unexpected src entry: ${entry}`,
+        );
         assert.equal(
           entry.endsWith(".tgz"),
           false,
@@ -140,42 +86,14 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
           `Unexpected node_modules entry: ${entry}`,
         );
         assert.equal(
-          entry.includes("/.local/"),
-          false,
-          `Unexpected runtime .local entry: ${entry}`,
-        );
-        assert.equal(
-          entry.includes("/target/"),
-          false,
-          `Unexpected Rust target entry: ${entry}`,
-        );
-        assert.equal(
           entry.endsWith(".tsbuildinfo"),
           false,
           `Unexpected tsbuildinfo entry: ${entry}`,
         );
       }
 
-      // Inspect unpacked manifest, workspace policy, declaration purity, and executable bits.
-      execFileSync("mkdir", ["-p", unpackDir]);
+      mkdirSync(unpackDir, { recursive: true });
       runExec("tar", ["-xzf", tarballPath, "-C", unpackDir], tempRoot);
-
-      const packedPolicy = JSON.parse(
-        readFileSync(
-          path.join(unpackDir, "package/templates/workspace-policy.json"),
-          "utf8",
-        ),
-      ) as {
-        readonly nodeLinker: string;
-        readonly minimumReleaseAge: number;
-        readonly catalog: Record<string, string>;
-        readonly catalogs: Record<string, Record<string, string>>;
-      };
-      assert.equal(packedPolicy.nodeLinker, "isolated");
-      assert.equal(typeof packedPolicy.minimumReleaseAge, "number");
-      assert.ok("@playwright/test" in packedPolicy.catalog);
-      assert.equal(Object.hasOwn(packedPolicy.catalogs, "default"), false);
-      assert.ok("node-24" in packedPolicy.catalogs);
 
       const packedManifest = JSON.parse(
         readFileSync(path.join(unpackDir, "package/package.json"), "utf8"),
@@ -183,94 +101,54 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
         readonly name: string;
         readonly version: string;
         readonly private: boolean;
+        readonly bin?: unknown;
         readonly engines?: { readonly node?: string };
         readonly dependencies: Record<string, string>;
-        readonly bundleDependencies?: unknown;
+        readonly exports: Record<string, unknown>;
       };
       assert.equal(packedManifest.name, "@boringparts/template");
       assert.equal(packedManifest.version, "0.4.0");
       assert.equal(packedManifest.private, false);
+      assert.equal(packedManifest.bin, undefined);
       assert.deepStrictEqual(packedManifest.engines, { node: ">=24.0.0" });
-      assert.equal(packedManifest.bundleDependencies, undefined);
-      const expectedRuntimeDependencies = [
+      assert.deepStrictEqual(Object.keys(packedManifest.dependencies), [
+        "yaml",
+      ]);
+      assert.ok(
+        !packedManifest.dependencies.yaml!.startsWith("catalog:") &&
+          !packedManifest.dependencies.yaml!.startsWith("workspace:"),
+      );
+      assert.deepStrictEqual(packedManifest.exports, {
+        ".": {
+          types: "./dist/index.d.ts",
+          default: "./dist/index.js",
+        },
+        "./package.json": "./package.json",
+      });
+
+      const indexDts = readFileSync(
+        path.join(unpackDir, "package/dist/index.d.ts"),
+        "utf8",
+      );
+      for (const forbidden of [
         "@boringparts/cli-contract",
         "smol-toml",
-        "yaml",
         "zod",
-      ];
-      assert.deepStrictEqual(
-        Object.keys(packedManifest.dependencies).toSorted(),
-        expectedRuntimeDependencies,
-      );
-      for (const expectedDep of expectedRuntimeDependencies) {
-        const version = packedManifest.dependencies[expectedDep];
-        assert.ok(
-          typeof version === "string" &&
-            !version.startsWith("catalog:") &&
-            !version.startsWith("workspace:"),
-          `Expected resolved npm runtime dependency version for ${expectedDep}, got ${String(version)}`,
+        "references/",
+      ]) {
+        assert.equal(
+          indexDts.includes(forbidden),
+          false,
+          `Public declaration leaked ${forbidden}`,
         );
       }
 
-      const expectedDtsImports: Readonly<Record<string, readonly string[]>> = {
-        "main.d.ts": ["./cli-command-identity.ts", "@boringparts/cli-contract"],
-        "cli-command-identity.d.ts": [],
-      };
-      for (const [publicDtsName, expectedImports] of Object.entries(
-        expectedDtsImports,
-      )) {
-        const publicDts = readFileSync(
-          path.join(unpackDir, "package/dist", publicDtsName),
-          "utf8",
-        );
-        const actualImports = [
-          ...new Set(
-            [
-              ...publicDts.matchAll(
-                /(?:(?:from|import)\s+|import\s*\(\s*)["']([^"']+)["']/gu,
-              ),
-            ].map((match) => match[1]!),
-          ),
-        ].toSorted();
-        assert.deepStrictEqual(
-          actualImports,
-          expectedImports,
-          `Unexpected module imports in ${publicDtsName}`,
-        );
-      }
-
-      const cliMode = statSync(
-        path.join(unpackDir, "package/dist/cli.js"),
-      ).mode;
-      assert.notEqual(cliMode & 0o111, 0, "dist/cli.js must be executable");
-      assert.ok(
-        entries.includes(
-          "package/templates/references/vike-deployment/Dockerfile",
-        ),
-      );
-      assert.ok(
-        entries.includes(
-          "package/templates/references/vike-deployment/Dockerfile.dockerignore",
-        ),
-      );
-      const entrypointMode = statSync(
-        path.join(
-          unpackDir,
-          "package/templates/references/vike-deployment/scripts/container-entrypoint.sh",
-        ),
-      ).mode;
-      assert.notEqual(
-        entrypointMode & 0o111,
-        0,
-        "container-entrypoint.sh must preserve executable bit",
-      );
-
-      // Install the packed tarball into a completely isolated consumer directory outside the repo.
-      execFileSync("mkdir", ["-p", consumerDir]);
+      // Install the packed tarball into an isolated out-of-repo directory with strict engine check.
+      mkdirSync(consumerDir, { recursive: true });
       writeFileSync(
         path.join(consumerDir, "package.json"),
         JSON.stringify({
-          name: "isolated-consumer",
+          name: "out-of-repo-consumer",
           private: true,
           type: "module",
         }),
@@ -279,6 +157,7 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
         "npm",
         [
           "install",
+          "--engine-strict",
           "--ignore-scripts=false",
           "--no-audit",
           "--no-fund",
@@ -287,130 +166,137 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
         consumerDir,
       );
 
-      const templateBin = path.join(consumerDir, "node_modules/.bin/template");
-      assert.equal(
-        runExec(templateBin, ["--version"], consumerDir),
-        "template 0.4.0\n",
-      );
+      const consumerScript = `
+import assert from "node:assert/strict";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import {
+  bindTemplateCatalog,
+  buildProjectProjection,
+  createPackagedSourceContext,
+  createWorkspaceSourceContext,
+  definePreset,
+  planProject,
+  readPnpmWorkspaceCatalog,
+  summarizePresets,
+  validateWorkspacePolicy,
+  writeProjectProjection,
+  writeTemplateSnapshot,
+} from "@boringparts/template";
 
-      const schemaOut = JSON.parse(
-        runExec(templateBin, ["--schema"], consumerDir),
-      ) as { readonly kind: string; readonly schemaVersion: string };
-      assert.equal(schemaOut.kind, "directory");
-      assert.equal(schemaOut.schemaVersion, "6");
+const workDir = ${JSON.stringify(path.join(tempRoot, "consumer-run"))};
+const tplDir = path.join(workDir, "tpl");
+const rootTpl = path.join(tplDir, "root");
+mkdirSync(path.join(rootTpl, "resources"), { recursive: true });
+writeFileSync(path.join(rootTpl, "package.json"), JSON.stringify({
+  name: "synth-root",
+  private: true,
+  scripts: { lint: "oxlint ." },
+  devDependencies: { turbo: "^2.11.13" },
+  devEngines: { runtime: { name: "node", version: "24.0.0" } },
+  packageManager: "pnpm@12.21.0",
+}));
+writeFileSync(path.join(rootTpl, "turbo.json"), JSON.stringify({
+  tasks: { lint: { tags: ["quality:light"] } },
+}));
+writeFileSync(path.join(rootTpl, "resources", "gitignore"), "node_modules/\\ndist/\\n");
+writeFileSync(path.join(rootTpl, "resources", "base.Dockerfile"), "FROM node:24.0.0-bookworm-slim\\n");
+writeFileSync(path.join(rootTpl, "resources", "tpl.json"), JSON.stringify({ name: "x", mounts: [] }));
 
-      const presetsOut = JSON.parse(
-        runExec(templateBin, ["presets"], consumerDir),
-      ) as {
-        readonly kind: string;
-        readonly data: {
-          readonly presets: readonly { readonly name: string }[];
-        };
-      };
-      assert.equal(presetsOut.kind, "data");
-      assert.equal(presetsOut.data.presets.length, 7);
+const pkgTpl = path.join(tplDir, "app");
+mkdirSync(path.join(pkgTpl, "bin"), { recursive: true });
+writeFileSync(path.join(pkgTpl, "package.json"), JSON.stringify({
+  name: "synth-app",
+  bin: { "ref-app": "./bin/run.sh" },
+  dependencies: { yaml: "^2.9.0" },
+}));
+writeFileSync(path.join(pkgTpl, "bin", "run.sh"), "#!/bin/sh\\necho hi\\n");
+chmodSync(path.join(pkgTpl, "bin", "run.sh"), 0o755);
 
-      const allDryRunScenarios = [
-        ...presetsOut.data.presets.map((preset) => ({
-          id: preset.name,
-          args: ["--preset", preset.name],
-        })),
-        {
-          id: "vue-hono-fullstack",
-          args: [
-            "--preset",
-            "vue-hono-app",
-            "--preset",
-            "ts-lib:shared",
-            "--preset",
-            "node-lib:server-kit",
-            "--link",
-            "apps/web:packages/shared",
-            "--link",
-            "apps/api:packages/shared",
-            "--link",
-            "apps/api:packages/server-kit",
-          ],
-        },
-        {
-          id: "polyglot-cli",
-          args: [
-            "--preset",
-            "ts-cli:tool",
-            "--preset",
-            "ts-lib:core",
-            "--preset",
-            "rust-bin:worker",
-            "--link",
-            "packages/tool:packages/core",
-          ],
-        },
-      ];
-
-      // Run dry-run init for all 7 single presets and both multi-package combinations.
-      for (const scenario of allDryRunScenarios) {
-        const targetDir = path.join(tempRoot, "dry-run", scenario.id);
-        const initOut = JSON.parse(
-          runExec(
-            templateBin,
-            ["init", targetDir, ...scenario.args, "--dry-run"],
-            consumerDir,
-          ),
-        ) as {
-          readonly kind: string;
-          readonly variant: string;
-          readonly data: {
-            readonly dryRun: boolean;
-            readonly files: readonly string[];
-          };
-        };
-        assert.equal(initOut.kind, "data", scenario.id);
-        assert.equal(initOut.variant, "planned", scenario.id);
-        assert.equal(initOut.data.dryRun, true, scenario.id);
-        assert.ok(initOut.data.files.includes("package.json"), scenario.id);
-        assert.equal(existsSync(targetDir), false, scenario.id);
-      }
-
-      // Also verify the public programmatic entry point resolves without workspace private packages
-      // and materializes a clean repository whose .gitignore excludes .local/ without excluding data/.
-      const generatedRepoDir = path.join(tempRoot, "programmatic-init");
-      const programOut = runExec(
-        process.execPath,
-        [
-          "--input-type=module",
-          "-e",
-          `import { runCli } from "@boringparts/template";
-let out = "";
-const code = await runCli({
-  argv: ["node", "template", "init", ${JSON.stringify(generatedRepoDir)}, "--preset", "vike-app"],
-  cwd: process.cwd(),
-  identity: { commandName: "template", version: "0.4.0" },
-  write: ({ destination, chunk }) => { if (destination === "stdout") out += chunk; },
+const workspaceRoot = {
+  sourceDir: "root",
+  resources: [{ sourcePath: "resources/gitignore", targetPath: ".gitignore" }],
+  devcontainerBase: {
+    dockerfileSourcePath: "resources/base.Dockerfile",
+    templateSourcePath: "resources/tpl.json",
+  },
+};
+const presets = [
+  definePreset({
+    alias: "app",
+    title: "App",
+    description: "CLI app",
+    topology: "configurable-primary-package",
+    nodes: [{
+      nodeId: "app",
+      defaultName: "app",
+      defaultPath: "packages/app",
+      referencePackage: { sourceDir: "app", role: "cli-tool", publishable: false },
+    }],
+  }),
+];
+const policy = validateWorkspacePolicy({
+  nodeLinker: "isolated",
+  preferSymlinkedExecutables: true,
+  shellEmulator: true,
+  autoInstallPeers: false,
+  injectWorkspacePackages: false,
+  dedupeInjectedDeps: false,
+  minimumReleaseAge: 1440,
+  minimumReleaseAgeStrict: true,
 });
-if (code !== 0) process.exit(code);
-process.stdout.write(out);`,
-        ],
+
+assert.equal(summarizePresets(presets)[0].name, "app");
+const bound = bindTemplateCatalog({
+  source: createWorkspaceSourceContext(tplDir),
+  workspaceRoot,
+  presets,
+  workspacePolicy: policy,
+});
+const snapshotDir = path.join(workDir, "snapshot");
+const snap = bound.writeTemplateSnapshot(snapshotDir);
+assert.equal(existsSync(snap.workspacePolicyPath), true);
+
+// Delete original templates and verify packaged source context works independently
+rmSync(tplDir, { recursive: true, force: true });
+const packagedSource = createPackagedSourceContext(snapshotDir);
+const packagedPolicy = packagedSource.readWorkspacePolicy();
+const outParent = path.join(workDir, "out");
+mkdirSync(outParent, { recursive: true });
+
+const planned = planProject({
+  cwd: outParent,
+  dir: "demo-ws",
+  presetSpecs: ["app:my-bin"],
+  source: packagedSource,
+  workspaceRoot,
+  presets,
+  workspacePolicy: packagedPolicy,
+});
+assert.equal(planned.ok, true);
+const projection = buildProjectProjection(planned.blueprint, {
+  source: packagedSource,
+  workspacePolicy: packagedPolicy,
+});
+const workspaceEntry = projection.entries.find((e) => e.path === "pnpm-workspace.yaml");
+assert.ok(workspaceEntry);
+const wsText = new TextDecoder().decode(workspaceEntry.content);
+assert.equal(wsText.includes("catalog:"), false);
+assert.equal(wsText.includes("catalogs:"), false);
+
+const materialized = writeProjectProjection(projection);
+assert.deepStrictEqual(materialized, { ok: true });
+const binMode = statSync(path.join(outParent, "demo-ws/packages/my-bin/bin/run.sh")).mode;
+assert.notEqual(binMode & 0o111, 0);
+const pkgJson = JSON.parse(readFileSync(path.join(outParent, "demo-ws/packages/my-bin/package.json"), "utf8"));
+assert.deepStrictEqual(pkgJson.bin, { "my-bin": "./bin/run.sh" });
+assert.equal(typeof readPnpmWorkspaceCatalog, "function");
+`;
+      runExec(
+        process.execPath,
+        ["--input-type=module", "-e", consumerScript],
         consumerDir,
       );
-      const parsedProgram = JSON.parse(programOut) as {
-        readonly variant: string;
-        readonly data: { readonly packages: readonly unknown[] };
-      };
-      assert.equal(parsedProgram.variant, "initialized");
-      assert.equal(parsedProgram.data.packages.length, 4);
-      const generatedGitignore = readFileSync(
-        path.join(generatedRepoDir, ".gitignore"),
-        "utf8",
-      );
-      assert.ok(generatedGitignore.split(/\r?\n/u).includes(".local/"));
-      assert.equal(generatedGitignore.split(/\r?\n/u).includes("data/"), false);
-      const generatedEntrypointMode = statSync(
-        path.join(
-          generatedRepoDir,
-          "packages/deployment/scripts/container-entrypoint.sh",
-        ),
-      ).mode;
-      assert.notEqual(generatedEntrypointMode & 0o111, 0);
     } finally {
       rmSync(tempRoot, { recursive: true, force: true });
     }

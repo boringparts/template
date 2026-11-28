@@ -3,7 +3,7 @@ import path from "node:path";
 
 import {
   normalizeRelativePackagePath,
-  tryReadSourceTextFile,
+  type SourceContext,
 } from "../sources/index.ts";
 import { mergeWorkspaceEnvironment } from "./environment.ts";
 import { collectManifestDependencyNames } from "./transform.ts";
@@ -30,11 +30,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function readManifestJson(
-  packageDir: string,
+  source: SourceContext,
+  sourceDir: string,
 ): Record<string, unknown> | undefined {
-  const rawManifest = tryReadSourceTextFile(
-    path.join(packageDir, "package.json"),
-  );
+  const rawManifest = source.tryReadPackageText(sourceDir, "package.json");
   if (rawManifest === undefined) {
     return undefined;
   }
@@ -46,19 +45,75 @@ function readManifestJson(
   }
 }
 
-function readManifestBinKeys(packageDir: string): readonly string[] {
-  const manifest = readManifestJson(packageDir);
+function readManifestBinKeys(
+  source: SourceContext,
+  sourceDir: string,
+): readonly string[] {
+  const manifest = readManifestJson(source, sourceDir);
   if (manifest === undefined || !isRecord(manifest.bin)) {
     return [];
   }
   return Object.keys(manifest.bin);
 }
 
-function readManifestDependencyNames(packageDir: string): ReadonlySet<string> {
-  const manifest = readManifestJson(packageDir);
+function readManifestDependencyNames(
+  source: SourceContext,
+  sourceDir: string,
+): ReadonlySet<string> {
+  const manifest = readManifestJson(source, sourceDir);
   return manifest === undefined
     ? new Set<string>()
     : collectManifestDependencyNames(manifest);
+}
+
+/**
+ * Resolves and validates a source package's manifest `"name"` against an optional
+ * declared `packageName`. Records structured issues when `sourceDir` escapes bounds,
+ * `package.json` lacks a valid `"name"`, or the declared name disagrees with the manifest.
+ */
+function resolveAndValidateSourcePackageName(options: {
+  readonly source: SourceContext;
+  readonly sourceDir: string;
+  readonly declaredPackageName: string | undefined;
+  readonly ownerLabel: string;
+  readonly issues: InvalidRequestIssue[];
+}): string {
+  const normalizedDir = normalizeRelativePackagePath(options.sourceDir);
+  if (normalizedDir === undefined) {
+    options.issues.push({
+      code: "DIRECTORY_OWNERSHIP_VIOLATION",
+      message: `${options.ownerLabel} source directory "${options.sourceDir}" escapes source context.`,
+    });
+    return options.declaredPackageName ?? options.sourceDir;
+  }
+
+  const manifest = readManifestJson(options.source, normalizedDir);
+  const manifestName =
+    manifest !== undefined &&
+    typeof manifest.name === "string" &&
+    manifest.name.trim().length > 0
+      ? manifest.name
+      : undefined;
+
+  if (manifestName === undefined) {
+    options.issues.push({
+      code: "CONFLICTING_PACKAGE_IDENTITY",
+      message: `${options.ownerLabel} at "${normalizedDir}" is missing a valid "name" in package.json.`,
+    });
+    return options.declaredPackageName ?? normalizedDir;
+  }
+
+  if (
+    options.declaredPackageName !== undefined &&
+    options.declaredPackageName !== manifestName
+  ) {
+    options.issues.push({
+      code: "CONFLICTING_PACKAGE_IDENTITY",
+      message: `${options.ownerLabel} at "${normalizedDir}" declares packageName "${options.declaredPackageName}", which disagrees with manifest name "${manifestName}".`,
+    });
+  }
+
+  return manifestName;
 }
 
 /**
@@ -98,8 +153,15 @@ function parseGitignoreTopLevelDirs(content: string): ReadonlySet<string> {
 }
 
 function resolveReservedTopLevelDirs(
+  source: SourceContext,
   workspaceRoot: WorkspaceRoot,
 ): ReadonlySet<string> {
+  const normalizedRootDir = normalizeRelativePackagePath(
+    workspaceRoot.sourceDir,
+  );
+  if (normalizedRootDir === undefined) {
+    return new Set();
+  }
   const gitignoreMapping = workspaceRoot.resources?.find(
     (resource) =>
       normalizeRelativePackagePath(resource.targetPath) === ".gitignore",
@@ -113,8 +175,9 @@ function resolveReservedTopLevelDirs(
   if (normalizedSource === undefined) {
     return new Set();
   }
-  const rawGitignore = tryReadSourceTextFile(
-    path.join(workspaceRoot.packageDir, normalizedSource),
+  const rawGitignore = source.tryReadPackageText(
+    normalizedRootDir,
+    normalizedSource,
   );
   if (rawGitignore === undefined) {
     return new Set();
@@ -302,14 +365,15 @@ function validateDeclaredResources(options: {
 }
 
 function bindDeclaredSingletons(
-  packageDir: string,
+  source: SourceContext,
+  sourceDir: string,
   singletonBindings: ReadonlyMap<string, string>,
   dependencyBindings: Map<string, string>,
 ): void {
   if (singletonBindings.size === 0) {
     return;
   }
-  const declaredDeps = readManifestDependencyNames(packageDir);
+  const declaredDeps = readManifestDependencyNames(source, sourceDir);
   for (const [refPkgName, targetPkgName] of singletonBindings) {
     if (declaredDeps.has(refPkgName)) {
       dependencyBindings.set(refPkgName, targetPkgName);
@@ -330,15 +394,24 @@ type MutablePlannedNode = {
 };
 
 /**
- * Validates CLI initialization inputs without writing to disk and produces a deterministic `ProjectBlueprint`.
+ * Validates initialization inputs without writing to disk and produces a deterministic `ProjectBlueprint`.
  */
 export function planProject(request: PlanProjectRequest): PlanProjectResult {
   const issues: InvalidRequestIssue[] = [];
   const targetDir = path.resolve(request.cwd, request.dir);
   const repositoryName = path.basename(targetDir);
   const reservedTopLevelDirs = resolveReservedTopLevelDirs(
+    request.source,
     request.workspaceRoot,
   );
+
+  resolveAndValidateSourcePackageName({
+    source: request.source,
+    sourceDir: request.workspaceRoot.sourceDir,
+    declaredPackageName: request.workspaceRoot.packageName,
+    ownerLabel: "Workspace root",
+    issues,
+  });
 
   let resolvedScope = "repository";
   if (request.scope !== undefined) {
@@ -384,6 +457,13 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
     if (!pathCheck.ok) {
       issues.push({ code: pathCheck.code, message: pathCheck.message });
     }
+    const refPackageName = resolveAndValidateSourcePackageName({
+      source: request.source,
+      sourceDir: singleton.referencePackage.sourceDir,
+      declaredPackageName: singleton.referencePackage.packageName,
+      ownerLabel: `Singleton "${singleton.nodeId}"`,
+      issues,
+    });
     const packageName = `@${resolvedScope}/${singleton.defaultName}`;
     if (packageName.length > maxNpmPackageNameLength) {
       issues.push({
@@ -394,14 +474,15 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
         message: `Scoped package name "${packageName}" exceeds ${String(maxNpmPackageNameLength)} characters.`,
       });
     }
-    singletonBindings.set(singleton.referencePackage.packageName, packageName);
+    singletonBindings.set(refPackageName, packageName);
     const dependencyBindings = new Map<string, string>();
     bindDeclaredSingletons(
-      singleton.referencePackage.packageDir,
+      request.source,
+      singleton.referencePackage.sourceDir,
       singletonBindings,
       dependencyBindings,
     );
-    dependencyBindings.set(singleton.referencePackage.packageName, packageName);
+    dependencyBindings.set(refPackageName, packageName);
 
     plannedNodes.push({
       presetAlias: "workspace-singleton",
@@ -465,14 +546,22 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
       }
 
       for (const node of preset.nodes) {
+        const refPackageName = resolveAndValidateSourcePackageName({
+          source: request.source,
+          sourceDir: node.referencePackage.sourceDir,
+          declaredPackageName: node.referencePackage.packageName,
+          ownerLabel: `Preset "${preset.alias}" node "${node.nodeId}"`,
+          issues,
+        });
         const dependencyBindings = new Map<string, string>();
         bindDeclaredSingletons(
-          node.referencePackage.packageDir,
+          request.source,
+          node.referencePackage.sourceDir,
           singletonBindings,
           dependencyBindings,
         );
         dependencyBindings.set(
-          node.referencePackage.packageName,
+          refPackageName,
           nodePackageById.get(node.nodeId)!,
         );
         for (const [refPkgName, targetNodeId] of Object.entries(
@@ -543,13 +632,22 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
       });
     }
 
+    const refPackageName = resolveAndValidateSourcePackageName({
+      source: request.source,
+      sourceDir: primary.referencePackage.sourceDir,
+      declaredPackageName: primary.referencePackage.packageName,
+      ownerLabel: `Preset "${preset.alias}" node "${primary.nodeId}"`,
+      issues,
+    });
+
     const dependencyBindings = new Map<string, string>();
     bindDeclaredSingletons(
-      primary.referencePackage.packageDir,
+      request.source,
+      primary.referencePackage.sourceDir,
       singletonBindings,
       dependencyBindings,
     );
-    dependencyBindings.set(primary.referencePackage.packageName, packageName);
+    dependencyBindings.set(refPackageName, packageName);
 
     plannedNodes.push({
       presetAlias: preset.alias,
@@ -598,7 +696,10 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
     }
 
     // Introspect manifest `bin` entries: single-entry `bin` maps to `node.leafName`.
-    const binKeys = readManifestBinKeys(node.referencePackage.packageDir);
+    const binKeys = readManifestBinKeys(
+      request.source,
+      node.referencePackage.sourceDir,
+    );
     const instantiatedBins = binKeys.length === 1 ? [node.leafName] : binKeys;
     for (const binName of instantiatedBins) {
       const existingByBin = seenBins.get(binName);
@@ -616,7 +717,7 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
   // Validate explicit `--link <consumer-path>:<provider-path>` requests.
   const links: ProjectLink[] = [];
   const seenLinkKeys = new Set<string>();
-  for (const rawLink of request.linkSpecs) {
+  for (const rawLink of request.linkSpecs ?? []) {
     const parts = rawLink.split(":");
     if (parts.length !== 2 || parts[0] === "" || parts[1] === "") {
       issues.push({
@@ -742,7 +843,12 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
     linkedProviders: node.linkedProviders,
   }));
 
-  const envMerge = mergeWorkspaceEnvironment(request.workspaceRoot, instances);
+  const envMerge = mergeWorkspaceEnvironment(request.workspaceRoot, instances, {
+    source: request.source,
+    ...(request.workspacePolicy === undefined
+      ? {}
+      : { workspacePolicy: request.workspacePolicy }),
+  });
   if (!envMerge.ok) {
     issues.push(...envMerge.issues);
   }

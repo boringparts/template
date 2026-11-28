@@ -1,6 +1,4 @@
 node_modules/
 dist/
-templates/
-template-dist/
 .turbo/
 *.tgz
