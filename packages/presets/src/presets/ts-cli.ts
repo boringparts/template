@@ -41,7 +41,6 @@ export function createTsCliPreset(templatesRoot?: string): PresetDefinition {
               targetPath: "tsconfig.build.json",
             },
             { sourcePath: "resources/gitignore", targetPath: ".gitignore" },
-            { sourcePath: "resources/npmignore", targetPath: ".npmignore" },
             { sourcePath: "src/cli.ts", targetPath: "src/cli.ts" },
             { sourcePath: "src/main.ts", targetPath: "src/main.ts" },
             {

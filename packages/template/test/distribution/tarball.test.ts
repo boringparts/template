@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -14,6 +15,8 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { standardPresetVerificationScenarios } from "@boringparts/template-presets";
+
+import { copyTemplateDirectory } from "../../scripts/build-distribution.ts";
 
 const packageRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -69,22 +72,49 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
       assert.ok(entries.includes("package/dist/cli.js"));
       assert.ok(entries.includes("package/dist/main.js"));
       assert.ok(entries.includes("package/dist/main.d.ts"));
-      assert.ok(
-        entries.includes(
-          "package/templates/packages/tooling-config/package.json",
-        ),
-      );
       assert.ok(entries.includes("package/templates/root/package.json"));
       assert.ok(entries.includes("package/templates/root/pnpm-workspace.yaml"));
       assert.ok(entries.includes("package/templates/root/rust-toolchain.toml"));
-      assert.ok(entries.includes("package/templates/root/oxfmt.config.ts"));
-      assert.ok(entries.includes("package/templates/root/oxlint.config.ts"));
+      assert.equal(
+        entries.includes("package/templates/root/oxfmt.config.ts"),
+        false,
+      );
+      assert.equal(
+        entries.includes("package/templates/root/oxlint.config.ts"),
+        false,
+      );
+      assert.equal(
+        entries.includes(
+          "package/templates/references/npm-publication/package.json",
+        ),
+        false,
+      );
+      assert.ok(
+        entries.includes(
+          "package/templates/references/workspace-root/oxfmt.config.ts",
+        ),
+      );
+      assert.ok(
+        entries.includes(
+          "package/templates/references/workspace-root/oxlint.config.ts",
+        ),
+      );
+      assert.ok(
+        entries.includes(
+          "package/templates/references/workspace-root/resources/publication/config.json",
+        ),
+      );
+      assert.ok(
+        entries.includes(
+          "package/templates/references/workspace-root/resources/publication/release.yml",
+        ),
+      );
 
       for (const slug of [
         "hono-api",
         "node-lib",
-        "npm-publication",
         "rust-bin",
+        "tooling-config",
         "ts-cli",
         "ts-lib",
         "vike-db",
@@ -115,9 +145,9 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
           `Unexpected node_modules entry: ${entry}`,
         );
         assert.equal(
-          entry.includes("/data/"),
+          entry.includes("/.local/"),
           false,
-          `Unexpected runtime data entry: ${entry}`,
+          `Unexpected runtime .local entry: ${entry}`,
         );
         assert.equal(
           entry.includes("/target/"),
@@ -186,10 +216,20 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
         path.join(unpackDir, "package/dist/cli.js"),
       ).mode;
       assert.notEqual(cliMode & 0o111, 0, "dist/cli.js must be executable");
+      assert.ok(
+        entries.includes(
+          "package/templates/references/vike-deployment/Dockerfile",
+        ),
+      );
+      assert.ok(
+        entries.includes(
+          "package/templates/references/vike-deployment/Dockerfile.dockerignore",
+        ),
+      );
       const entrypointMode = statSync(
         path.join(
           unpackDir,
-          "package/templates/references/vike-deployment/resources/deployment/scripts/container-entrypoint.sh",
+          "package/templates/references/vike-deployment/scripts/container-entrypoint.sh",
         ),
       ).mode;
       assert.notEqual(
@@ -290,6 +330,29 @@ process.stdout.write(out);`,
         readonly data: { readonly presets: readonly unknown[] };
       };
       assert.equal(parsedProgram.data.presets.length, 7);
+
+      // Verify distribution directory copying preserves business `data/` directories while excluding `.local/`.
+      const fixtureSourceDir = path.join(tempRoot, "fixture-ref");
+      const fixtureTargetDir = path.join(tempRoot, "copied-ref");
+      mkdirSync(path.join(fixtureSourceDir, "data"), { recursive: true });
+      mkdirSync(path.join(fixtureSourceDir, ".local"), { recursive: true });
+      writeFileSync(
+        path.join(fixtureSourceDir, "data", "seed.json"),
+        '{"ok":true}\n',
+      );
+      writeFileSync(
+        path.join(fixtureSourceDir, ".local", "dev.sqlite"),
+        "sqlite-state\n",
+      );
+      copyTemplateDirectory(fixtureSourceDir, fixtureTargetDir);
+      assert.equal(
+        existsSync(path.join(fixtureTargetDir, "data", "seed.json")),
+        true,
+      );
+      assert.equal(
+        existsSync(path.join(fixtureTargetDir, ".local", "dev.sqlite")),
+        false,
+      );
     } finally {
       rmSync(tempRoot, { recursive: true, force: true });
     }

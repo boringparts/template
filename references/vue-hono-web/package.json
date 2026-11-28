@@ -14,7 +14,7 @@
       "types": "./src/main.ts",
       "default": "./src/main.ts"
     },
-    "./package.json": "./package.json"
+    "./reference": "./package.json"
   },
   "scripts": {
     "format:check": "oxfmt --list-different .",
@@ -33,7 +33,7 @@
     "vue": "catalog:"
   },
   "devDependencies": {
-    "@boringparts/tooling-config": "workspace:*",
+    "@boringparts/reference-tooling-config": "workspace:*",
     "@tailwindcss/vite": "catalog:",
     "@types/node": "catalog:",
     "@types/web-bluetooth": "catalog:",

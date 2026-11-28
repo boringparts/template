@@ -35,7 +35,6 @@ export function createRustBinPreset(templatesRoot?: string): PresetDefinition {
             { sourcePath: "rustfmt.toml", targetPath: "rustfmt.toml" },
             { sourcePath: "src/main.rs", targetPath: "src/main.rs" },
             { sourcePath: "resources/gitignore", targetPath: ".gitignore" },
-            { sourcePath: "resources/npmignore", targetPath: ".npmignore" },
           ],
         },
       },

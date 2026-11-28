@@ -66,7 +66,7 @@ const runtimeDirectoryNames = new Set([
   ".turbo",
   ".pnpm-store",
   ".vitest",
-  "data",
+  ".local",
   "playwright-report",
   "test-results",
 ]);

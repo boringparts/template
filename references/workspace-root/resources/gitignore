@@ -6,6 +6,6 @@ target/
 coverage/
 .env
 .vitest/
-data/
+.local/
 playwright-report/
 test-results/

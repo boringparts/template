@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./package.json": "./package.json"
+    "./reference": "./package.json"
   },
   "scripts": {
     "check:deployment": "node --conditions=source scripts/check-standalone-deployment.ts",
@@ -13,7 +13,7 @@
     "database:prepare:test": "DATABASE_PROFILE=test pnpm --filter @boringparts/reference-vike-db run db:reset && DATABASE_PROFILE=test pnpm --filter @boringparts/reference-vike-migrations run db:push && DATABASE_PROFILE=test pnpm --filter @boringparts/reference-vike-db run db:seed:example",
     "format:check": "oxfmt --list-different .",
     "format:write": "oxfmt --write .",
-    "lint": "oxlint --quiet --format=unix --ignore-pattern node_modules . && shellcheck resources/deployment/scripts/container-entrypoint.sh",
+    "lint": "oxlint --quiet --format=unix --ignore-pattern node_modules . && shellcheck scripts/container-entrypoint.sh",
     "lint:fix": "oxlint --format=unix --ignore-pattern node_modules . --fix",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
   },
@@ -23,7 +23,7 @@
     "@boringparts/reference-vike-web": "workspace:*"
   },
   "devDependencies": {
-    "@boringparts/tooling-config": "workspace:*",
+    "@boringparts/reference-tooling-config": "workspace:*",
     "@types/node": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",

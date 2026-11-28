@@ -22,8 +22,8 @@
   "dependencies": {
     "@boringparts/reference-hono-api": "workspace:*",
     "@boringparts/reference-node-lib": "workspace:*",
-    "@boringparts/reference-npm-publication": "workspace:*",
     "@boringparts/reference-rust-bin": "workspace:*",
+    "@boringparts/reference-tooling-config": "workspace:*",
     "@boringparts/reference-ts-cli": "workspace:*",
     "@boringparts/reference-ts-lib": "workspace:*",
     "@boringparts/reference-vike-db": "workspace:*",
@@ -34,10 +34,10 @@
     "@boringparts/reference-vue-hono-e2e": "workspace:*",
     "@boringparts/reference-vue-hono-web": "workspace:*",
     "@boringparts/reference-workspace-root": "workspace:*",
-    "@boringparts/template-engine": "workspace:*",
-    "@boringparts/tooling-config": "workspace:*"
+    "@boringparts/template-engine": "workspace:*"
   },
   "devDependencies": {
+    "@boringparts/tooling-config": "workspace:*",
     "@types/node": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",

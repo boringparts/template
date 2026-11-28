@@ -292,7 +292,7 @@ void describe("CLI contract", () => {
       ]);
       assert.deepStrictEqual(rootTurbo.tasks["//#fix"]?.tags, ["work:repair"]);
 
-      // Shared tooling-config manifest rewritten without ./package.json leak
+      // Shared tooling-config manifest rewritten without ./package.json or ./reference leak
       const toolingPkg = JSON.parse(
         readFileSync(
           path.join(targetDir, "packages/tooling-config/package.json"),
@@ -304,6 +304,7 @@ void describe("CLI contract", () => {
       };
       assert.equal(toolingPkg.name, "@acme-sdk/tooling-config");
       assert.equal(Object.hasOwn(toolingPkg.exports, "./package.json"), false);
+      assert.equal(Object.hasOwn(toolingPkg.exports, "./reference"), false);
 
       // Generated ts-lib package manifest, exports, tsconfig, and test specifiers rewritten
       const libPkg = JSON.parse(
@@ -315,6 +316,11 @@ void describe("CLI contract", () => {
       };
       assert.equal(libPkg.name, "@acme-sdk/lib");
       assert.equal(Object.hasOwn(libPkg.exports, "./package.json"), false);
+      assert.equal(Object.hasOwn(libPkg.exports, "./reference"), false);
+      assert.equal(
+        existsSync(path.join(targetDir, "packages/lib/.npmignore")),
+        false,
+      );
       assert.equal(
         libPkg.devDependencies["@acme-sdk/tooling-config"],
         "workspace:*",
@@ -769,5 +775,73 @@ void describe("CLI contract", () => {
     assert.equal(await runCli({ ...failRun.runtime, argv: brokenArgv }), 70);
     assert.ok(failRun.stderr().includes("Command execution failed"));
     assert.equal(failRun.stderr().includes("secret internal failure"), false);
+  });
+
+  void it("preserves package-internal data/ directories and replaces data/ with .local/ in generated .gitignore", async () => {
+    await withTempDir(async (workspaceDir) => {
+      const fixtureRefDir = path.join(workspaceDir, "fixture-ref");
+      const targetDir = path.join(workspaceDir, "data-business-repo");
+      const basePreset = loadBuiltInPresets().find(
+        (preset) => preset.alias === "ts-lib",
+      )!;
+      const baseNode = basePreset.nodes[0]!;
+
+      mkdirSync(path.join(fixtureRefDir, "data"), { recursive: true });
+      for (const file of baseNode.reference.files) {
+        const dest = path.join(fixtureRefDir, file.sourcePath);
+        mkdirSync(path.dirname(dest), { recursive: true });
+        writeFileSync(
+          dest,
+          readFileSync(
+            path.join(baseNode.reference.packageDir, file.sourcePath),
+          ),
+        );
+      }
+      writeFileSync(
+        path.join(fixtureRefDir, "data", "catalog.json"),
+        '{"items":["alpha"]}\n',
+      );
+
+      const fixturePreset: PresetDefinition = {
+        ...basePreset,
+        alias: "ts-lib-with-data",
+        nodes: [
+          {
+            ...baseNode,
+            reference: {
+              ...baseNode.reference,
+              packageDir: fixtureRefDir,
+              files: [
+                ...baseNode.reference.files,
+                {
+                  sourcePath: "data/catalog.json",
+                  targetPath: "data/catalog.json",
+                },
+              ],
+            },
+          },
+        ],
+      };
+
+      const run = testOverrideRuntime(
+        ["init", targetDir, "--preset", "ts-lib-with-data"],
+        { presets: [fixturePreset] },
+      );
+      assert.equal(await executeCliRuntime(run.runtime), 0);
+      assert.equal(run.stderr(), "");
+      assert.equal(
+        readFileSync(
+          path.join(targetDir, "packages/lib/data/catalog.json"),
+          "utf8",
+        ),
+        '{"items":["alpha"]}\n',
+      );
+      const gitignore = readFileSync(
+        path.join(targetDir, ".gitignore"),
+        "utf8",
+      );
+      assert.ok(gitignore.split(/\r?\n/u).includes(".local/"));
+      assert.equal(gitignore.split(/\r?\n/u).includes("data/"), false);
+    });
   });
 });

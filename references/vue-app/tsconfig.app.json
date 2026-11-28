@@ -1,7 +1,7 @@
 {
   "extends": [
     "@vue/tsconfig/tsconfig.dom.json",
-    "@boringparts/tooling-config/base.json"
+    "@boringparts/reference-tooling-config/base.json"
   ],
   "compilerOptions": {
     "composite": true,

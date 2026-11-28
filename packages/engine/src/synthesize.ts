@@ -374,7 +374,7 @@ function synthesizeRootManifest(options: {
     ? (refRoot.devDependencies as Record<string, string>)
     : {};
   for (const [dep, spec] of Object.entries(refDevDeps)) {
-    if (dep === "@boringparts/tooling-config") {
+    if (dep === "@boringparts/reference-tooling-config") {
       devDependencies[`@${options.blueprint.scope}/tooling-config`] =
         "workspace:*";
     } else {
@@ -720,12 +720,6 @@ export function buildProjectProjection(
             scope: blueprint.scope,
             leafName: instance.leafName,
             packageName: instance.packageName,
-            ...(instance.reference.preservePackageJsonExport === undefined
-              ? {}
-              : {
-                  preservePackageJsonExport:
-                    instance.reference.preservePackageJsonExport,
-                }),
             ...(instance.reference.rewriteBinName === undefined
               ? {}
               : { rewriteBinName: instance.reference.rewriteBinName }),
@@ -831,11 +825,15 @@ export function buildProjectProjection(
   );
   addText(
     "oxfmt.config.ts",
-    rewriteRootText(readText(roots.rootOxfmtConfigPath)),
+    rewriteRootText(
+      readText(path.join(roots.workspaceRootRefDir, "oxfmt.config.ts")),
+    ),
   );
   addText(
     "oxlint.config.ts",
-    rewriteRootText(readText(roots.rootOxlintConfigPath)),
+    rewriteRootText(
+      readText(path.join(roots.workspaceRootRefDir, "oxlint.config.ts")),
+    ),
   );
   addText(
     ".github/workflows/check.yml",
@@ -849,13 +847,23 @@ export function buildProjectProjection(
     addText(
       ".changeset/config.json",
       readText(
-        path.join(roots.npmPublicationRefDir, ".changeset", "config.json"),
+        path.join(
+          roots.workspaceRootRefDir,
+          "resources",
+          "publication",
+          "config.json",
+        ),
       ),
     );
     addText(
       ".github/workflows/release.yml",
       readText(
-        path.join(roots.npmPublicationRefDir, "resources", "release.yml"),
+        path.join(
+          roots.workspaceRootRefDir,
+          "resources",
+          "publication",
+          "release.yml",
+        ),
       ),
     );
   }

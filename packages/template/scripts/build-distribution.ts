@@ -10,6 +10,7 @@ import {
   statSync,
 } from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { resolveTemplateDistributionSources } from "@boringparts/template-presets";
 import { build as esbuild } from "esbuild";
@@ -21,7 +22,7 @@ const excludedDirectories = new Set([
   "dist",
   "target",
   ".turbo",
-  "data",
+  ".local",
   "test-results",
   "playwright-report",
   ".vitest",
@@ -35,8 +36,6 @@ const rootBaselineFiles = [
   "package.json",
   "pnpm-workspace.yaml",
   "rust-toolchain.toml",
-  "oxfmt.config.ts",
-  "oxlint.config.ts",
 ] as const;
 
 function resolveExecutable(name: string, searchRoot: string): string {
@@ -44,7 +43,10 @@ function resolveExecutable(name: string, searchRoot: string): string {
   return existsSync(candidate) ? candidate : name;
 }
 
-function copyTemplateDirectory(sourceDir: string, targetDir: string): void {
+export function copyTemplateDirectory(
+  sourceDir: string,
+  targetDir: string,
+): void {
   mkdirSync(targetDir, { recursive: true });
   for (const entry of readdirSync(sourceDir, { withFileTypes: true })) {
     const sourcePath = path.join(sourceDir, entry.name);
@@ -139,10 +141,6 @@ async function main(): Promise<void> {
 
   // Copy static template assets using the exact registered package resolution from @boringparts/template-presets.
   const sources = resolveTemplateDistributionSources();
-  copyTemplateDirectory(
-    sources.toolingConfigDir,
-    path.join(templatesDir, "packages", "tooling-config"),
-  );
 
   for (const refPkg of sources.referencePackages) {
     copyTemplateDirectory(
@@ -161,4 +159,10 @@ async function main(): Promise<void> {
   }
 }
 
-await main();
+const mainFile = process.argv[1];
+if (
+  mainFile !== undefined &&
+  pathToFileURL(path.resolve(mainFile)).href === import.meta.url
+) {
+  await main();
+}

@@ -1,5 +1,5 @@
 {
-  "extends": "@boringparts/tooling-config/node.json",
+  "extends": "@boringparts/reference-tooling-config/node.json",
   "compilerOptions": {
     "lib": ["es2024"],
     "skipLibCheck": true,

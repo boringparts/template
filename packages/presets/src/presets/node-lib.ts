@@ -40,7 +40,6 @@ export function createNodeLibPreset(templatesRoot?: string): PresetDefinition {
               targetPath: "tsconfig.build.json",
             },
             { sourcePath: "resources/gitignore", targetPath: ".gitignore" },
-            { sourcePath: "resources/npmignore", targetPath: ".npmignore" },
             {
               sourcePath: "src/artifact-schema.ts",
               targetPath: "src/artifact-schema.ts",

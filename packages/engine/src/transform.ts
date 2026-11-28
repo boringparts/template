@@ -1,6 +1,6 @@
 import { parse as parseToml, stringify as stringifyToml } from "smol-toml";
 
-const toolingConfigRefName = "@boringparts/tooling-config";
+const toolingConfigRefName = "@boringparts/reference-tooling-config";
 const binaryExtensions = new Set([
   ".png",
   ".jpg",
@@ -152,8 +152,8 @@ export function collectManifestCatalogUsage(
  * Rewrites a subpackage `package.json`:
  * - assigns the instantiated package name
  * - rewrites `bin` command key if `rewriteBinName` is enabled
- * - removes the author-only `"./package.json"` export
- * - rewrites `@boringparts/tooling-config` and bound `@boringparts/reference-*` dependencies
+ * - removes the author-only `"./reference"` export
+ * - rewrites `@boringparts/reference-tooling-config` and bound `@boringparts/reference-*` dependencies
  * - injects `"workspace:*"` dependencies for explicit `--link` providers
  */
 export function rewriteSubpackageManifest(options: {
@@ -161,7 +161,6 @@ export function rewriteSubpackageManifest(options: {
   readonly scope: string;
   readonly leafName: string;
   readonly packageName: string;
-  readonly preservePackageJsonExport?: boolean;
   readonly rewriteBinName?: boolean;
   readonly dependencyBindings: ReadonlyMap<string, string>;
   readonly pathReplacements?: ReadonlyMap<string, string>;
@@ -180,11 +179,10 @@ export function rewriteSubpackageManifest(options: {
   }
 
   if (
-    !options.preservePackageJsonExport &&
     isRecord(manifest.exports) &&
-    Object.hasOwn(manifest.exports, "./package.json")
+    Object.hasOwn(manifest.exports, "./reference")
   ) {
-    delete manifest.exports["./package.json"];
+    delete manifest.exports["./reference"];
     if (Object.keys(manifest.exports).length === 0) {
       delete manifest.exports;
     }
@@ -392,7 +390,7 @@ export function synthesizeWorkspaceCargoLock(
 }
 
 /**
- * Deterministically replaces `@boringparts/tooling-config`, bound `@boringparts/reference-*`
+ * Deterministically replaces `@boringparts/reference-tooling-config`, bound `@boringparts/reference-*`
  * specifiers, and configured relative reference paths in UTF-8 source, test, and config files.
  */
 export function rewriteTextSpecifiers(options: {
