@@ -1,9 +1,0 @@
-{
-  "extends": "@boringparts/tooling-config/node.json",
-  "compilerOptions": {
-    "lib": ["es2024"],
-    "skipLibCheck": true,
-    "types": ["node"]
-  },
-  "include": ["src/**/*.ts", "*.config.ts"]
-}

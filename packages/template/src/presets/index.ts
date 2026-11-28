@@ -1,5 +1,4 @@
-import type { PresetDefinition } from "@boringparts/template-engine";
-
+import type { PresetDefinition } from "../core/index.ts";
 import type { WorkspaceEnvironmentMeta } from "./environment-meta.ts";
 import { createNodeLibPreset } from "./presets/node-lib.ts";
 import { createRustBinPreset } from "./presets/rust-bin.ts";
@@ -33,10 +32,6 @@ export {
   type RegisteredReferencePackage,
   type TemplateDistributionSources,
 } from "./roots.ts";
-export {
-  standardPresetVerificationScenarios,
-  type PresetVerificationScenario,
-} from "./scenarios.ts";
 
 /** Loads all built-in presets in deterministic display order. */
 export function loadBuiltInPresets(

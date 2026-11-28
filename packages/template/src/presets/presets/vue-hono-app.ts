@@ -1,5 +1,4 @@
-import type { PresetDefinition } from "@boringparts/template-engine";
-
+import type { PresetDefinition } from "../../core/index.ts";
 import {
   browserTestDevcontainerMeta,
   frontendVscodeMeta,

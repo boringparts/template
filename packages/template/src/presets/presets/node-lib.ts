@@ -1,34 +1,33 @@
-import type { PresetDefinition } from "@boringparts/template-engine";
-
+import type { PresetDefinition } from "../../core/index.ts";
 import type { WorkspaceEnvironmentMeta } from "../environment-meta.ts";
 import { resolvePackageDir } from "../roots.ts";
 
-/** Builds the `ts-cli` preset backed by `@boringparts/reference-ts-cli`. */
-export function createTsCliPreset(
+/** Builds the `node-lib` preset backed by `@boringparts/reference-node-lib`. */
+export function createNodeLibPreset(
   templatesRoot?: string,
 ): PresetDefinition<WorkspaceEnvironmentMeta> {
   const packageDir = resolvePackageDir(
-    "@boringparts/reference-ts-cli",
+    "@boringparts/reference-node-lib",
     import.meta.url,
     templatesRoot,
   );
 
   return {
-    alias: "ts-cli",
-    title: "TypeScript CLI Application",
+    alias: "node-lib",
+    title: "Node.js TypeScript Library",
     description:
-      "Node.js CLI package using @boringparts/cli-contract with unit, integration, and e2e journeys.",
+      "Node.js library package targeting >=24.0.0 with Node 24 devEngines and dist verification.",
     topology: "configurable-primary-package",
     nodes: [
       {
-        nodeId: "cli",
-        defaultName: "cli",
+        nodeId: "library",
+        defaultName: "node-lib",
         defaultCollection: "packages",
-        defaultPath: "packages/cli",
+        defaultPath: "packages/node-lib",
         definition: {
-          packageName: "@boringparts/reference-ts-cli",
+          packageName: "@boringparts/reference-node-lib",
           packageDir,
-          role: "cli-tool",
+          role: "node-library",
           publishable: true,
           resources: [
             { sourcePath: "resources/gitignore", targetPath: ".gitignore" },

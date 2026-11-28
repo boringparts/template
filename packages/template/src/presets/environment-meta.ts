@@ -2,11 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
-import type {
-  GeneratedInstance,
-  InvalidRequestIssue,
-} from "@boringparts/template-engine";
-
+import type { GeneratedInstance, InvalidRequestIssue } from "../core/index.ts";
 import { resolvePackageDir, resolvePlaywrightVersion } from "./roots.ts";
 
 export type DevcontainerMount = {

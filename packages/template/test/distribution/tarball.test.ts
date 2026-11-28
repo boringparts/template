@@ -13,15 +13,11 @@ import path from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { standardPresetVerificationScenarios } from "@boringparts/template-presets";
-
 const packageRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
   "..",
 );
-
-const allPresetArgs = standardPresetVerificationScenarios;
 
 function collectTarDirSegments(
   entries: readonly string[],
@@ -84,6 +80,15 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
       assert.ok(entries.includes("package/dist/cli.js"));
       assert.ok(entries.includes("package/dist/main.js"));
       assert.ok(entries.includes("package/dist/main.d.ts"));
+      assert.deepStrictEqual(
+        entries
+          .filter(
+            (entry) =>
+              entry.startsWith("package/dist/") && entry.endsWith(".d.ts"),
+          )
+          .toSorted(),
+        ["package/dist/cli-command-identity.d.ts", "package/dist/main.d.ts"],
+      );
       assert.ok(entries.includes("package/templates/root/package.json"));
       assert.ok(entries.includes("package/templates/root/pnpm-workspace.yaml"));
       const templateTopDirs = collectTarDirSegments(
@@ -199,12 +204,20 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
         );
       }
 
-      const mainDts = readFileSync(
-        path.join(unpackDir, "package/dist/main.d.ts"),
-        "utf8",
-      );
-      assert.equal(mainDts.includes("@boringparts/template-engine"), false);
-      assert.equal(mainDts.includes("@boringparts/template-presets"), false);
+      for (const publicDtsName of ["main.d.ts", "cli-command-identity.d.ts"]) {
+        const publicDts = readFileSync(
+          path.join(unpackDir, "package/dist", publicDtsName),
+          "utf8",
+        );
+        assert.equal(publicDts.includes("@boringparts/template-engine"), false);
+        assert.equal(
+          publicDts.includes("@boringparts/template-presets"),
+          false,
+        );
+        assert.equal(publicDts.includes("./core"), false);
+        assert.equal(publicDts.includes("./presets"), false);
+        assert.equal(publicDts.includes("./cli-runner"), false);
+      }
 
       const cliMode = statSync(
         path.join(unpackDir, "package/dist/cli.js"),
@@ -277,8 +290,45 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
       assert.equal(presetsOut.kind, "data");
       assert.equal(presetsOut.data.presets.length, 7);
 
+      const allDryRunScenarios = [
+        ...presetsOut.data.presets.map((preset) => ({
+          id: preset.name,
+          args: ["--preset", preset.name],
+        })),
+        {
+          id: "vue-hono-fullstack",
+          args: [
+            "--preset",
+            "vue-hono-app",
+            "--preset",
+            "ts-lib:shared",
+            "--preset",
+            "node-lib:server-kit",
+            "--link",
+            "apps/web:packages/shared",
+            "--link",
+            "apps/api:packages/shared",
+            "--link",
+            "apps/api:packages/server-kit",
+          ],
+        },
+        {
+          id: "polyglot-cli",
+          args: [
+            "--preset",
+            "ts-cli:tool",
+            "--preset",
+            "ts-lib:core",
+            "--preset",
+            "rust-bin:worker",
+            "--link",
+            "packages/tool:packages/core",
+          ],
+        },
+      ];
+
       // Run dry-run init for all 7 single presets and both multi-package combinations.
-      for (const scenario of allPresetArgs) {
+      for (const scenario of allDryRunScenarios) {
         const targetDir = path.join(tempRoot, "dry-run", scenario.id);
         const initOut = JSON.parse(
           runExec(

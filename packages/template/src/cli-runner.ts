@@ -14,6 +14,9 @@ import {
   type WriteCliOutput,
 } from "@boringparts/cli-contract";
 import { isNodeBrokenPipe } from "@boringparts/cli-contract/node";
+import { z } from "zod";
+
+import type { CliCommandIdentity } from "./cli-command-identity.ts";
 import {
   buildProjectProjection,
   invalidRequestIssueCodes,
@@ -23,15 +26,12 @@ import {
   writeProjectProjection,
   type PresetDefinition,
   type WorkspaceTemplateRoots,
-} from "@boringparts/template-engine";
+} from "./core/index.ts";
 import {
   loadBuiltInPresets,
   resolveTemplateWorkspaceRoots,
   type WorkspaceEnvironmentMeta,
-} from "@boringparts/template-presets";
-import { z } from "zod";
-
-import type { CliCommandIdentity } from "./cli-command-identity.ts";
+} from "./presets/index.ts";
 
 export type InternalCliRuntime = {
   readonly argv: readonly string[];

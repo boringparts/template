@@ -1,34 +1,33 @@
-import type { PresetDefinition } from "@boringparts/template-engine";
-
+import type { PresetDefinition } from "../../core/index.ts";
 import type { WorkspaceEnvironmentMeta } from "../environment-meta.ts";
 import { resolvePackageDir } from "../roots.ts";
 
-/** Builds the `node-lib` preset backed by `@boringparts/reference-node-lib`. */
-export function createNodeLibPreset(
+/** Builds the `ts-lib` preset backed by `@boringparts/reference-ts-lib`. */
+export function createTsLibPreset(
   templatesRoot?: string,
 ): PresetDefinition<WorkspaceEnvironmentMeta> {
   const packageDir = resolvePackageDir(
-    "@boringparts/reference-node-lib",
+    "@boringparts/reference-ts-lib",
     import.meta.url,
     templatesRoot,
   );
 
   return {
-    alias: "node-lib",
-    title: "Node.js TypeScript Library",
+    alias: "ts-lib",
+    title: "TypeScript Library",
     description:
-      "Node.js library package targeting >=24.0.0 with Node 24 devEngines and dist verification.",
+      "Platform-agnostic TypeScript library package with strict es2024 type boundaries.",
     topology: "configurable-primary-package",
     nodes: [
       {
         nodeId: "library",
-        defaultName: "node-lib",
+        defaultName: "lib",
         defaultCollection: "packages",
-        defaultPath: "packages/node-lib",
+        defaultPath: "packages/lib",
         definition: {
-          packageName: "@boringparts/reference-node-lib",
+          packageName: "@boringparts/reference-ts-lib",
           packageDir,
-          role: "node-library",
+          role: "shared-library",
           publishable: true,
           resources: [
             { sourcePath: "resources/gitignore", targetPath: ".gitignore" },
