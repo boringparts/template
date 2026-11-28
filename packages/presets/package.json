@@ -34,7 +34,9 @@
     "@boringparts/reference-vue-hono-e2e": "workspace:*",
     "@boringparts/reference-vue-hono-web": "workspace:*",
     "@boringparts/reference-workspace-root": "workspace:*",
-    "@boringparts/template-engine": "workspace:*"
+    "@boringparts/template-engine": "workspace:*",
+    "smol-toml": "catalog:",
+    "yaml": "catalog:"
   },
   "devDependencies": {
     "@boringparts/tooling-config": "workspace:*",

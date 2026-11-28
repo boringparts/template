@@ -4,33 +4,17 @@ import {
   copyFileSync,
   existsSync,
   mkdirSync,
-  readdirSync,
   readFileSync,
   rmSync,
-  statSync,
 } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { scanPackageDirectory } from "@boringparts/template-engine";
 import { resolveTemplateDistributionSources } from "@boringparts/template-presets";
 import { build as esbuild } from "esbuild";
 
 const packageRoot = path.resolve(import.meta.dirname, "..");
-
-const excludedDirectories = new Set([
-  "node_modules",
-  "dist",
-  "target",
-  ".turbo",
-  ".local",
-  "test-results",
-  "playwright-report",
-  ".vitest",
-  "coverage",
-  ".pnpm-store",
-]);
-
-const excludedFiles = new Set([".DS_Store"]);
 
 const rootBaselineFiles = [
   "package.json",
@@ -43,30 +27,13 @@ function resolveExecutable(name: string, searchRoot: string): string {
   return existsSync(candidate) ? candidate : name;
 }
 
-export function copyTemplateDirectory(
-  sourceDir: string,
-  targetDir: string,
-): void {
-  mkdirSync(targetDir, { recursive: true });
-  for (const entry of readdirSync(sourceDir, { withFileTypes: true })) {
-    const sourcePath = path.join(sourceDir, entry.name);
-    const targetPath = path.join(targetDir, entry.name);
-    if (entry.isDirectory()) {
-      if (excludedDirectories.has(entry.name)) {
-        continue;
-      }
-      copyTemplateDirectory(sourcePath, targetPath);
-      continue;
-    }
-    if (!entry.isFile()) {
-      continue;
-    }
-    if (excludedFiles.has(entry.name) || entry.name.endsWith(".tsbuildinfo")) {
-      continue;
-    }
-    copyFileSync(sourcePath, targetPath);
-    const mode = statSync(sourcePath).mode & 0o777;
-    chmodSync(targetPath, mode);
+function copyTemplatePackage(sourceDir: string, targetDir: string): void {
+  const files = scanPackageDirectory(sourceDir, { includeResources: true });
+  for (const file of files) {
+    const targetPath = path.join(targetDir, file.relativePath);
+    mkdirSync(path.dirname(targetPath), { recursive: true });
+    copyFileSync(file.absPath, targetPath);
+    chmodSync(targetPath, file.mode);
   }
 }
 
@@ -143,7 +110,7 @@ async function main(): Promise<void> {
   const sources = resolveTemplateDistributionSources();
 
   for (const refPkg of sources.referencePackages) {
-    copyTemplateDirectory(
+    copyTemplatePackage(
       refPkg.packageDir,
       path.join(templatesDir, "references", refPkg.slug),
     );

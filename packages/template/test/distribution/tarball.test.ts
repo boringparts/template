@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
   existsSync,
-  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -15,8 +14,6 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { standardPresetVerificationScenarios } from "@boringparts/template-presets";
-
-import { copyTemplateDirectory } from "../../scripts/build-distribution.ts";
 
 const packageRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -307,7 +304,9 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
         assert.equal(existsSync(targetDir), false, scenario.id);
       }
 
-      // Also verify the public programmatic entry point resolves without workspace private packages.
+      // Also verify the public programmatic entry point resolves without workspace private packages
+      // and materializes a clean repository whose .gitignore excludes .local/ without excluding data/.
+      const generatedRepoDir = path.join(tempRoot, "programmatic-init");
       const programOut = runExec(
         process.execPath,
         [
@@ -316,7 +315,7 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
           `import { runCli } from "@boringparts/template";
 let out = "";
 const code = await runCli({
-  argv: ["node", "template", "presets"],
+  argv: ["node", "template", "init", ${JSON.stringify(generatedRepoDir)}, "--preset", "vike-app"],
   cwd: process.cwd(),
   identity: { commandName: "template", version: "0.4.0" },
   write: ({ destination, chunk }) => { if (destination === "stdout") out += chunk; },
@@ -327,32 +326,24 @@ process.stdout.write(out);`,
         consumerDir,
       );
       const parsedProgram = JSON.parse(programOut) as {
-        readonly data: { readonly presets: readonly unknown[] };
+        readonly variant: string;
+        readonly data: { readonly packages: readonly unknown[] };
       };
-      assert.equal(parsedProgram.data.presets.length, 7);
-
-      // Verify distribution directory copying preserves business `data/` directories while excluding `.local/`.
-      const fixtureSourceDir = path.join(tempRoot, "fixture-ref");
-      const fixtureTargetDir = path.join(tempRoot, "copied-ref");
-      mkdirSync(path.join(fixtureSourceDir, "data"), { recursive: true });
-      mkdirSync(path.join(fixtureSourceDir, ".local"), { recursive: true });
-      writeFileSync(
-        path.join(fixtureSourceDir, "data", "seed.json"),
-        '{"ok":true}\n',
+      assert.equal(parsedProgram.variant, "initialized");
+      assert.equal(parsedProgram.data.packages.length, 4);
+      const generatedGitignore = readFileSync(
+        path.join(generatedRepoDir, ".gitignore"),
+        "utf8",
       );
-      writeFileSync(
-        path.join(fixtureSourceDir, ".local", "dev.sqlite"),
-        "sqlite-state\n",
-      );
-      copyTemplateDirectory(fixtureSourceDir, fixtureTargetDir);
-      assert.equal(
-        existsSync(path.join(fixtureTargetDir, "data", "seed.json")),
-        true,
-      );
-      assert.equal(
-        existsSync(path.join(fixtureTargetDir, ".local", "dev.sqlite")),
-        false,
-      );
+      assert.ok(generatedGitignore.split(/\r?\n/u).includes(".local/"));
+      assert.equal(generatedGitignore.split(/\r?\n/u).includes("data/"), false);
+      const generatedEntrypointMode = statSync(
+        path.join(
+          generatedRepoDir,
+          "packages/deployment/scripts/container-entrypoint.sh",
+        ),
+      ).mode;
+      assert.notEqual(generatedEntrypointMode & 0o111, 0);
     } finally {
       rmSync(tempRoot, { recursive: true, force: true });
     }

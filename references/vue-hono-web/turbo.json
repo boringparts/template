@@ -17,6 +17,7 @@
       "cache": false,
       "dependsOn": ["^build"],
       "outputs": [],
+      "persistent": true,
       "tags": ["work:development"]
     },
     "format:check": {

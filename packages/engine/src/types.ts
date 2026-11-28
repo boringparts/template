@@ -10,86 +10,86 @@ export type PackageRole =
   | "node-library"
   | "native-package";
 
-/** Closed set of devcontainer Dockerfile snippet layers supported by the workspace base. */
-export type DevcontainerLayer =
-  | "github-cli"
-  | "browser-test"
-  | "shellcheck"
-  | "rust-toolchain";
-
-/** Closed set of VS Code editor capability groups declared by workspace-root. */
-export type EditorCapability =
-  | "oxc-format-lint"
-  | "vue"
-  | "tailwind"
-  | "rust-tooling"
-  | "vitest";
-
-/** Package-internal physical file mapping relative to the reference package directory. */
-export type ReferenceFileHandle = {
+/** Explicit remapping for a template resource file inside a package's `resources` directory. */
+export type ResourceFileMapping = {
   readonly sourcePath: string;
   readonly targetPath: string;
   readonly executable?: boolean;
 };
 
-/** Static file from a reference package projected verbatim to the target repository root. */
-export type RootStaticFileHandle = {
-  readonly sourcePath: string;
+/** In-memory file contribution produced within an instance's own directory boundary. */
+export type PackageFileContribution = {
   readonly targetPath: string;
-  readonly executable?: boolean;
+  readonly content: Uint8Array;
+  readonly executable: boolean;
+};
+
+/** Rewritten manifest summary exposed read-only to package transform hooks. */
+export type PackageManifestSummary = {
+  readonly packageName: string;
+  readonly path: string;
+  readonly leafName: string;
+  readonly role: PackageRole;
+  readonly publishable: boolean;
+  readonly hasDevScript: boolean;
+  readonly binNames: readonly string[];
+};
+
+/** Read-only workspace context provided to a package's optional file transform hook. */
+export type PackageTransformContext<TMeta = unknown> = {
+  readonly scope: string;
+  readonly repositoryName: string;
+  readonly instance: GeneratedInstance<TMeta>;
+  readonly instances: readonly GeneratedInstance<TMeta>[];
+  readonly manifests: ReadonlyMap<string, PackageManifestSummary>;
+  readonly rootBaseDir: string;
+  readonly hasDevScript: boolean;
+  readonly hasPublishable: boolean;
 };
 
 /**
  * Pure declarative handle to a checked native reference package.
- * Contains no arbitrary source text fields; all content comes from `packageDir`.
+ * Regular files are automatically discovered from `packageDir`; `resources` only
+ * lists template assets from `resources/` that require explicit target remapping.
  */
-export type ReferencePackage = {
+export type PackageDefinition<TMeta = unknown> = {
   readonly packageName: string;
   readonly packageDir: string;
   readonly role: PackageRole;
   readonly publishable: boolean;
-  readonly preservePackageJsonExport?: boolean;
-  readonly rewriteBinName?: boolean;
   readonly rustPackageName?: string;
-  readonly files: readonly ReferenceFileHandle[];
-  readonly rootFiles?: readonly RootStaticFileHandle[];
+  readonly meta?: TMeta;
+  readonly resources?: readonly ResourceFileMapping[];
+  readonly excludeFiles?: readonly string[];
+  readonly validateWorkspace?: (
+    instances: readonly GeneratedInstance<TMeta>[],
+  ) => readonly InvalidRequestIssue[];
+  readonly transformFiles?: (
+    files: ReadonlyMap<string, PackageFileContribution>,
+    context: PackageTransformContext<TMeta>,
+  ) => ReadonlyMap<string, PackageFileContribution>;
 };
 
 export type PresetTopology = "configurable-primary-package" | "fixed";
 
 export type WorkspaceCollection = "packages" | "apps" | "crates";
 
-export type PresetNode = {
+export type PresetNode<TMeta = unknown> = {
   readonly nodeId: string;
-  readonly reference: ReferencePackage;
+  readonly definition: PackageDefinition<TMeta>;
   readonly defaultName: string;
   readonly defaultCollection: WorkspaceCollection;
   readonly defaultPath: string;
   /** Maps a reference package name (e.g. `@boringparts/reference-hono-api`) to a sibling `nodeId`. */
   readonly dependencyBindings?: Readonly<Record<string, string>>;
-  /** Optional relative path replacements inside text files (e.g. `references/vike-web` -> `apps/web`). */
-  readonly pathReplacements?: Readonly<Record<string, string>>;
 };
 
-/** Closed root-workspace capability declarations understood natively by the monorepo engine. */
-export type PresetWorkspaceCapabilities = {
-  readonly devcontainerLayers?: readonly DevcontainerLayer[];
-  readonly editorCapabilities?: readonly EditorCapability[];
-  readonly rustWorkspace?: boolean;
-  readonly rootDockerDependabot?: boolean;
-  readonly cargoDependabot?: boolean;
-  readonly rootDevDelegateNodeId?: string;
-  readonly allowBuilds?: readonly string[];
-  readonly pnpmOverrides?: readonly string[];
-};
-
-export type PresetDefinition = {
+export type PresetDefinition<TMeta = unknown> = {
   readonly alias: string;
   readonly title: string;
   readonly description: string;
   readonly topology: PresetTopology;
-  readonly nodes: readonly PresetNode[];
-  readonly capabilities: PresetWorkspaceCapabilities;
+  readonly nodes: readonly PresetNode<TMeta>[];
 };
 
 export type PresetSummary = {
@@ -100,10 +100,18 @@ export type PresetSummary = {
   readonly roles: readonly PackageRole[];
 };
 
-/** Physical paths to the shared monorepo base assets and root policy files. */
-export type WorkspaceTemplateRoots = {
-  readonly toolingConfigDir: string;
-  readonly workspaceRootRefDir: string;
+/** Base singleton package node (root `.` or shared `packages/tooling-config`). */
+export type BasePackageNode<TMeta = unknown> = {
+  readonly nodeId: string;
+  readonly leafName: string;
+  readonly path: string;
+  readonly definition: PackageDefinition<TMeta>;
+};
+
+/** Physical paths to the shared monorepo base packages and root policy files. */
+export type WorkspaceTemplateRoots<TMeta = unknown> = {
+  readonly rootBaseDir: string;
+  readonly basePackages: readonly BasePackageNode<TMeta>[];
   readonly rootPackageJsonPath: string;
   readonly rootPnpmWorkspaceYamlPath: string;
   readonly rootRustToolchainPath: string;
@@ -111,17 +119,16 @@ export type WorkspaceTemplateRoots = {
   readonly rustLockfilePath?: string;
 };
 
-export type GeneratedInstance = {
+export type GeneratedInstance<TMeta = unknown> = {
+  readonly kind: "base" | "package";
   readonly presetAlias: string;
   readonly nodeId: string;
   readonly leafName: string;
   readonly packageName: string;
   readonly path: string;
-  readonly reference: ReferencePackage;
-  /** Maps reference package names (including self and internal dependency bindings) to instantiated package names. */
+  readonly definition: PackageDefinition<TMeta>;
+  /** Maps reference package names (including self, shared singletons, and internal bindings) to instantiated names. */
   readonly dependencyBindings: ReadonlyMap<string, string>;
-  /** Optional text replacements for relative reference paths. */
-  readonly pathReplacements: ReadonlyMap<string, string>;
   /** Target package names added via explicit `--link`. */
   readonly linkedProviders: readonly string[];
 };
@@ -133,23 +140,12 @@ export type ProjectLink = {
   readonly providerPackageName: string;
 };
 
-export type ProjectBlueprint = {
+export type ProjectBlueprint<TMeta = unknown> = {
   readonly targetDir: string;
   readonly repositoryName: string;
   readonly scope: string;
-  readonly instances: readonly GeneratedInstance[];
+  readonly instances: readonly GeneratedInstance<TMeta>[];
   readonly links: readonly ProjectLink[];
-  readonly capabilities: {
-    readonly hasPublishable: boolean;
-    readonly rustWorkspace: boolean;
-    readonly rootDockerDependabot: boolean;
-    readonly cargoDependabot: boolean;
-    readonly devcontainerLayers: readonly DevcontainerLayer[];
-    readonly editorCapabilities: readonly EditorCapability[];
-    readonly allowBuilds: readonly string[];
-    readonly pnpmOverrides: readonly string[];
-    readonly rootDevFilterPackage?: string;
-  };
 };
 
 export type ProjectProjectionEntry = {
@@ -158,8 +154,8 @@ export type ProjectProjectionEntry = {
   readonly executable: boolean;
 };
 
-export type ProjectProjection = {
-  readonly blueprint: ProjectBlueprint;
+export type ProjectProjection<TMeta = unknown> = {
+  readonly blueprint: ProjectBlueprint<TMeta>;
   readonly entries: readonly ProjectProjectionEntry[];
   readonly toolchain: {
     readonly nodeVersion: string;
@@ -177,6 +173,8 @@ export type InvalidRequestIssueCode =
   | "INVALID_PACKAGE_SCOPE"
   | "INVALID_REPOSITORY_SCOPE"
   | "CONFLICTING_PACKAGE_IDENTITY"
+  | "CONFLICTING_ENVIRONMENT_METADATA"
+  | "DIRECTORY_OWNERSHIP_VIOLATION"
   | "INVALID_LINK_SPEC"
   | "UNSUPPORTED_LINK";
 
@@ -185,17 +183,29 @@ export type InvalidRequestIssue = {
   readonly message: string;
 };
 
-export type PlanProjectRequest = {
+/** Structured planning/synthesis validation failure returned as CLI `invalidRequest` (exit code `2`). */
+export class ProjectValidationError extends Error {
+  readonly issues: readonly InvalidRequestIssue[];
+
+  constructor(issues: readonly InvalidRequestIssue[]) {
+    super(issues.map((issue) => `[${issue.code}] ${issue.message}`).join("; "));
+    this.name = "ProjectValidationError";
+    this.issues = issues;
+  }
+}
+
+export type PlanProjectRequest<TMeta = unknown> = {
   readonly cwd: string;
   readonly dir: string;
   readonly presetSpecs: readonly string[];
   readonly linkSpecs: readonly string[];
   readonly scope?: string;
-  readonly presets: readonly PresetDefinition[];
+  readonly presets: readonly PresetDefinition<TMeta>[];
+  readonly basePackages?: readonly BasePackageNode<TMeta>[];
 };
 
-export type PlanProjectResult =
-  | { readonly ok: true; readonly blueprint: ProjectBlueprint }
+export type PlanProjectResult<TMeta = unknown> =
+  | { readonly ok: true; readonly blueprint: ProjectBlueprint<TMeta> }
   | { readonly ok: false; readonly issues: readonly InvalidRequestIssue[] };
 
 export type MaterializeResult =

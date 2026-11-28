@@ -1,5 +1,18 @@
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire, isBuiltin } from "node:module";
 import path from "node:path";
+
+import { normalizeRelativePackagePath } from "./scan.ts";
+import type {
+  GeneratedInstance,
+  InvalidRequestIssue,
+  PackageDefinition,
+  PackageRole,
+  PlanProjectRequest,
+  PlanProjectResult,
+  PresetDefinition,
+  ProjectLink,
+} from "./types.ts";
 
 const require = createRequire(import.meta.url);
 const rawValidateNpmPackageName: unknown = require("validate-npm-package-name");
@@ -24,18 +37,6 @@ function validateNpmPackageName(name: string): {
   return { validForNewPackages: result.validForNewPackages };
 }
 
-import type {
-  DevcontainerLayer,
-  EditorCapability,
-  GeneratedInstance,
-  InvalidRequestIssue,
-  PackageRole,
-  PlanProjectRequest,
-  PlanProjectResult,
-  PresetDefinition,
-  ProjectLink,
-} from "./types.ts";
-
 const defaultPackagePathPattern = /^[a-z0-9][a-z0-9-]*\/[a-z0-9][a-z0-9-]*$/u;
 const defaultPackageScopePattern = /^[a-z0-9][a-z0-9._-]*$/u;
 const reservedPackageNames = new Set([
@@ -53,20 +54,25 @@ const reservedWorkspaceCollections = new Set([
   "target",
 ]);
 
-const devcontainerLayerOrder: readonly DevcontainerLayer[] = [
-  "github-cli",
-  "browser-test",
-  "shellcheck",
-  "rust-toolchain",
-];
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
-const editorCapabilityOrder: readonly EditorCapability[] = [
-  "oxc-format-lint",
-  "vue",
-  "tailwind",
-  "rust-tooling",
-  "vitest",
-];
+function readManifestBinKeys(packageDir: string): readonly string[] {
+  const manifestPath = path.join(packageDir, "package.json");
+  if (!existsSync(manifestPath)) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(readFileSync(manifestPath, "utf8")) as unknown;
+    if (!isRecord(parsed) || !isRecord(parsed.bin)) {
+      return [];
+    }
+    return Object.keys(parsed.bin);
+  } catch {
+    return [];
+  }
+}
 
 /** Validates an unscoped npm package leaf name under the default workspace policy. */
 export function isValidPackageLeafName(value: string): boolean {
@@ -177,22 +183,24 @@ function deduplicateIssues(
   return unique;
 }
 
-type MutablePlannedNode = {
+type MutablePlannedNode<TMeta> = {
+  readonly kind: "base" | "package";
   readonly presetAlias: string;
   readonly nodeId: string;
   readonly leafName: string;
   readonly packageName: string;
   readonly path: string;
-  readonly reference: PresetDefinition["nodes"][number]["reference"];
-  readonly dependencyBindings: ReadonlyMap<string, string>;
-  readonly pathReplacements: ReadonlyMap<string, string>;
+  readonly definition: PackageDefinition<TMeta>;
+  readonly dependencyBindings: Map<string, string>;
   readonly linkedProviders: string[];
 };
 
 /**
  * Validates CLI initialization inputs in memory without touching disk and produces a deterministic `ProjectBlueprint`.
  */
-export function planProject(request: PlanProjectRequest): PlanProjectResult {
+export function planProject<TMeta>(
+  request: PlanProjectRequest<TMeta>,
+): PlanProjectResult<TMeta> {
   const issues: InvalidRequestIssue[] = [];
   const targetDir = path.resolve(request.cwd, request.dir);
   const repositoryName = path.basename(targetDir);
@@ -229,9 +237,38 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
     });
   }
 
-  const plannedNodes: MutablePlannedNode[] = [];
-  const selectedPresets: PresetDefinition[] = [];
-  const presetNodePackagesBySelection: Map<string, string>[] = [];
+  // Plan base singleton nodes (root `.` and shared `packages/tooling-config`) through the same node model.
+  const baseNodes: MutablePlannedNode<TMeta>[] = [];
+  const sharedBaseBindings = new Map<string, string>();
+  for (const base of request.basePackages ?? []) {
+    const packageName =
+      base.path === "." ? repositoryName : `@${resolvedScope}/${base.leafName}`;
+    if (base.path !== ".") {
+      sharedBaseBindings.set(base.definition.packageName, packageName);
+    }
+    baseNodes.push({
+      kind: "base",
+      presetAlias: "workspace-base",
+      nodeId: base.nodeId,
+      leafName: base.leafName,
+      packageName,
+      path: base.path,
+      definition: base.definition,
+      dependencyBindings: new Map<string, string>([
+        [base.definition.packageName, packageName],
+      ]),
+      linkedProviders: [],
+    });
+  }
+
+  for (const baseNode of baseNodes) {
+    for (const [refPkgName, targetPkgName] of sharedBaseBindings) {
+      baseNode.dependencyBindings.set(refPkgName, targetPkgName);
+    }
+  }
+
+  const plannedNodes: MutablePlannedNode<TMeta>[] = [];
+  const selectedPresets: PresetDefinition<TMeta>[] = [];
 
   for (const rawSpec of request.presetSpecs) {
     const parts = rawSpec.split(":");
@@ -268,18 +305,17 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
       }
 
       const nodePackageById = new Map<string, string>();
-      const nodePathById = new Map<string, string>();
       for (const node of preset.nodes) {
-        const packageName = `@${resolvedScope}/${node.defaultName}`;
-        nodePackageById.set(node.nodeId, packageName);
-        nodePathById.set(node.nodeId, node.defaultPath);
+        nodePackageById.set(
+          node.nodeId,
+          `@${resolvedScope}/${node.defaultName}`,
+        );
       }
-      presetNodePackagesBySelection.push(nodePackageById);
 
       for (const node of preset.nodes) {
-        const dependencyBindings = new Map<string, string>();
+        const dependencyBindings = new Map<string, string>(sharedBaseBindings);
         dependencyBindings.set(
-          node.reference.packageName,
+          node.definition.packageName,
           nodePackageById.get(node.nodeId)!,
         );
         for (const [refPkgName, targetNodeId] of Object.entries(
@@ -291,19 +327,15 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
           }
         }
 
-        const pathReplacements = new Map<string, string>(
-          Object.entries(node.pathReplacements ?? {}),
-        );
-
         plannedNodes.push({
+          kind: "package",
           presetAlias: preset.alias,
           nodeId: node.nodeId,
           leafName: node.defaultName,
           packageName: nodePackageById.get(node.nodeId)!,
           path: node.defaultPath,
-          reference: node.reference,
+          definition: node.definition,
           dependencyBindings,
-          pathReplacements,
           linkedProviders: [],
         });
       }
@@ -336,42 +368,40 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
     }
 
     const packageName = `@${resolvedScope}/${leafName}`;
-    const dependencyBindings = new Map<string, string>([
-      [primary.reference.packageName, packageName],
-    ]);
-    const pathReplacements = new Map<string, string>(
-      Object.entries(primary.pathReplacements ?? {}),
-    );
-    presetNodePackagesBySelection.push(
-      new Map([[primary.nodeId, packageName]]),
-    );
+    const dependencyBindings = new Map<string, string>(sharedBaseBindings);
+    dependencyBindings.set(primary.definition.packageName, packageName);
 
     plannedNodes.push({
+      kind: "package",
       presetAlias: preset.alias,
       nodeId: primary.nodeId,
       leafName,
       packageName,
       path: packagePath,
-      reference: primary.reference,
+      definition: primary.definition,
       dependencyBindings,
-      pathReplacements,
       linkedProviders: [],
     });
   }
 
-  // Check identity conflicts against reserved tooling-config and across planned instances
-  const seenNames = new Map<string, MutablePlannedNode>();
-  const seenPaths = new Map<string, MutablePlannedNode>();
-  const seenBins = new Map<string, MutablePlannedNode>();
+  // Check identity conflicts against base singletons and across planned business instances.
+  const seenNames = new Map<string, MutablePlannedNode<TMeta>>();
+  const seenPaths = new Map<string, MutablePlannedNode<TMeta>>();
+  const seenBins = new Map<string, MutablePlannedNode<TMeta>>();
+
+  const baseReservedPaths = new Set(baseNodes.map((node) => node.path));
+  const baseReservedNames = new Set(baseNodes.map((node) => node.packageName));
 
   for (const node of plannedNodes) {
     if (
       reservedPackageNames.has(node.leafName) ||
+      baseReservedPaths.has(node.path) ||
+      baseReservedNames.has(node.packageName) ||
       node.path === "packages/tooling-config"
     ) {
       issues.push({
         code: "CONFLICTING_PACKAGE_IDENTITY",
-        message: `Package "${node.packageName}" (${node.path}) conflicts with the base tooling-config package.`,
+        message: `Package "${node.packageName}" (${node.path}) conflicts with the base workspace package.`,
       });
     }
 
@@ -395,20 +425,24 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
       seenPaths.set(node.path, node);
     }
 
-    if (node.reference.rewriteBinName) {
-      const existingByBin = seenBins.get(node.leafName);
+    // Introspect manifest `bin` entries: single-entry `bin` maps to `node.leafName`.
+    const binKeys = readManifestBinKeys(node.definition.packageDir);
+    const instantiatedBins = binKeys.length === 1 ? [node.leafName] : binKeys;
+    for (const binName of instantiatedBins) {
+      const existingByBin = seenBins.get(binName);
       if (existingByBin !== undefined) {
         issues.push({
           code: "CONFLICTING_PACKAGE_IDENTITY",
-          message: `Duplicate CLI command name "${node.leafName}" across "${existingByBin.path}" and "${node.path}".`,
+          message: `Duplicate CLI command name "${binName}" across "${existingByBin.path}" and "${node.path}".`,
         });
       } else {
-        seenBins.set(node.leafName, node);
+        seenBins.set(binName, node);
       }
     }
   }
 
-  // Validate explicit `--link <consumer-path>:<provider-path>` requests
+  // Validate explicit `--link <consumer-path>:<provider-path>` requests (rejecting base singletons).
+  const basePathsByPath = new Map(baseNodes.map((node) => [node.path, node]));
   const links: ProjectLink[] = [];
   const seenLinkKeys = new Set<string>();
   for (const rawLink of request.linkSpecs) {
@@ -436,6 +470,17 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
       continue;
     }
 
+    if (
+      basePathsByPath.has(consumerPath) ||
+      basePathsByPath.has(providerPath)
+    ) {
+      issues.push({
+        code: "UNSUPPORTED_LINK",
+        message: `Cannot link "${consumerPath}" -> "${providerPath}": base workspace singletons cannot participate in --link.`,
+      });
+      continue;
+    }
+
     const consumer = seenPaths.get(consumerPath);
     const provider = seenPaths.get(providerPath);
     if (consumer === undefined || provider === undefined) {
@@ -454,10 +499,10 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
       continue;
     }
 
-    if (!canLinkRoles(consumer.reference.role, provider.reference.role)) {
+    if (!canLinkRoles(consumer.definition.role, provider.definition.role)) {
       issues.push({
         code: "UNSUPPORTED_LINK",
-        message: `Package "${consumer.path}" (${consumer.reference.role}) cannot link to "${provider.path}" (${provider.reference.role}).`,
+        message: `Package "${consumer.path}" (${consumer.definition.role}) cannot link to "${provider.path}" (${provider.definition.role}).`,
       });
       continue;
     }
@@ -475,62 +520,79 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
     }
   }
 
-  if (issues.length > 0) {
-    return { ok: false, issues: deduplicateIssues(issues) };
-  }
+  const allNodes = [...baseNodes, ...plannedNodes];
+  const subpackagePaths = allNodes
+    .filter((node) => node.path !== ".")
+    .map((node) => node.path);
 
-  const layerSet = new Set<DevcontainerLayer>(["github-cli"]);
-  const editorSet = new Set<EditorCapability>(["oxc-format-lint"]);
-  const allowBuildSet = new Set<string>();
-  const overrideSet = new Set<string>();
-  let rustWorkspace = false;
-  let rootDockerDependabot = false;
-  let cargoDependabot = false;
-  let rootDevFilterPackage: string | undefined;
-
-  for (const [index, preset] of selectedPresets.entries()) {
-    for (const layer of preset.capabilities.devcontainerLayers ?? []) {
-      layerSet.add(layer);
-    }
-    for (const capability of preset.capabilities.editorCapabilities ?? []) {
-      editorSet.add(capability);
-    }
-    for (const pkg of preset.capabilities.allowBuilds ?? []) {
-      allowBuildSet.add(pkg);
-    }
-    for (const overrideKey of preset.capabilities.pnpmOverrides ?? []) {
-      overrideSet.add(overrideKey);
-    }
-    if (preset.capabilities.rustWorkspace) {
-      rustWorkspace = true;
-    }
-    if (preset.capabilities.rootDockerDependabot) {
-      rootDockerDependabot = true;
-    }
-    if (preset.capabilities.cargoDependabot) {
-      cargoDependabot = true;
-    }
-    if (
-      rootDevFilterPackage === undefined &&
-      preset.capabilities.rootDevDelegateNodeId !== undefined
-    ) {
-      rootDevFilterPackage = presetNodePackagesBySelection[index]?.get(
-        preset.capabilities.rootDevDelegateNodeId,
+  // Validate declared resource mappings for directory ownership invariants during planning.
+  for (const node of allNodes) {
+    const seenResourceTargets = new Set<string>();
+    for (const resource of node.definition.resources ?? []) {
+      const normalizedSource = normalizeRelativePackagePath(
+        resource.sourcePath,
       );
+      if (normalizedSource === undefined) {
+        issues.push({
+          code: "DIRECTORY_OWNERSHIP_VIOLATION",
+          message: `Package "${node.path}" resource source path "${resource.sourcePath}" escapes package directory.`,
+        });
+      }
+      const normalizedTarget = normalizeRelativePackagePath(
+        resource.targetPath,
+      );
+      if (normalizedTarget === undefined) {
+        issues.push({
+          code: "DIRECTORY_OWNERSHIP_VIOLATION",
+          message: `Package "${node.path}" resource target path "${resource.targetPath}" escapes package directory.`,
+        });
+        continue;
+      }
+      if (seenResourceTargets.has(normalizedTarget)) {
+        issues.push({
+          code: "DIRECTORY_OWNERSHIP_VIOLATION",
+          message: `Package "${node.path}" declares duplicate resource target path "${normalizedTarget}".`,
+        });
+      } else {
+        seenResourceTargets.add(normalizedTarget);
+      }
+      if (node.path === ".") {
+        for (const subPath of subpackagePaths) {
+          if (
+            normalizedTarget === subPath ||
+            normalizedTarget.startsWith(`${subPath}/`)
+          ) {
+            issues.push({
+              code: "DIRECTORY_OWNERSHIP_VIOLATION",
+              message: `Root package resource "${normalizedTarget}" intrudes into subpackage "${subPath}".`,
+            });
+          }
+        }
+      }
     }
   }
 
-  const instances: GeneratedInstance[] = plannedNodes.map((node) => ({
+  const instances: GeneratedInstance<TMeta>[] = allNodes.map((node) => ({
+    kind: node.kind,
     presetAlias: node.presetAlias,
     nodeId: node.nodeId,
     leafName: node.leafName,
     packageName: node.packageName,
     path: node.path,
-    reference: node.reference,
+    definition: node.definition,
     dependencyBindings: node.dependencyBindings,
-    pathReplacements: node.pathReplacements,
     linkedProviders: node.linkedProviders,
   }));
+
+  for (const instance of instances) {
+    if (instance.definition.validateWorkspace !== undefined) {
+      issues.push(...instance.definition.validateWorkspace(instances));
+    }
+  }
+
+  if (issues.length > 0) {
+    return { ok: false, issues: deduplicateIssues(issues) };
+  }
 
   return {
     ok: true,
@@ -540,23 +602,6 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
       scope: resolvedScope,
       instances,
       links,
-      capabilities: {
-        hasPublishable: instances.some(
-          (instance) => instance.reference.publishable,
-        ),
-        rustWorkspace,
-        rootDockerDependabot,
-        cargoDependabot,
-        devcontainerLayers: devcontainerLayerOrder.filter((layer) =>
-          layerSet.has(layer),
-        ),
-        editorCapabilities: editorCapabilityOrder.filter((capability) =>
-          editorSet.has(capability),
-        ),
-        allowBuilds: [...allowBuildSet].toSorted(),
-        pnpmOverrides: [...overrideSet].toSorted(),
-        ...(rootDevFilterPackage === undefined ? {} : { rootDevFilterPackage }),
-      },
     },
   };
 }

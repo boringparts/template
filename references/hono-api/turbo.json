@@ -11,6 +11,7 @@
     "dev": {
       "cache": false,
       "outputs": [],
+      "persistent": true,
       "tags": ["work:development"]
     },
     "format:check": {

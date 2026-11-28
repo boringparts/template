@@ -1,8 +1,13 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 
 import type { WorkspaceTemplateRoots } from "@boringparts/template-engine";
+import { parse as parseToml } from "smol-toml";
+import { parse as parseYaml } from "yaml";
+
+import { createBasePackages } from "./base-packages.ts";
+import type { WorkspaceEnvironmentMeta } from "./environment-meta.ts";
 
 export type RegisteredReferencePackage = {
   readonly slug: string;
@@ -68,35 +73,61 @@ export function resolvePackageDir(
   return path.dirname(require.resolve(`${packageName}/reference`));
 }
 
-/** Resolves the shared monorepo base assets and root policy files for engine synthesis. */
-export function resolveTemplateWorkspaceRoots(
-  templatesRoot?: string,
-): WorkspaceTemplateRoots {
-  const toolingConfigDir = resolvePackageDir(
-    "@boringparts/reference-tooling-config",
-    import.meta.url,
-    templatesRoot,
-  );
+/** Resolves the author repository root (or bundled `templates/root`) directory. */
+export function resolveRootBaseDir(templatesRoot?: string): string {
   const workspaceRootRefDir = resolvePackageDir(
     "@boringparts/reference-workspace-root",
     import.meta.url,
     templatesRoot,
   );
+  return templatesRoot !== undefined &&
+    existsSync(path.join(templatesRoot, "root", "package.json"))
+    ? path.join(templatesRoot, "root")
+    : path.resolve(workspaceRootRefDir, "..", "..");
+}
+
+/** Reads `@playwright/test` version from the author `pnpm-workspace.yaml` catalog. */
+export function resolvePlaywrightVersion(templatesRoot?: string): string {
+  const rootBaseDir = resolveRootBaseDir(templatesRoot);
+  const parsed = parseYaml(
+    readFileSync(path.join(rootBaseDir, "pnpm-workspace.yaml"), "utf8"),
+  ) as { readonly catalog?: Readonly<Record<string, unknown>> };
+  const version = parsed.catalog?.["@playwright/test"];
+  if (typeof version !== "string" || version.length === 0) {
+    throw new Error(
+      "Author pnpm-workspace.yaml catalog must define @playwright/test",
+    );
+  }
+  return version;
+}
+
+/** Reads `toolchain.channel` from the author `rust-toolchain.toml`. */
+export function resolveRustToolchainChannel(templatesRoot?: string): string {
+  const rootBaseDir = resolveRootBaseDir(templatesRoot);
+  const parsed = parseToml(
+    readFileSync(path.join(rootBaseDir, "rust-toolchain.toml"), "utf8"),
+  ) as { readonly toolchain?: Readonly<Record<string, unknown>> };
+  const channel = parsed.toolchain?.channel;
+  if (typeof channel !== "string" || channel.trim().length === 0) {
+    throw new Error("Root rust-toolchain.toml must declare toolchain.channel");
+  }
+  return channel;
+}
+
+/** Resolves the shared monorepo base packages and root policy files for engine synthesis. */
+export function resolveTemplateWorkspaceRoots(
+  templatesRoot?: string,
+): WorkspaceTemplateRoots<WorkspaceEnvironmentMeta> {
+  const rootBaseDir = resolveRootBaseDir(templatesRoot);
   const rustBinRefDir = resolvePackageDir(
     "@boringparts/reference-rust-bin",
     import.meta.url,
     templatesRoot,
   );
 
-  const rootBaseDir =
-    templatesRoot !== undefined &&
-    existsSync(path.join(templatesRoot, "root", "package.json"))
-      ? path.join(templatesRoot, "root")
-      : path.resolve(workspaceRootRefDir, "..", "..");
-
   return {
-    toolingConfigDir,
-    workspaceRootRefDir,
+    rootBaseDir,
+    basePackages: createBasePackages(templatesRoot),
     rootPackageJsonPath: path.join(rootBaseDir, "package.json"),
     rootPnpmWorkspaceYamlPath: path.join(rootBaseDir, "pnpm-workspace.yaml"),
     rootRustToolchainPath: path.join(rootBaseDir, "rust-toolchain.toml"),

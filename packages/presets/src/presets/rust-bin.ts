@@ -1,14 +1,20 @@
+import path from "node:path";
+
 import type { PresetDefinition } from "@boringparts/template-engine";
 
-import { resolvePackageDir } from "../roots.ts";
+import type { WorkspaceEnvironmentMeta } from "../environment-meta.ts";
+import { resolvePackageDir, resolveRustToolchainChannel } from "../roots.ts";
 
 /** Builds the `rust-bin` preset backed by `@boringparts/reference-rust-bin`. */
-export function createRustBinPreset(templatesRoot?: string): PresetDefinition {
+export function createRustBinPreset(
+  templatesRoot?: string,
+): PresetDefinition<WorkspaceEnvironmentMeta> {
   const packageDir = resolvePackageDir(
     "@boringparts/reference-rust-bin",
     import.meta.url,
     templatesRoot,
   );
+  const rustToolchainChannel = resolveRustToolchainChannel(templatesRoot);
 
   return {
     alias: "rust-bin",
@@ -22,28 +28,82 @@ export function createRustBinPreset(templatesRoot?: string): PresetDefinition {
         defaultName: "app",
         defaultCollection: "crates",
         defaultPath: "crates/app",
-        reference: {
+        definition: {
           packageName: "@boringparts/reference-rust-bin",
           packageDir,
           role: "native-package",
           publishable: false,
           rustPackageName: "app",
-          files: [
-            { sourcePath: "package.json", targetPath: "package.json" },
-            { sourcePath: "turbo.json", targetPath: "turbo.json" },
-            { sourcePath: "Cargo.toml", targetPath: "Cargo.toml" },
-            { sourcePath: "rustfmt.toml", targetPath: "rustfmt.toml" },
-            { sourcePath: "src/main.rs", targetPath: "src/main.rs" },
+          // Defer subpackage Cargo.lock emission until Ticket 03 removes root Cargo workspace synthesis.
+          excludeFiles: ["Cargo.lock"],
+          resources: [
             { sourcePath: "resources/gitignore", targetPath: ".gitignore" },
           ],
+          meta: {
+            devcontainer: {
+              layers: [
+                {
+                  id: "rust-toolchain",
+                  dockerfilePath: path.join(
+                    packageDir,
+                    "resources",
+                    "devcontainer",
+                    "rust.Dockerfile",
+                  ),
+                },
+              ],
+              buildArgs: {
+                RUST_TOOLCHAIN: rustToolchainChannel,
+              },
+              mounts: [
+                {
+                  type: "volume",
+                  source: "${devcontainerId}-cargo-registry",
+                  target: "/usr/local/cargo/registry",
+                },
+                {
+                  type: "volume",
+                  source: "${devcontainerId}-cargo-git",
+                  target: "/usr/local/cargo/git",
+                },
+                {
+                  type: "volume",
+                  source: "${devcontainerId}-target",
+                  target: "${containerWorkspaceFolder}/target",
+                },
+              ],
+              containerEnv: {
+                RUST_BACKTRACE: "1",
+              },
+            },
+            vscode: {
+              extensions: [
+                "rust-lang.rust-analyzer",
+                "tamasfe.even-better-toml",
+              ],
+              settings: {
+                "rust-analyzer.cargo.features": "all",
+                "rust-analyzer.check.command": "clippy",
+                "rust-analyzer.procMacro.enable": true,
+              },
+            },
+            dependabot: {
+              updates: [
+                {
+                  packageEcosystem: "cargo",
+                  directory: "/",
+                  interval: "weekly",
+                },
+                {
+                  packageEcosystem: "rust-toolchain",
+                  directory: "/",
+                  interval: "weekly",
+                },
+              ],
+            },
+          },
         },
       },
     ],
-    capabilities: {
-      devcontainerLayers: ["github-cli", "rust-toolchain"],
-      editorCapabilities: ["oxc-format-lint", "rust-tooling"],
-      rustWorkspace: true,
-      cargoDependabot: true,
-    },
   };
 }

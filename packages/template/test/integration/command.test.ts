@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import {
+  chmodSync,
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { createRequire } from "node:module";
@@ -15,8 +18,13 @@ import { describe, it } from "node:test";
 import {
   type PackageRole,
   type PresetDefinition,
+  type WorkspaceTemplateRoots,
 } from "@boringparts/template-engine";
-import { loadBuiltInPresets } from "@boringparts/template-presets";
+import {
+  loadBuiltInPresets,
+  resolveTemplateWorkspaceRoots,
+  type WorkspaceEnvironmentMeta,
+} from "@boringparts/template-presets";
 import { parse as parseYaml } from "yaml";
 
 import { cliCommandIdentity } from "../../src/cli-command-identity.ts";
@@ -54,7 +62,8 @@ function testOverrideRuntime(
   args: readonly string[],
   options: {
     readonly cwd?: string;
-    readonly presets?: readonly PresetDefinition[];
+    readonly presets?: readonly PresetDefinition<WorkspaceEnvironmentMeta>[];
+    readonly workspaceRoots?: WorkspaceTemplateRoots<WorkspaceEnvironmentMeta>;
   } = {},
 ) {
   let stdout = "";
@@ -64,6 +73,9 @@ function testOverrideRuntime(
     identity,
     cwd: options.cwd ?? process.cwd(),
     ...(options.presets === undefined ? {} : { presets: options.presets }),
+    ...(options.workspaceRoots === undefined
+      ? {}
+      : { workspaceRoots: options.workspaceRoots }),
     write: ({ destination, chunk }) => {
       if (destination === "stdout") stdout += chunk;
       else stderr += chunk;
@@ -84,11 +96,11 @@ function rolePreset(
   role: PackageRole,
   defaultName: string,
   defaultCollection: "packages" | "apps" | "crates" = "packages",
-): PresetDefinition {
+): PresetDefinition<WorkspaceEnvironmentMeta> {
   const tsLib = loadBuiltInPresets().find(
     (preset) => preset.alias === "ts-lib",
   )!;
-  const baseRef = tsLib.nodes[0]!.reference;
+  const baseDef = tsLib.nodes[0]!.definition;
   return {
     alias,
     title: `Role ${role}`,
@@ -100,16 +112,12 @@ function rolePreset(
         defaultName,
         defaultCollection,
         defaultPath: `${defaultCollection}/${defaultName}`,
-        reference: {
-          ...baseRef,
+        definition: {
+          ...baseDef,
           role,
         },
       },
     ],
-    capabilities: {
-      devcontainerLayers: ["github-cli"],
-      editorCapabilities: ["oxc-format-lint"],
-    },
   };
 }
 
@@ -489,7 +497,7 @@ void describe("CLI contract", () => {
   });
 
   void it("fails fast with exit code 2 (invalidRequest) and zero disk writes on invalid inputs and role boundary violations", async () => {
-    const fixedPreset: PresetDefinition = {
+    const fixedPreset: PresetDefinition<WorkspaceEnvironmentMeta> = {
       ...rolePreset("fixed-app", "browser-app", "web", "apps"),
       topology: "fixed",
     };
@@ -777,7 +785,7 @@ void describe("CLI contract", () => {
     assert.equal(failRun.stderr().includes("secret internal failure"), false);
   });
 
-  void it("preserves package-internal data/ directories and replaces data/ with .local/ in generated .gitignore", async () => {
+  void it("auto-discovers data/ and executable scripts without manual file lists and excludes .local/ in .gitignore", async () => {
     await withTempDir(async (workspaceDir) => {
       const fixtureRefDir = path.join(workspaceDir, "fixture-ref");
       const targetDir = path.join(workspaceDir, "data-business-repo");
@@ -786,38 +794,29 @@ void describe("CLI contract", () => {
       )!;
       const baseNode = basePreset.nodes[0]!;
 
+      cpSync(baseNode.definition.packageDir, fixtureRefDir, {
+        recursive: true,
+        filter: (src) => path.basename(src) !== "node_modules",
+      });
       mkdirSync(path.join(fixtureRefDir, "data"), { recursive: true });
-      for (const file of baseNode.reference.files) {
-        const dest = path.join(fixtureRefDir, file.sourcePath);
-        mkdirSync(path.dirname(dest), { recursive: true });
-        writeFileSync(
-          dest,
-          readFileSync(
-            path.join(baseNode.reference.packageDir, file.sourcePath),
-          ),
-        );
-      }
       writeFileSync(
         path.join(fixtureRefDir, "data", "catalog.json"),
         '{"items":["alpha"]}\n',
       );
+      mkdirSync(path.join(fixtureRefDir, "scripts"), { recursive: true });
+      const fixtureScript = path.join(fixtureRefDir, "scripts", "check.sh");
+      writeFileSync(fixtureScript, "#!/usr/bin/env sh\nexit 0\n");
+      chmodSync(fixtureScript, 0o755);
 
-      const fixturePreset: PresetDefinition = {
+      const fixturePreset: PresetDefinition<WorkspaceEnvironmentMeta> = {
         ...basePreset,
         alias: "ts-lib-with-data",
         nodes: [
           {
             ...baseNode,
-            reference: {
-              ...baseNode.reference,
+            definition: {
+              ...baseNode.definition,
               packageDir: fixtureRefDir,
-              files: [
-                ...baseNode.reference.files,
-                {
-                  sourcePath: "data/catalog.json",
-                  targetPath: "data/catalog.json",
-                },
-              ],
             },
           },
         ],
@@ -836,12 +835,390 @@ void describe("CLI contract", () => {
         ),
         '{"items":["alpha"]}\n',
       );
+      assert.notEqual(
+        statSync(path.join(targetDir, "packages/lib/scripts/check.sh")).mode &
+          0o111,
+        0,
+      );
       const gitignore = readFileSync(
         path.join(targetDir, ".gitignore"),
         "utf8",
       );
       assert.ok(gitignore.split(/\r?\n/u).includes(".local/"));
       assert.equal(gitignore.split(/\r?\n/u).includes("data/"), false);
+    });
+  });
+
+  void it("rejects base singleton --link requests and multi-CLI bin collisions", async () => {
+    await withTempDir(async (workspaceDir) => {
+      const rootLinkDir = path.join(workspaceDir, "root-link");
+      const rootLinkRun = testRuntime([
+        "init",
+        rootLinkDir,
+        "--preset",
+        "ts-lib",
+        "--link",
+        "packages/lib:.",
+      ]);
+      assert.equal(await runCli(rootLinkRun.runtime), 2);
+      assert.ok(
+        (
+          JSON.parse(rootLinkRun.stderr()) as {
+            readonly data: {
+              readonly issues: readonly { readonly code: string }[];
+            };
+          }
+        ).data.issues.some((issue) => issue.code === "INVALID_PACKAGE_PATH"),
+      );
+      assert.equal(existsSync(rootLinkDir), false);
+
+      const toolingLinkDir = path.join(workspaceDir, "tooling-link");
+      const toolingLinkRun = testRuntime([
+        "init",
+        toolingLinkDir,
+        "--preset",
+        "ts-lib",
+        "--link",
+        "packages/lib:packages/tooling-config",
+      ]);
+      assert.equal(await runCli(toolingLinkRun.runtime), 2);
+      assert.ok(
+        (
+          JSON.parse(toolingLinkRun.stderr()) as {
+            readonly data: {
+              readonly issues: readonly { readonly code: string }[];
+            };
+          }
+        ).data.issues.some((issue) => issue.code === "UNSUPPORTED_LINK"),
+      );
+      assert.equal(existsSync(toolingLinkDir), false);
+
+      const cliCollisionDir = path.join(workspaceDir, "cli-collision");
+      const cliCollisionRun = testRuntime([
+        "init",
+        cliCollisionDir,
+        "--preset",
+        "ts-cli:tool:packages/tool-one",
+        "--preset",
+        "ts-cli:tool:packages/tool-two",
+      ]);
+      assert.equal(await runCli(cliCollisionRun.runtime), 2);
+      const cliCollisionIssues = (
+        JSON.parse(cliCollisionRun.stderr()) as {
+          readonly data: {
+            readonly issues: readonly {
+              readonly code: string;
+              readonly message: string;
+            }[];
+          };
+        }
+      ).data.issues;
+      assert.ok(
+        cliCollisionIssues.some(
+          (issue) =>
+            issue.code === "CONFLICTING_PACKAGE_IDENTITY" &&
+            issue.message.includes("Duplicate CLI command name"),
+        ),
+      );
+      assert.equal(existsSync(cliCollisionDir), false);
+    });
+  });
+
+  void it("deduplicates equivalent environment metadata across multiple apps and enables unified root dev", async () => {
+    await withTempDir(async (workspaceDir) => {
+      const targetDir = path.join(workspaceDir, "multi-web");
+      const run = testRuntime([
+        "init",
+        targetDir,
+        "--preset",
+        "vue-app:web-a",
+        "--preset",
+        "vue-app:web-b",
+      ]);
+      assert.equal(await runCli(run.runtime), 0, run.stderr());
+      assert.equal(run.stderr(), "");
+
+      const rootPkg = JSON.parse(
+        readFileSync(path.join(targetDir, "package.json"), "utf8"),
+      ) as { readonly scripts: Record<string, string> };
+      assert.equal(rootPkg.scripts.dev, "turbo run dev");
+
+      const dockerfile = readFileSync(
+        path.join(targetDir, ".devcontainer/Dockerfile"),
+        "utf8",
+      );
+      assert.equal(
+        dockerfile.split("ARG PLAYWRIGHT_CLI_PACKAGE").length - 1,
+        1,
+        "Equivalent browser-test layers must deduplicate idempotently",
+      );
+
+      const extensions = JSON.parse(
+        readFileSync(path.join(targetDir, ".vscode/extensions.json"), "utf8"),
+      ) as { readonly recommendations: readonly string[] };
+      assert.deepStrictEqual(extensions.recommendations, [
+        "oxc.oxc-vscode",
+        "Vue.volar",
+        "bradlc.vscode-tailwindcss",
+        "vitest.explorer",
+      ]);
+    });
+  });
+
+  void it("fails fast on non-equivalent environment metadata conflicts and directory ownership violations", async () => {
+    await withTempDir(async (workspaceDir) => {
+      const basePreset = loadBuiltInPresets().find(
+        (preset) => preset.alias === "ts-lib",
+      )!;
+      const baseNode = basePreset.nodes[0]!;
+
+      const makeMetaPreset = (
+        alias: string,
+        defaultName: string,
+        meta: WorkspaceEnvironmentMeta,
+      ): PresetDefinition<WorkspaceEnvironmentMeta> => ({
+        ...basePreset,
+        alias,
+        nodes: [
+          {
+            ...baseNode,
+            defaultName,
+            defaultPath: `packages/${defaultName}`,
+            definition: {
+              ...baseNode.definition,
+              meta,
+            },
+          },
+        ],
+      });
+
+      const conflictCases: readonly {
+        readonly label: string;
+        readonly metaA: WorkspaceEnvironmentMeta;
+        readonly metaB: WorkspaceEnvironmentMeta;
+      }[] = [
+        {
+          label: "conflicting devcontainer buildArgs",
+          metaA: { devcontainer: { buildArgs: { TOOL_VER: "1.0.0" } } },
+          metaB: { devcontainer: { buildArgs: { TOOL_VER: "2.0.0" } } },
+        },
+        {
+          label: "conflicting devcontainer containerEnv",
+          metaA: { devcontainer: { containerEnv: { RUST_BACKTRACE: "1" } } },
+          metaB: { devcontainer: { containerEnv: { RUST_BACKTRACE: "0" } } },
+        },
+        {
+          label: "conflicting devcontainer mount target",
+          metaA: {
+            devcontainer: {
+              mounts: [{ type: "volume", source: "cache-a", target: "/cache" }],
+            },
+          },
+          metaB: {
+            devcontainer: {
+              mounts: [{ type: "volume", source: "cache-b", target: "/cache" }],
+            },
+          },
+        },
+        {
+          label: "conflicting vscode non-array setting",
+          metaA: { vscode: { settings: { "editor.formatOnSave": true } } },
+          metaB: { vscode: { settings: { "editor.formatOnSave": false } } },
+        },
+        {
+          label: "conflicting dependabot npm group",
+          metaA: {
+            dependabot: { npmGroups: { orm: { patterns: ["drizzle-*"] } } },
+          },
+          metaB: {
+            dependabot: { npmGroups: { orm: { patterns: ["prisma-*"] } } },
+          },
+        },
+        {
+          label: "conflicting dependabot update interval",
+          metaA: {
+            dependabot: {
+              updates: [
+                {
+                  packageEcosystem: "docker",
+                  directory: "/packages/app",
+                  interval: "weekly",
+                },
+              ],
+            },
+          },
+          metaB: {
+            dependabot: {
+              updates: [
+                {
+                  packageEcosystem: "docker",
+                  directory: "/packages/app",
+                  interval: "daily",
+                },
+              ],
+            },
+          },
+        },
+      ];
+
+      for (const [index, testCase] of conflictCases.entries()) {
+        const targetDir = path.join(workspaceDir, `meta-conflict-${index}`);
+        const run = testOverrideRuntime(
+          ["init", targetDir, "--preset", "a", "--preset", "b"],
+          {
+            presets: [
+              makeMetaPreset("a", "pkg-a", testCase.metaA),
+              makeMetaPreset("b", "pkg-b", testCase.metaB),
+            ],
+          },
+        );
+        assert.equal(await executeCliRuntime(run.runtime), 2, testCase.label);
+        assert.equal(run.stdout(), "", testCase.label);
+        const failure = JSON.parse(run.stderr()) as {
+          readonly data: {
+            readonly issues: readonly { readonly code: string }[];
+          };
+        };
+        assert.ok(
+          failure.data.issues.some(
+            (issue) => issue.code === "CONFLICTING_ENVIRONMENT_METADATA",
+          ),
+          testCase.label,
+        );
+        assert.equal(existsSync(targetDir), false, testCase.label);
+      }
+
+      // Directory ownership violations (resource escape, transformFiles escape, duplicate path)
+      const escapeResourcePreset: PresetDefinition<WorkspaceEnvironmentMeta> = {
+        ...basePreset,
+        alias: "escape-resource",
+        nodes: [
+          {
+            ...baseNode,
+            definition: {
+              ...baseNode.definition,
+              resources: [
+                {
+                  sourcePath: "resources/gitignore",
+                  targetPath: "../../hijack.txt",
+                },
+              ],
+            },
+          },
+        ],
+      };
+
+      const escapeHookPreset: PresetDefinition<WorkspaceEnvironmentMeta> = {
+        ...basePreset,
+        alias: "escape-hook",
+        nodes: [
+          {
+            ...baseNode,
+            definition: {
+              ...baseNode.definition,
+              transformFiles: (files) => {
+                const next = new Map(files);
+                next.set("../../escape.txt", {
+                  targetPath: "../../escape.txt",
+                  content: new TextEncoder().encode("escaped\n"),
+                  executable: false,
+                });
+                return next;
+              },
+            },
+          },
+        ],
+      };
+
+      const duplicateResourcePreset: PresetDefinition<WorkspaceEnvironmentMeta> =
+        {
+          ...basePreset,
+          alias: "duplicate-resource",
+          nodes: [
+            {
+              ...baseNode,
+              definition: {
+                ...baseNode.definition,
+                resources: [
+                  {
+                    sourcePath: "resources/gitignore",
+                    targetPath: "package.json",
+                  },
+                ],
+              },
+            },
+          ],
+        };
+
+      for (const [label, preset] of [
+        ["resource boundary escape", escapeResourcePreset],
+        ["transformFiles boundary escape", escapeHookPreset],
+        ["duplicate target path", duplicateResourcePreset],
+      ] as const) {
+        const targetDir = path.join(workspaceDir, `ownership-${preset.alias}`);
+        const run = testOverrideRuntime(
+          ["init", targetDir, "--preset", preset.alias],
+          { presets: [preset] },
+        );
+        assert.equal(await executeCliRuntime(run.runtime), 2, label);
+        assert.equal(run.stdout(), "", label);
+        const failure = JSON.parse(run.stderr()) as {
+          readonly data: {
+            readonly issues: readonly { readonly code: string }[];
+          };
+        };
+        assert.ok(
+          failure.data.issues.some(
+            (issue) => issue.code === "DIRECTORY_OWNERSHIP_VIOLATION",
+          ),
+          label,
+        );
+        assert.equal(existsSync(targetDir), false, label);
+      }
+
+      // Root package attempting to emit into a subpackage directory is also rejected.
+      const defaultRoots = resolveTemplateWorkspaceRoots();
+      const intrusiveRoots: WorkspaceTemplateRoots<WorkspaceEnvironmentMeta> = {
+        ...defaultRoots,
+        basePackages: defaultRoots.basePackages.map((basePkg) =>
+          basePkg.path !== "."
+            ? basePkg
+            : {
+                ...basePkg,
+                definition: {
+                  ...basePkg.definition,
+                  transformFiles: (files) => {
+                    const next = new Map(files);
+                    next.set("packages/lib/hijack.txt", {
+                      targetPath: "packages/lib/hijack.txt",
+                      content: new TextEncoder().encode("hijack\n"),
+                      executable: false,
+                    });
+                    return next;
+                  },
+                },
+              },
+        ),
+      };
+      const rootIntrusionDir = path.join(workspaceDir, "root-intrusion");
+      const rootIntrusionRun = testOverrideRuntime(
+        ["init", rootIntrusionDir, "--preset", "ts-lib"],
+        { workspaceRoots: intrusiveRoots },
+      );
+      assert.equal(await executeCliRuntime(rootIntrusionRun.runtime), 2);
+      assert.equal(rootIntrusionRun.stdout(), "");
+      assert.ok(
+        (
+          JSON.parse(rootIntrusionRun.stderr()) as {
+            readonly data: {
+              readonly issues: readonly { readonly code: string }[];
+            };
+          }
+        ).data.issues.some(
+          (issue) => issue.code === "DIRECTORY_OWNERSHIP_VIOLATION",
+        ),
+      );
+      assert.equal(existsSync(rootIntrusionDir), false);
     });
   });
 });
