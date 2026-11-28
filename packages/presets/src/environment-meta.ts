@@ -34,10 +34,9 @@ export type DependabotNpmGroup = {
 };
 
 /**
- * Closed set of root-converging workspace environment metadata that presets may
- * attach locally to individual reference packages.
+ * Static root-converging workspace environment metadata declaration.
  */
-export type WorkspaceEnvironmentMeta = {
+export type StaticWorkspaceEnvironmentMeta = {
   readonly devcontainer?: {
     readonly layers?: readonly DevcontainerLayerHandle[];
     readonly buildArgs?: Readonly<Record<string, string>>;
@@ -53,6 +52,16 @@ export type WorkspaceEnvironmentMeta = {
     readonly npmGroups?: Readonly<Record<string, DependabotNpmGroup>>;
   };
 };
+
+/**
+ * Closed set of root-converging workspace environment metadata that presets may
+ * attach locally to individual reference packages (statically or derived from instance path).
+ */
+export type WorkspaceEnvironmentMeta =
+  | StaticWorkspaceEnvironmentMeta
+  | ((
+      instance: GeneratedInstance<WorkspaceEnvironmentMeta>,
+    ) => StaticWorkspaceEnvironmentMeta);
 
 export type MergedWorkspaceEnvironmentMeta = {
   readonly devcontainer: {
@@ -126,10 +135,11 @@ export function mergeWorkspaceEnvironmentMeta(
   const npmGroups: Record<string, DependabotNpmGroup> = {};
 
   for (const instance of instances) {
-    const meta = instance.definition.meta;
-    if (meta === undefined) {
+    const rawMeta = instance.definition.meta;
+    if (rawMeta === undefined) {
       continue;
     }
+    const meta = typeof rawMeta === "function" ? rawMeta(instance) : rawMeta;
 
     // .devcontainer
     for (const layer of meta.devcontainer?.layers ?? []) {
@@ -262,7 +272,7 @@ export function mergeWorkspaceEnvironmentMeta(
 }
 
 /** Shared VS Code extension set for Vue + Tailwind + Vitest frontend packages. */
-export const frontendVscodeMeta: WorkspaceEnvironmentMeta = {
+export const frontendVscodeMeta: StaticWorkspaceEnvironmentMeta = {
   vscode: {
     extensions: ["Vue.volar", "bradlc.vscode-tailwindcss", "vitest.explorer"],
   },

@@ -57,10 +57,8 @@ export type PackageDefinition<TMeta = unknown> = {
   readonly packageDir: string;
   readonly role: PackageRole;
   readonly publishable: boolean;
-  readonly rustPackageName?: string;
   readonly meta?: TMeta;
   readonly resources?: readonly ResourceFileMapping[];
-  readonly excludeFiles?: readonly string[];
   readonly validateWorkspace?: (
     instances: readonly GeneratedInstance<TMeta>[],
   ) => readonly InvalidRequestIssue[];
@@ -114,9 +112,6 @@ export type WorkspaceTemplateRoots<TMeta = unknown> = {
   readonly basePackages: readonly BasePackageNode<TMeta>[];
   readonly rootPackageJsonPath: string;
   readonly rootPnpmWorkspaceYamlPath: string;
-  readonly rootRustToolchainPath: string;
-  readonly rustLayerDockerfilePath?: string;
-  readonly rustLockfilePath?: string;
 };
 
 export type GeneratedInstance<TMeta = unknown> = {

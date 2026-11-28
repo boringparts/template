@@ -101,15 +101,21 @@ export function resolvePlaywrightVersion(templatesRoot?: string): string {
   return version;
 }
 
-/** Reads `toolchain.channel` from the author `rust-toolchain.toml`. */
+/** Reads `toolchain.channel` from `@boringparts/reference-rust-bin`'s `rust-toolchain.toml`. */
 export function resolveRustToolchainChannel(templatesRoot?: string): string {
-  const rootBaseDir = resolveRootBaseDir(templatesRoot);
+  const rustBinRefDir = resolvePackageDir(
+    "@boringparts/reference-rust-bin",
+    import.meta.url,
+    templatesRoot,
+  );
   const parsed = parseToml(
-    readFileSync(path.join(rootBaseDir, "rust-toolchain.toml"), "utf8"),
+    readFileSync(path.join(rustBinRefDir, "rust-toolchain.toml"), "utf8"),
   ) as { readonly toolchain?: Readonly<Record<string, unknown>> };
   const channel = parsed.toolchain?.channel;
   if (typeof channel !== "string" || channel.trim().length === 0) {
-    throw new Error("Root rust-toolchain.toml must declare toolchain.channel");
+    throw new Error(
+      "rust-bin rust-toolchain.toml must declare toolchain.channel",
+    );
   }
   return channel;
 }
@@ -119,25 +125,12 @@ export function resolveTemplateWorkspaceRoots(
   templatesRoot?: string,
 ): WorkspaceTemplateRoots<WorkspaceEnvironmentMeta> {
   const rootBaseDir = resolveRootBaseDir(templatesRoot);
-  const rustBinRefDir = resolvePackageDir(
-    "@boringparts/reference-rust-bin",
-    import.meta.url,
-    templatesRoot,
-  );
 
   return {
     rootBaseDir,
     basePackages: createBasePackages(templatesRoot),
     rootPackageJsonPath: path.join(rootBaseDir, "package.json"),
     rootPnpmWorkspaceYamlPath: path.join(rootBaseDir, "pnpm-workspace.yaml"),
-    rootRustToolchainPath: path.join(rootBaseDir, "rust-toolchain.toml"),
-    rustLayerDockerfilePath: path.join(
-      rustBinRefDir,
-      "resources",
-      "devcontainer",
-      "rust.Dockerfile",
-    ),
-    rustLockfilePath: path.join(rustBinRefDir, "Cargo.lock"),
   };
 }
 
