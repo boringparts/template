@@ -26,8 +26,18 @@ const publicDeclarationFiles = new Set([
   "main.d.ts",
   "cli-command-identity.d.ts",
 ]);
-const internalDeclarationImportPattern =
-  /(?:from\s+|import\s*\(\s*)["']\.\/(?:core|presets|sources|cli-runner|cli(?:\.[cm]?[jt]s)?)(?:\/|["'])/u;
+const allowedPublicDeclarationImports: Readonly<
+  Record<string, ReadonlySet<string>>
+> = {
+  "main.d.ts": new Set([
+    "@boringparts/cli-contract",
+    "./cli-command-identity.ts",
+    "./cli-command-identity",
+  ]),
+  "cli-command-identity.d.ts": new Set(),
+};
+const declarationImportPattern =
+  /(?:(?:from|import)\s+|import\s*\(\s*)["']([^"']+)["']/gu;
 
 function resolveExecutable(name: string, searchRoot: string): string {
   const candidate = path.join(searchRoot, "node_modules", ".bin", name);
@@ -123,14 +133,14 @@ async function main(): Promise<void> {
 
   for (const publicDts of publicDeclarationFiles) {
     const content = readFileSync(path.join(distDir, publicDts), "utf8");
-    if (
-      content.includes("@boringparts/template-engine") ||
-      content.includes("@boringparts/template-presets") ||
-      internalDeclarationImportPattern.test(content)
-    ) {
-      throw new Error(
-        `Public declaration ${publicDts} leaks internal module imports.`,
-      );
+    const allowedImports = allowedPublicDeclarationImports[publicDts]!;
+    for (const match of content.matchAll(declarationImportPattern)) {
+      const specifier = match[1]!;
+      if (!allowedImports.has(specifier)) {
+        throw new Error(
+          `Public declaration ${publicDts} leaks disallowed import "${specifier}".`,
+        );
+      }
     }
   }
 

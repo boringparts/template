@@ -89,12 +89,6 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
           .toSorted(),
         ["package/dist/cli-command-identity.d.ts", "package/dist/main.d.ts"],
       );
-      assert.ok(entries.includes("package/templates/workspace-policy.json"));
-      assert.equal(
-        entries.some((entry) => entry.startsWith("package/templates/root/")),
-        false,
-        "Unexpected templates/root/ directory in tarball",
-      );
       const templateTopEntries = collectTarDirSegments(
         entries,
         "package/templates/",
@@ -198,54 +192,51 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
       assert.equal(packedManifest.private, false);
       assert.deepStrictEqual(packedManifest.engines, { node: ">=24.0.0" });
       assert.equal(packedManifest.bundleDependencies, undefined);
-      assert.equal(
-        Object.hasOwn(
-          packedManifest.dependencies,
-          "@boringparts/template-engine",
-        ),
-        false,
-      );
-      assert.equal(
-        Object.hasOwn(
-          packedManifest.dependencies,
-          "@boringparts/template-presets",
-        ),
-        false,
-      );
-      assert.equal(
-        Object.hasOwn(packedManifest.dependencies, "typescript"),
-        false,
-      );
-      assert.equal(
-        Object.hasOwn(packedManifest.dependencies, "validate-npm-package-name"),
-        false,
-      );
-      for (const expectedDep of [
+      const expectedRuntimeDependencies = [
         "@boringparts/cli-contract",
         "smol-toml",
         "yaml",
         "zod",
-      ]) {
+      ];
+      assert.deepStrictEqual(
+        Object.keys(packedManifest.dependencies).toSorted(),
+        expectedRuntimeDependencies,
+      );
+      for (const expectedDep of expectedRuntimeDependencies) {
         const version = packedManifest.dependencies[expectedDep];
         assert.ok(
-          typeof version === "string" && !version.startsWith("catalog:"),
-          `Expected resolved dependency version for ${expectedDep}, got ${String(version)}`,
+          typeof version === "string" &&
+            !version.startsWith("catalog:") &&
+            !version.startsWith("workspace:"),
+          `Expected resolved npm runtime dependency version for ${expectedDep}, got ${String(version)}`,
         );
       }
 
-      for (const publicDtsName of ["main.d.ts", "cli-command-identity.d.ts"]) {
+      const expectedDtsImports: Readonly<Record<string, readonly string[]>> = {
+        "main.d.ts": ["./cli-command-identity.ts", "@boringparts/cli-contract"],
+        "cli-command-identity.d.ts": [],
+      };
+      for (const [publicDtsName, expectedImports] of Object.entries(
+        expectedDtsImports,
+      )) {
         const publicDts = readFileSync(
           path.join(unpackDir, "package/dist", publicDtsName),
           "utf8",
         );
-        assert.equal(publicDts.includes("@boringparts/template-engine"), false);
-        assert.equal(
-          publicDts.includes("@boringparts/template-presets"),
-          false,
+        const actualImports = [
+          ...new Set(
+            [
+              ...publicDts.matchAll(
+                /(?:(?:from|import)\s+|import\s*\(\s*)["']([^"']+)["']/gu,
+              ),
+            ].map((match) => match[1]!),
+          ),
+        ].toSorted();
+        assert.deepStrictEqual(
+          actualImports,
+          expectedImports,
+          `Unexpected module imports in ${publicDtsName}`,
         );
-        assert.equal(publicDts.includes("./core"), false);
-        assert.equal(publicDts.includes("./presets"), false);
-        assert.equal(publicDts.includes("./cli-runner"), false);
       }
 
       const cliMode = statSync(
