@@ -5,6 +5,7 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", "templates/**"],
+      "cache": false,
       "tags": ["work:preparation"]
     },
     "format:check": {
