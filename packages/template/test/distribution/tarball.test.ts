@@ -283,6 +283,7 @@ assert.ok(workspaceEntry);
 const wsText = new TextDecoder().decode(workspaceEntry.content);
 assert.equal(wsText.includes("catalog:"), false);
 assert.equal(wsText.includes("catalogs:"), false);
+assert.ok(wsText.includes("nodeLinker: isolated\\n\\npreferSymlinkedExecutables: true"));
 
 const materialized = writeProjectProjection(projection);
 assert.deepStrictEqual(materialized, { ok: true });

@@ -389,7 +389,12 @@ void describe("Synthetic consumer matrix", () => {
         allowBuilds: { esbuild: true },
         minimumReleaseAge: 1440,
         minimumReleaseAgeStrict: true,
-        minimumReleaseAgeExclude: ["yaml", "host-exempt"],
+        minimumReleaseAgeExclude: [
+          "@types/*",
+          "@unused/*",
+          "yaml",
+          "host-exempt",
+        ],
         nodeLinker: "isolated",
         preferSymlinkedExecutables: true,
         shellEmulator: true,
@@ -582,13 +587,20 @@ void describe("Synthetic consumer matrix", () => {
         ["app", "library", "native"],
       );
 
-      // Pruned pnpm-workspace.yaml excludes unused-dep, unused-named, host-exempt
-      const generatedWorkspace = parseYaml(
-        new TextDecoder().decode(
-          projection.entries.find((e) => e.path === "pnpm-workspace.yaml")!
-            .content,
+      // Pruned pnpm-workspace.yaml excludes unused-dep, unused-named, host-exempt, @unused/*, and separates top-level keys with blank lines
+      const rawGeneratedWorkspace = new TextDecoder().decode(
+        projection.entries.find((e) => e.path === "pnpm-workspace.yaml")!
+          .content,
+      );
+      assert.ok(
+        rawGeneratedWorkspace.includes(
+          "nodeLinker: isolated\n\npreferSymlinkedExecutables: true",
         ),
-      ) as {
+      );
+      assert.ok(rawGeneratedWorkspace.includes("\n\npackages:\n"));
+      assert.ok(rawGeneratedWorkspace.includes("\n\ncatalog:\n"));
+      assert.ok(rawGeneratedWorkspace.includes("\n\ncatalogs:\n"));
+      const generatedWorkspace = parseYaml(rawGeneratedWorkspace) as {
         readonly catalog: Record<string, string>;
         readonly catalogs: Record<string, Record<string, string>>;
         readonly overrides: Record<string, string>;
@@ -605,6 +617,7 @@ void describe("Synthetic consumer matrix", () => {
         "yaml>sub": "^1.2.3",
       });
       assert.deepStrictEqual(generatedWorkspace.minimumReleaseAgeExclude, [
+        "@types/*",
         "yaml",
       ]);
 

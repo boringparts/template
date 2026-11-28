@@ -1,15 +1,28 @@
 nodeLinker: isolated
+
 preferSymlinkedExecutables: true
+
 shellEmulator: true
+
 autoInstallPeers: false
+
 injectWorkspacePackages: false
+
 dedupeInjectedDeps: false
+
 syncInjectedDepsAfterScripts:
   - build
+
 minimumReleaseAge: 1440
+
 minimumReleaseAgeStrict: true
+
+minimumReleaseAgeExclude:
+  - "@boringparts/*"
+
 packages:
   - packages/*
+
 catalog:
   "@changesets/cli": 3.0.3
   "@types/node": ^26.0.0
@@ -20,6 +33,7 @@ catalog:
   typescript: npm:@typescript/typescript6@^6.0.2
   typescript-7: npm:typescript@^7.0.2
   yaml: ^2.9.0
+
 catalogs:
   node-24:
     "@types/node": ~24.0.0

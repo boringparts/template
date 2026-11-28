@@ -45,6 +45,34 @@ function extractOverrideLeadingPackage(overrideKey: string): string {
   return versionSep === -1 ? firstSegment : firstSegment.slice(0, versionSep);
 }
 
+function matchesExclusionPattern(
+  pattern: string,
+  selectedPackages: ReadonlySet<string>,
+): boolean {
+  if (!pattern.includes("*")) {
+    return selectedPackages.has(pattern);
+  }
+  const regex = new RegExp(
+    `^${pattern.replace(/[.+?^${}()|[\]\\]/gu, "\\$&").replaceAll("*", ".*")}$`,
+    "u",
+  );
+  for (const pkg of selectedPackages) {
+    if (regex.test(pkg)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function formatTopLevelSpacedYaml(
+  record: Readonly<Record<string, unknown>>,
+): string {
+  const blocks = Object.entries(record).map(([key, value]) =>
+    stringifyYaml({ [key]: value }).trimEnd(),
+  );
+  return blocks.length === 0 ? "" : `${blocks.join("\n\n")}\n`;
+}
+
 function validateWorkspaceRootManifest(refRootJson: Record<string, unknown>): {
   readonly scripts: Record<string, string>;
   readonly devDependencies: Record<string, string>;
@@ -339,7 +367,7 @@ function synthesizePnpmWorkspaceYaml(options: {
   }
 
   const prunedExclusions = workspacePolicy.minimumReleaseAgeExclude.filter(
-    (item) => selectedPackages.has(item),
+    (item) => matchesExclusionPattern(item, selectedPackages),
   );
 
   const allowBuilds: Record<string, boolean> = {
@@ -382,7 +410,7 @@ function synthesizePnpmWorkspaceYaml(options: {
       : {}),
   };
 
-  return stringifyYaml(workspaceObj);
+  return formatTopLevelSpacedYaml(workspaceObj);
 }
 
 function collectInstanceFiles(
