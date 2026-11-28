@@ -25,12 +25,8 @@ export {
 export {
   resolvePackageDir,
   resolvePlaywrightVersion,
-  resolveRootBaseDir,
   resolveRustToolchainChannel,
-  resolveTemplateDistributionSources,
   resolveTemplateWorkspaceRoots,
-  type RegisteredReferencePackage,
-  type TemplateDistributionSources,
 } from "./roots.ts";
 
 /** Loads all built-in presets in deterministic display order. */

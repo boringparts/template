@@ -1,3 +1,5 @@
+import type { WorkspacePolicy } from "../sources/index.ts";
+
 /**
  * Package role in workspace dependency layering and target runtime boundaries.
  * Governs explicit `--link` validation across packages.
@@ -42,7 +44,6 @@ export type PackageTransformContext<TMeta = unknown> = {
   readonly instance: GeneratedInstance<TMeta>;
   readonly instances: readonly GeneratedInstance<TMeta>[];
   readonly manifests: ReadonlyMap<string, PackageManifestSummary>;
-  readonly rootBaseDir: string;
   readonly hasDevScript: boolean;
   readonly hasPublishable: boolean;
 };
@@ -106,12 +107,11 @@ export type BasePackageNode<TMeta = unknown> = {
   readonly definition: PackageDefinition<TMeta>;
 };
 
-/** Physical paths to the shared monorepo base packages and root policy files. */
+/** Resolved base packages, workspace policy, and optional bundled templates root for synthesis. */
 export type WorkspaceTemplateRoots<TMeta = unknown> = {
-  readonly rootBaseDir: string;
   readonly basePackages: readonly BasePackageNode<TMeta>[];
-  readonly rootPackageJsonPath: string;
-  readonly rootPnpmWorkspaceYamlPath: string;
+  readonly workspacePolicy: WorkspacePolicy;
+  readonly templatesRoot?: string;
 };
 
 export type GeneratedInstance<TMeta = unknown> = {

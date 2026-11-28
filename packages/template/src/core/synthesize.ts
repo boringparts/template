@@ -1,9 +1,13 @@
 import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
-import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+import { stringify as stringifyYaml } from "yaml";
 
-import { normalizeRelativePackagePath, scanPackageDirectory } from "./scan.ts";
+import {
+  loadPackageSourceFiles,
+  normalizeRelativePackagePath,
+  type WorkspacePolicy,
+} from "../sources/index.ts";
 import {
   collectManifestCatalogUsage,
   formatJson,
@@ -54,32 +58,44 @@ function extractOverrideLeadingPackage(overrideKey: string): string {
   return versionSep === -1 ? firstSegment : firstSegment.slice(0, versionSep);
 }
 
-function resolveAuthorToolchain(authorRootJson: Record<string, unknown>): {
-  readonly devEngines: Record<string, unknown> | undefined;
+function resolveAuthorToolchain(refRootJson: Record<string, unknown>): {
+  readonly devEngines: Record<string, unknown>;
   readonly nodeVersion: string;
   readonly packageManagerPin: string;
 } {
-  const devEngines = isRecord(authorRootJson.devEngines)
-    ? authorRootJson.devEngines
-    : undefined;
-  const runtime =
-    devEngines !== undefined && isRecord(devEngines.runtime)
-      ? devEngines.runtime
-      : undefined;
-  const nodeVersion =
-    runtime !== undefined && typeof runtime.version === "string"
-      ? runtime.version
-      : "26.13.1";
-  const packageManagerPin =
-    typeof authorRootJson.packageManager === "string"
-      ? authorRootJson.packageManager
-      : "pnpm@12.21.0";
+  const devEngines = refRootJson.devEngines;
+  if (!isRecord(devEngines)) {
+    throw new Error(
+      'Reference workspace-root package.json must declare a "devEngines" object.',
+    );
+  }
+  const runtime = devEngines.runtime;
+  if (!isRecord(runtime)) {
+    throw new Error(
+      'Reference workspace-root package.json must declare "devEngines.runtime".',
+    );
+  }
+  const nodeVersion = runtime.version;
+  if (typeof nodeVersion !== "string" || nodeVersion.trim().length === 0) {
+    throw new Error(
+      'Reference workspace-root package.json must declare "devEngines.runtime.version" as a non-empty string.',
+    );
+  }
+  const packageManagerPin = refRootJson.packageManager;
+  if (
+    typeof packageManagerPin !== "string" ||
+    packageManagerPin.trim().length === 0
+  ) {
+    throw new Error(
+      'Reference workspace-root package.json must declare "packageManager" as a non-empty string.',
+    );
+  }
   return { devEngines, nodeVersion, packageManagerPin };
 }
 
 function synthesizeRootBaseManifest<TMeta>(options: {
   readonly blueprint: ProjectBlueprint<TMeta>;
-  readonly devEngines: Record<string, unknown> | undefined;
+  readonly devEngines: Record<string, unknown>;
   readonly packageManagerPin: string;
   readonly refRootJson: Record<string, unknown>;
   readonly rootDependencyBindings: ReadonlyMap<string, string>;
@@ -115,9 +131,7 @@ function synthesizeRootBaseManifest<TMeta>(options: {
     type: "module",
     scripts,
     devDependencies: sortedDevDeps,
-    ...(options.devEngines === undefined
-      ? {}
-      : { devEngines: options.devEngines }),
+    devEngines: options.devEngines,
     packageManager: options.packageManagerPin,
   };
 
@@ -172,7 +186,7 @@ function synthesizeRootBaseTurboJson(options: {
 
 function synthesizePnpmWorkspaceYaml<TMeta>(options: {
   readonly blueprint: ProjectBlueprint<TMeta>;
-  readonly authorWorkspaceYaml: Record<string, unknown>;
+  readonly workspacePolicy: WorkspacePolicy;
   readonly defaultCatalogDeps: ReadonlySet<string>;
   readonly namedCatalogDeps: ReadonlyMap<string, ReadonlySet<string>>;
 }): string {
@@ -187,22 +201,14 @@ function synthesizePnpmWorkspaceYaml<TMeta>(options: {
     }
   }
 
-  const authorCatalog = isRecord(options.authorWorkspaceYaml.catalog)
-    ? (options.authorWorkspaceYaml.catalog as Record<string, string>)
-    : {};
-  const authorNamedCatalogs = isRecord(options.authorWorkspaceYaml.catalogs)
-    ? (options.authorWorkspaceYaml.catalogs as Record<
-        string,
-        Record<string, string>
-      >)
-    : {};
+  const { workspacePolicy } = options;
 
   const prunedCatalog: Record<string, string> = {};
   for (const dep of [...options.defaultCatalogDeps].toSorted()) {
-    const version = authorCatalog[dep];
+    const version = workspacePolicy.catalog[dep];
     if (version === undefined) {
       throw new Error(
-        `Author pnpm-workspace.yaml catalog is missing dependency "${dep}"`,
+        `Workspace policy catalog is missing dependency "${dep}"`,
       );
     }
     prunedCatalog[dep] = version;
@@ -212,18 +218,16 @@ function synthesizePnpmWorkspaceYaml<TMeta>(options: {
   for (const [catalogName, deps] of [
     ...options.namedCatalogDeps.entries(),
   ].toSorted(([a], [b]) => a.localeCompare(b))) {
-    const sourceCatalog = authorNamedCatalogs[catalogName];
+    const sourceCatalog = workspacePolicy.catalogs[catalogName];
     if (sourceCatalog === undefined) {
-      throw new Error(
-        `Author pnpm-workspace.yaml catalogs is missing "${catalogName}"`,
-      );
+      throw new Error(`Workspace policy catalogs is missing "${catalogName}"`);
     }
     const entries: Record<string, string> = {};
     for (const dep of [...deps].toSorted()) {
       const version = sourceCatalog[dep];
       if (version === undefined) {
         throw new Error(
-          `Author pnpm-workspace.yaml catalog "${catalogName}" is missing "${dep}"`,
+          `Workspace policy catalog "${catalogName}" is missing "${dep}"`,
         );
       }
       entries[dep] = version;
@@ -240,30 +244,16 @@ function synthesizePnpmWorkspaceYaml<TMeta>(options: {
     }
   }
 
-  const authorExclusions = Array.isArray(
-    options.authorWorkspaceYaml.minimumReleaseAgeExclude,
-  )
-    ? (
-        options.authorWorkspaceYaml.minimumReleaseAgeExclude as unknown[]
-      ).filter(
-        (item): item is string =>
-          typeof item === "string" && selectedPackages.has(item),
-      )
-    : [];
+  const prunedExclusions = workspacePolicy.minimumReleaseAgeExclude.filter(
+    (item) => selectedPackages.has(item),
+  );
 
-  const authorAllowBuilds = isRecord(options.authorWorkspaceYaml.allowBuilds)
-    ? (options.authorWorkspaceYaml.allowBuilds as Record<string, boolean>)
-    : {};
-  const prunedAllowBuilds: Record<string, boolean> = {};
-  for (const [pkg, allowed] of Object.entries(authorAllowBuilds)) {
-    prunedAllowBuilds[pkg] = allowed;
-  }
+  const prunedAllowBuilds: Record<string, boolean> = {
+    ...workspacePolicy.allowBuilds,
+  };
 
-  const authorOverrides = isRecord(options.authorWorkspaceYaml.overrides)
-    ? (options.authorWorkspaceYaml.overrides as Record<string, string>)
-    : {};
   const prunedOverrides: Record<string, string> = {};
-  for (const [key, value] of Object.entries(authorOverrides)) {
+  for (const [key, value] of Object.entries(workspacePolicy.overrides)) {
     const leadingPkg = extractOverrideLeadingPackage(key);
     if (selectedPackages.has(leadingPkg)) {
       prunedOverrides[key] = value;
@@ -271,27 +261,25 @@ function synthesizePnpmWorkspaceYaml<TMeta>(options: {
   }
 
   const workspaceObj: Record<string, unknown> = {
-    nodeLinker: options.authorWorkspaceYaml.nodeLinker ?? "isolated",
-    preferSymlinkedExecutables:
-      options.authorWorkspaceYaml.preferSymlinkedExecutables ?? true,
-    shellEmulator: options.authorWorkspaceYaml.shellEmulator ?? true,
-    autoInstallPeers: options.authorWorkspaceYaml.autoInstallPeers ?? false,
-    injectWorkspacePackages:
-      options.authorWorkspaceYaml.injectWorkspacePackages ?? false,
-    dedupeInjectedDeps: options.authorWorkspaceYaml.dedupeInjectedDeps ?? false,
-    syncInjectedDepsAfterScripts: options.authorWorkspaceYaml
-      .syncInjectedDepsAfterScripts ?? ["build"],
-    minimumReleaseAge: options.authorWorkspaceYaml.minimumReleaseAge ?? 1440,
-    minimumReleaseAgeStrict:
-      options.authorWorkspaceYaml.minimumReleaseAgeStrict ?? true,
+    nodeLinker: workspacePolicy.nodeLinker,
+    preferSymlinkedExecutables: workspacePolicy.preferSymlinkedExecutables,
+    shellEmulator: workspacePolicy.shellEmulator,
+    autoInstallPeers: workspacePolicy.autoInstallPeers,
+    injectWorkspacePackages: workspacePolicy.injectWorkspacePackages,
+    dedupeInjectedDeps: workspacePolicy.dedupeInjectedDeps,
+    syncInjectedDepsAfterScripts: [
+      ...workspacePolicy.syncInjectedDepsAfterScripts,
+    ],
+    minimumReleaseAge: workspacePolicy.minimumReleaseAge,
+    minimumReleaseAgeStrict: workspacePolicy.minimumReleaseAgeStrict,
     ...(Object.keys(prunedAllowBuilds).length > 0
       ? { allowBuilds: prunedAllowBuilds }
       : {}),
     ...(Object.keys(prunedOverrides).length > 0
       ? { overrides: prunedOverrides }
       : {}),
-    ...(authorExclusions.length > 0
-      ? { minimumReleaseAgeExclude: authorExclusions }
+    ...(prunedExclusions.length > 0
+      ? { minimumReleaseAgeExclude: prunedExclusions }
       : {}),
     packages: [...collections].toSorted(),
     catalog: prunedCatalog,
@@ -307,9 +295,10 @@ function collectBaseInstanceFiles<TMeta>(
   instance: GeneratedInstance<TMeta>,
   options: {
     readonly blueprint: ProjectBlueprint<TMeta>;
-    readonly devEngines: Record<string, unknown> | undefined;
+    readonly devEngines: Record<string, unknown>;
     readonly packageManagerPin: string;
     readonly hasDevScript: boolean;
+    readonly templatesRoot?: string;
   },
 ): Map<string, PackageFileContribution> {
   const localFiles = new Map<string, PackageFileContribution>();
@@ -343,8 +332,11 @@ function collectBaseInstanceFiles<TMeta>(
     });
   };
 
-  const scanned = scanPackageDirectory(instance.definition.packageDir, {
+  const scanned = loadPackageSourceFiles(instance.definition.packageDir, {
     includeResources: false,
+    ...(options.templatesRoot === undefined
+      ? {}
+      : { templatesRoot: options.templatesRoot }),
   });
 
   const rewriteEntry = (
@@ -547,11 +539,20 @@ export function buildProjectProjection<TMeta>(
     });
   };
 
-  const authorRootJson = JSON.parse(
-    readText(roots.rootPackageJsonPath),
+  const rootInstances = blueprint.instances.filter(
+    (instance) => instance.path === ".",
+  );
+  const rootInstanceForToolchain = rootInstances[0];
+  if (rootInstanceForToolchain === undefined) {
+    throw new Error("Missing workspace-root base package in ProjectBlueprint.");
+  }
+  const refRootJson = JSON.parse(
+    readText(
+      path.join(rootInstanceForToolchain.definition.packageDir, "package.json"),
+    ),
   ) as Record<string, unknown>;
   const { devEngines, nodeVersion, packageManagerPin } =
-    resolveAuthorToolchain(authorRootJson);
+    resolveAuthorToolchain(refRootJson);
 
   const hasPublishable = blueprint.instances.some(
     (instance) => instance.definition.publishable,
@@ -573,6 +574,9 @@ export function buildProjectProjection<TMeta>(
       devEngines,
       packageManagerPin,
       hasDevScript: false,
+      ...(roots.templatesRoot === undefined
+        ? {}
+        : { templatesRoot: roots.templatesRoot }),
     });
     const manifestEntry = baseFiles.get("package.json");
     if (manifestEntry !== undefined) {
@@ -603,7 +607,6 @@ export function buildProjectProjection<TMeta>(
             instance,
             instances: blueprint.instances,
             manifests,
-            rootBaseDir: roots.rootBaseDir,
             hasDevScript,
             hasPublishable,
           })
@@ -649,15 +652,15 @@ export function buildProjectProjection<TMeta>(
   const finalHasDevScript = [...manifests.values()].some((m) => m.hasDevScript);
 
   // 2. Collect and transform root instances (`path === "."`) using the homogeneous model.
-  const rootInstances = blueprint.instances.filter(
-    (instance) => instance.path === ".",
-  );
   for (const rootInstance of rootInstances) {
     const baseFiles = collectBaseInstanceFiles(rootInstance, {
       blueprint,
       devEngines,
       packageManagerPin,
       hasDevScript: finalHasDevScript,
+      ...(roots.templatesRoot === undefined
+        ? {}
+        : { templatesRoot: roots.templatesRoot }),
     });
     const finalFiles =
       rootInstance.definition.transformFiles !== undefined
@@ -667,7 +670,6 @@ export function buildProjectProjection<TMeta>(
             instance: rootInstance,
             instances: blueprint.instances,
             manifests,
-            rootBaseDir: roots.rootBaseDir,
             hasDevScript: finalHasDevScript,
             hasPublishable,
           })
@@ -699,12 +701,9 @@ export function buildProjectProjection<TMeta>(
     }
   }
 
-  const authorWorkspaceYaml = parseYaml(
-    readText(roots.rootPnpmWorkspaceYamlPath),
-  ) as Record<string, unknown>;
   const workspaceYaml = synthesizePnpmWorkspaceYaml({
     blueprint,
-    authorWorkspaceYaml,
+    workspacePolicy: roots.workspacePolicy,
     defaultCatalogDeps,
     namedCatalogDeps,
   });

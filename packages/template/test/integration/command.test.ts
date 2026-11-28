@@ -929,7 +929,94 @@ void describe("CLI contract", () => {
         "utf8",
       );
       assert.ok(gitignore.split(/\r?\n/u).includes(".local/"));
+      assert.ok(gitignore.split(/\r?\n/u).includes("*.tsbuildinfo"));
       assert.equal(gitignore.split(/\r?\n/u).includes("data/"), false);
+    });
+  });
+
+  void it("excludes .gitignore-ignored files from source-mode reference packages while preserving data/ and failing when workspace-root toolchain fields are missing", async () => {
+    const tsLibRefDir = loadBuiltInPresets().find(
+      (preset) => preset.alias === "ts-lib",
+    )!.nodes[0]!.definition.packageDir;
+    const localDir = path.join(tsLibRefDir, ".local");
+    const localExisted = existsSync(localDir);
+    const ignoredLocalFile = path.join(localDir, "mc02-ignored-probe.txt");
+    const ignoredEnvFile = path.join(tsLibRefDir, ".env");
+
+    await withTempDir(async (workspaceDir) => {
+      try {
+        mkdirSync(localDir, { recursive: true });
+        writeFileSync(ignoredLocalFile, "secret local state\n", "utf8");
+        writeFileSync(ignoredEnvFile, "SECRET_TOKEN=local\n", "utf8");
+
+        const targetDir = path.join(workspaceDir, "clean-source-repo");
+        const run = testRuntime(["init", targetDir, "--preset", "ts-lib"]);
+        assert.equal(await runCli(run.runtime), 0, run.stderr());
+        assert.equal(
+          existsSync(
+            path.join(targetDir, "packages/lib/.local/mc02-ignored-probe.txt"),
+          ),
+          false,
+        );
+        assert.equal(
+          existsSync(path.join(targetDir, "packages/lib/.env")),
+          false,
+        );
+      } finally {
+        rmSync(ignoredLocalFile, { force: true });
+        rmSync(ignoredEnvFile, { force: true });
+        if (!localExisted) {
+          rmSync(localDir, { recursive: true, force: true });
+        }
+      }
+
+      // Removing packageManager from workspace-root/package.json must fail rather than falling back to hardcoded defaults.
+      const defaultRoots = resolveTemplateWorkspaceRoots();
+      const workspaceRootBase = defaultRoots.basePackages.find(
+        (pkg) => pkg.path === ".",
+      )!;
+      const customRootRefDir = path.join(workspaceDir, "custom-workspace-root");
+      cpSync(workspaceRootBase.definition.packageDir, customRootRefDir, {
+        recursive: true,
+        filter: (src) => path.basename(src) !== "node_modules",
+      });
+      const baselineTargetDir = path.join(workspaceDir, "baseline-root-ok");
+      const validCustomRoots: WorkspaceTemplateRoots<WorkspaceEnvironmentMeta> =
+        {
+          ...defaultRoots,
+          basePackages: defaultRoots.basePackages.map((basePkg) =>
+            basePkg.path !== "."
+              ? basePkg
+              : {
+                  ...basePkg,
+                  definition: {
+                    ...basePkg.definition,
+                    packageDir: customRootRefDir,
+                  },
+                },
+          ),
+        };
+      const validRun = testOverrideRuntime(
+        ["init", baselineTargetDir, "--preset", "ts-lib", "--dry-run"],
+        { workspaceRoots: validCustomRoots },
+      );
+      assert.equal(await executeCliRuntime(validRun.runtime), 0);
+
+      const invalidPkgJson = JSON.parse(
+        readFileSync(path.join(customRootRefDir, "package.json"), "utf8"),
+      ) as Record<string, unknown>;
+      delete invalidPkgJson.packageManager;
+      writeFileSync(
+        path.join(customRootRefDir, "package.json"),
+        `${JSON.stringify(invalidPkgJson, null, 2)}\n`,
+      );
+      const invalidTargetDir = path.join(workspaceDir, "missing-pm-fail");
+      const invalidRun = testOverrideRuntime(
+        ["init", invalidTargetDir, "--preset", "ts-lib", "--dry-run"],
+        { workspaceRoots: validCustomRoots },
+      );
+      assert.equal(await executeCliRuntime(invalidRun.runtime), 70);
+      assert.equal(existsSync(invalidTargetDir), false);
     });
   });
 

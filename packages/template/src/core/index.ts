@@ -1,13 +1,6 @@
 import type { PresetDefinition, PresetSummary } from "./types.ts";
 
 export { writeProjectProjection } from "./materialize.ts";
-export {
-  excludedPackageDirectoryNames,
-  excludedPackageFileNames,
-  normalizeRelativePackagePath,
-  scanPackageDirectory,
-  type ScannedPackageFile,
-} from "./scan.ts";
 export { buildProjectProjection } from "./synthesize.ts";
 export { formatJson } from "./transform.ts";
 export {

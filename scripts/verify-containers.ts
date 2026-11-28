@@ -90,20 +90,6 @@ const localContextNames = new Set([
   ".git",
 ]);
 
-const runtimeDirectoryNames = new Set([
-  "node_modules",
-  "dist",
-  "templates",
-  "target",
-  "coverage",
-  ".turbo",
-  ".pnpm-store",
-  ".vitest",
-  ".local",
-  "playwright-report",
-  "test-results",
-]);
-
 const diagnosticSubpaths = [
   "test-results",
   "playwright-report",
@@ -617,8 +603,7 @@ async function runRepoSmokeScenario(options: {
       if (
         localContextNames.has(segments[0]!) ||
         file.startsWith(".changeset/packed/") ||
-        /^GLOSSARY.*\.md$/u.test(segments[0]!) ||
-        segments.some((segment) => runtimeDirectoryNames.has(segment))
+        /^GLOSSARY.*\.md$/u.test(segments[0]!)
       ) {
         continue;
       }
