@@ -4,23 +4,53 @@ import {
   copyFileSync,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   rmSync,
 } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { scanPackageDirectory } from "@boringparts/template-engine";
-import { resolveTemplateDistributionSources } from "@boringparts/template-presets";
 import { build as esbuild } from "esbuild";
+
+import { scanPackageDirectory } from "../src/core/index.ts";
+import { resolveTemplateDistributionSources } from "../src/presets/index.ts";
 
 const packageRoot = path.resolve(import.meta.dirname, "..");
 
 const rootBaselineFiles = ["package.json", "pnpm-workspace.yaml"] as const;
+const publicDeclarationFiles = new Set([
+  "main.d.ts",
+  "cli-command-identity.d.ts",
+]);
+const internalDeclarationImportPattern =
+  /(?:from\s+|import\s*\(\s*)["']\.\/(?:core|presets|sources|cli-runner|cli(?:\.[cm]?[jt]s)?)(?:\/|["'])/u;
 
 function resolveExecutable(name: string, searchRoot: string): string {
   const candidate = path.join(searchRoot, "node_modules", ".bin", name);
   return existsSync(candidate) ? candidate : name;
+}
+
+function pruneInternalDeclarations(dir: string, distRoot: string): boolean {
+  let hasEntries = false;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const entryPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (pruneInternalDeclarations(entryPath, distRoot)) {
+        hasEntries = true;
+      } else {
+        rmSync(entryPath, { recursive: true, force: true });
+      }
+      continue;
+    }
+    const relPath = path.relative(distRoot, entryPath).replaceAll("\\", "/");
+    if (entry.name.endsWith(".d.ts") && !publicDeclarationFiles.has(relPath)) {
+      rmSync(entryPath, { force: true });
+      continue;
+    }
+    hasEntries = true;
+  }
+  return hasEntries;
 }
 
 function copyTemplatePackage(sourceDir: string, targetDir: string): void {
@@ -47,7 +77,7 @@ async function main(): Promise<void> {
   };
   const externalDependencies = Object.keys(manifest.dependencies ?? {});
 
-  // Inline workspace-private engine and presets into dist/ while keeping public npm runtime deps external.
+  // Bundle src/main.ts and src/cli.ts into dist/ while keeping public npm runtime deps external.
   await esbuild({
     entryPoints: [
       path.join(packageRoot, "src/main.ts"),
@@ -75,7 +105,7 @@ async function main(): Promise<void> {
     chmodSync(cliEntryPath, 0o755);
   }
 
-  // Emit public declaration files and verify zero leaks from workspace-private packages.
+  // Emit public declaration files and prune internal declarations so dist/ exposes only public types.
   const tscBin = resolveExecutable("tsc", packageRoot);
   execFileSync(
     tscBin,
@@ -86,23 +116,22 @@ async function main(): Promise<void> {
     },
   );
 
-  for (const internalDts of ["cli.d.ts", "cli-runner.d.ts"]) {
-    rmSync(path.join(distDir, internalDts), { force: true });
-  }
+  pruneInternalDeclarations(distDir, distDir);
 
-  for (const publicDts of ["main.d.ts", "cli-command-identity.d.ts"]) {
+  for (const publicDts of publicDeclarationFiles) {
     const content = readFileSync(path.join(distDir, publicDts), "utf8");
     if (
       content.includes("@boringparts/template-engine") ||
-      content.includes("@boringparts/template-presets")
+      content.includes("@boringparts/template-presets") ||
+      internalDeclarationImportPattern.test(content)
     ) {
       throw new Error(
-        `Public declaration ${publicDts} leaks workspace-private package imports.`,
+        `Public declaration ${publicDts} leaks internal module imports.`,
       );
     }
   }
 
-  // Copy static template assets using the exact registered package resolution from @boringparts/template-presets.
+  // Copy static template assets using the registered reference package resolution.
   const sources = resolveTemplateDistributionSources();
 
   for (const refPkg of sources.referencePackages) {

@@ -334,33 +334,21 @@ importers:
         specifier: 'catalog:'
         version: typescript@7.0.2
 
-  packages/engine:
+  packages/template:
     dependencies:
+      '@boringparts/cli-contract':
+        specifier: 'catalog:'
+        version: 0.7.0
+      smol-toml:
+        specifier: 'catalog:'
+        version: 1.9.1
       yaml:
         specifier: 'catalog:'
         version: 2.9.1
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
     devDependencies:
-      '@boringparts/tooling-config':
-        specifier: workspace:*
-        version: link:../tooling-config
-      '@types/node':
-        specifier: catalog:node-24
-        version: 24.0.15
-      oxfmt:
-        specifier: 'catalog:'
-        version: 0.79.0
-      oxlint:
-        specifier: 'catalog:'
-        version: 1.94.0
-      tsrs:
-        specifier: 'catalog:'
-        version: 7.1.0-beta.tsrs4
-      typescript-7:
-        specifier: 'catalog:'
-        version: typescript@7.0.2
-
-  packages/presets:
-    dependencies:
       '@boringparts/reference-hono-api':
         specifier: workspace:*
         version: link:../../references/hono-api
@@ -403,56 +391,6 @@ importers:
       '@boringparts/reference-workspace-root':
         specifier: workspace:*
         version: link:../../references/workspace-root
-      '@boringparts/template-engine':
-        specifier: workspace:*
-        version: link:../engine
-      smol-toml:
-        specifier: 'catalog:'
-        version: 1.9.1
-      yaml:
-        specifier: 'catalog:'
-        version: 2.9.1
-    devDependencies:
-      '@boringparts/tooling-config':
-        specifier: workspace:*
-        version: link:../tooling-config
-      '@types/node':
-        specifier: catalog:node-24
-        version: 24.0.15
-      oxfmt:
-        specifier: 'catalog:'
-        version: 0.79.0
-      oxlint:
-        specifier: 'catalog:'
-        version: 1.94.0
-      tsrs:
-        specifier: 'catalog:'
-        version: 7.1.0-beta.tsrs4
-      typescript-7:
-        specifier: 'catalog:'
-        version: typescript@7.0.2
-
-  packages/template:
-    dependencies:
-      '@boringparts/cli-contract':
-        specifier: 'catalog:'
-        version: 0.7.0
-      smol-toml:
-        specifier: 'catalog:'
-        version: 1.9.1
-      yaml:
-        specifier: 'catalog:'
-        version: 2.9.1
-      zod:
-        specifier: 'catalog:'
-        version: 4.6.7
-    devDependencies:
-      '@boringparts/template-engine':
-        specifier: workspace:*
-        version: link:../engine
-      '@boringparts/template-presets':
-        specifier: workspace:*
-        version: link:../presets
       '@boringparts/tooling-config':
         specifier: workspace:*
         version: link:../tooling-config

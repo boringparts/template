@@ -12,13 +12,10 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-type PresetVerificationScenario = {
+type PresetScenario = {
+  readonly kind: "preset";
   readonly id: string;
   readonly args: readonly string[];
-};
-
-type PresetScenario = PresetVerificationScenario & {
-  readonly kind: "preset";
 };
 
 type RepoSmokeScenario = {
@@ -28,33 +25,47 @@ type RepoSmokeScenario = {
 
 type VerificationScenario = PresetScenario | RepoSmokeScenario;
 
-function loadPresetScenarios(cwd: string): readonly PresetScenario[] {
-  // Query scenarios via pnpm package orchestration so root package.json does not pull
-  // @boringparts/template-presets (and its app/native refs) into global turbo boundaries.
-  const raw = runCaptured(
-    "pnpm",
-    [
-      "--filter",
-      "@boringparts/template-presets",
-      "exec",
-      "node",
-      "--conditions=source",
-      "--input-type=module",
-      "-e",
-      "import { standardPresetVerificationScenarios } from '@boringparts/template-presets'; process.stdout.write(JSON.stringify(standardPresetVerificationScenarios));",
-    ],
-    { cwd },
-  );
-  const parsed = JSON.parse(raw) as readonly PresetVerificationScenario[];
-  return parsed.map((scenario) => ({
+const presetScenarios: readonly PresetScenario[] = [
+  { kind: "preset", id: "ts-lib", args: ["--preset", "ts-lib"] },
+  { kind: "preset", id: "node-lib", args: ["--preset", "node-lib"] },
+  { kind: "preset", id: "ts-cli", args: ["--preset", "ts-cli"] },
+  { kind: "preset", id: "rust-bin", args: ["--preset", "rust-bin"] },
+  { kind: "preset", id: "vue-app", args: ["--preset", "vue-app"] },
+  { kind: "preset", id: "vue-hono-app", args: ["--preset", "vue-hono-app"] },
+  { kind: "preset", id: "vike-app", args: ["--preset", "vike-app"] },
+  {
     kind: "preset",
-    ...scenario,
-  }));
-}
-
-const presetScenarios: readonly PresetScenario[] = loadPresetScenarios(
-  process.cwd(),
-);
+    id: "vue-hono-fullstack",
+    args: [
+      "--preset",
+      "vue-hono-app",
+      "--preset",
+      "ts-lib:shared",
+      "--preset",
+      "node-lib:server-kit",
+      "--link",
+      "apps/web:packages/shared",
+      "--link",
+      "apps/api:packages/shared",
+      "--link",
+      "apps/api:packages/server-kit",
+    ],
+  },
+  {
+    kind: "preset",
+    id: "polyglot-cli",
+    args: [
+      "--preset",
+      "ts-cli:tool",
+      "--preset",
+      "ts-lib:core",
+      "--preset",
+      "rust-bin:worker",
+      "--link",
+      "packages/tool:packages/core",
+    ],
+  },
+];
 
 const repoSmokeScenario: RepoSmokeScenario = {
   kind: "repo-smoke",

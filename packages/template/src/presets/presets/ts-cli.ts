@@ -1,34 +1,33 @@
-import type { PresetDefinition } from "@boringparts/template-engine";
-
+import type { PresetDefinition } from "../../core/index.ts";
 import type { WorkspaceEnvironmentMeta } from "../environment-meta.ts";
 import { resolvePackageDir } from "../roots.ts";
 
-/** Builds the `ts-lib` preset backed by `@boringparts/reference-ts-lib`. */
-export function createTsLibPreset(
+/** Builds the `ts-cli` preset backed by `@boringparts/reference-ts-cli`. */
+export function createTsCliPreset(
   templatesRoot?: string,
 ): PresetDefinition<WorkspaceEnvironmentMeta> {
   const packageDir = resolvePackageDir(
-    "@boringparts/reference-ts-lib",
+    "@boringparts/reference-ts-cli",
     import.meta.url,
     templatesRoot,
   );
 
   return {
-    alias: "ts-lib",
-    title: "TypeScript Library",
+    alias: "ts-cli",
+    title: "TypeScript CLI Application",
     description:
-      "Platform-agnostic TypeScript library package with strict es2024 type boundaries.",
+      "Node.js CLI package using @boringparts/cli-contract with unit, integration, and e2e journeys.",
     topology: "configurable-primary-package",
     nodes: [
       {
-        nodeId: "library",
-        defaultName: "lib",
+        nodeId: "cli",
+        defaultName: "cli",
         defaultCollection: "packages",
-        defaultPath: "packages/lib",
+        defaultPath: "packages/cli",
         definition: {
-          packageName: "@boringparts/reference-ts-lib",
+          packageName: "@boringparts/reference-ts-cli",
           packageDir,
-          role: "shared-library",
+          role: "cli-tool",
           publishable: true,
           resources: [
             { sourcePath: "resources/gitignore", targetPath: ".gitignore" },

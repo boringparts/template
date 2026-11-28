@@ -1,15 +1,15 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
+import { stringify as stringifyYaml } from "yaml";
+
 import {
   formatJson,
   ProjectValidationError,
   type BasePackageNode,
   type PackageFileContribution,
   type PackageTransformContext,
-} from "@boringparts/template-engine";
-import { stringify as stringifyYaml } from "yaml";
-
+} from "../core/index.ts";
 import {
   mergeWorkspaceEnvironmentMeta,
   type WorkspaceEnvironmentMeta,

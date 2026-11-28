@@ -1,12 +1,12 @@
 import path from "node:path";
 
+import { parse as parseToml, stringify as stringifyToml } from "smol-toml";
+
 import type {
   PackageFileContribution,
   PackageTransformContext,
   PresetDefinition,
-} from "@boringparts/template-engine";
-import { parse as parseToml, stringify as stringifyToml } from "smol-toml";
-
+} from "../../core/index.ts";
 import type { WorkspaceEnvironmentMeta } from "../environment-meta.ts";
 import { resolvePackageDir, resolveRustToolchainChannel } from "../roots.ts";
 

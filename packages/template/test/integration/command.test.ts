@@ -15,16 +15,6 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-import {
-  type PackageRole,
-  type PresetDefinition,
-  type WorkspaceTemplateRoots,
-} from "@boringparts/template-engine";
-import {
-  loadBuiltInPresets,
-  resolveTemplateWorkspaceRoots,
-  type WorkspaceEnvironmentMeta,
-} from "@boringparts/template-presets";
 import { parse as parseYaml } from "yaml";
 
 import { cliCommandIdentity } from "../../src/cli-command-identity.ts";
@@ -32,7 +22,17 @@ import {
   executeCliRuntime,
   type InternalCliRuntime,
 } from "../../src/cli-runner.ts";
+import {
+  type PackageRole,
+  type PresetDefinition,
+  type WorkspaceTemplateRoots,
+} from "../../src/core/index.ts";
 import { runCli, type CliRuntime } from "../../src/main.ts";
+import {
+  loadBuiltInPresets,
+  resolveTemplateWorkspaceRoots,
+  type WorkspaceEnvironmentMeta,
+} from "../../src/presets/index.ts";
 
 const identity = cliCommandIdentity(
   createRequire(import.meta.url)("../../package.json"),

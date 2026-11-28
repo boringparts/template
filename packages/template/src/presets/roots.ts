@@ -2,10 +2,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 
-import type { WorkspaceTemplateRoots } from "@boringparts/template-engine";
 import { parse as parseToml } from "smol-toml";
 import { parse as parseYaml } from "yaml";
 
+import type { WorkspaceTemplateRoots } from "../core/index.ts";
 import { createBasePackages } from "./base-packages.ts";
 import type { WorkspaceEnvironmentMeta } from "./environment-meta.ts";
 
