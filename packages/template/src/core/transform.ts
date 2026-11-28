@@ -110,6 +110,28 @@ export function isBinaryContent(filePath: string, bytes: Uint8Array): boolean {
   return bytes.includes(0);
 }
 
+/** Collects all dependency package names declared across a parsed `package.json` manifest. */
+export function collectManifestDependencyNames(
+  manifest: Record<string, unknown>,
+): ReadonlySet<string> {
+  const names = new Set<string>();
+  for (const field of [
+    "dependencies",
+    "devDependencies",
+    "peerDependencies",
+    "optionalDependencies",
+  ] as const) {
+    const map = manifest[field];
+    if (!isRecord(map)) {
+      continue;
+    }
+    for (const dep of Object.keys(map)) {
+      names.add(dep);
+    }
+  }
+  return names;
+}
+
 /** Collects `catalog:` and `catalog:<name>` dependency names referenced by a parsed package manifest. */
 export function collectManifestCatalogUsage(
   manifest: Record<string, unknown>,
@@ -178,7 +200,7 @@ export function summarizePackageManifest(options: {
  * - assigns the instantiated package name
  * - automatically rewrites a single-entry `bin` object key to the instantiated leaf name
  * - unconditionally removes the author-only `"./reference"` export while preserving runtime exports
- * - rewrites bound `@boringparts/reference-*` dependencies via `dependencyBindings`
+ * - rewrites bound internal reference package dependencies via `dependencyBindings`
  * - injects `"workspace:*"` dependencies for explicit `--link` providers
  */
 export function rewriteSubpackageManifest(options: {
@@ -301,7 +323,7 @@ export function rewriteSubpackageTurboConfig(options: {
 }
 
 /**
- * Deterministically replaces bound `@boringparts/reference-*` specifiers
+ * Deterministically replaces bound internal reference package specifiers
  * in UTF-8 source, test, and config files.
  */
 export function rewriteTextSpecifiers(options: {

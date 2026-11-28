@@ -2,14 +2,11 @@ import type { PresetDefinition } from "../../core/index.ts";
 import {
   browserTestDevcontainerMeta,
   frontendVscodeMeta,
-  type WorkspaceEnvironmentMeta,
 } from "../environment-meta.ts";
 import { resolvePackageDir } from "../roots.ts";
 
 /** Builds the `vue-app` preset backed by `@boringparts/reference-vue-app`. */
-export function createVueAppPreset(
-  templatesRoot?: string,
-): PresetDefinition<WorkspaceEnvironmentMeta> {
+export function createVueAppPreset(templatesRoot?: string): PresetDefinition {
   const packageDir = resolvePackageDir(
     "@boringparts/reference-vue-app",
     import.meta.url,
@@ -26,14 +23,13 @@ export function createVueAppPreset(
       {
         nodeId: "web",
         defaultName: "web",
-        defaultCollection: "apps",
         defaultPath: "apps/web",
-        definition: {
+        referencePackage: {
           packageName: "@boringparts/reference-vue-app",
           packageDir,
           role: "browser-app",
           publishable: false,
-          meta: {
+          environment: {
             ...browserTestDevcontainerMeta(templatesRoot),
             ...frontendVscodeMeta,
           },

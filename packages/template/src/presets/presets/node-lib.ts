@@ -1,11 +1,8 @@
 import type { PresetDefinition } from "../../core/index.ts";
-import type { WorkspaceEnvironmentMeta } from "../environment-meta.ts";
 import { resolvePackageDir } from "../roots.ts";
 
 /** Builds the `node-lib` preset backed by `@boringparts/reference-node-lib`. */
-export function createNodeLibPreset(
-  templatesRoot?: string,
-): PresetDefinition<WorkspaceEnvironmentMeta> {
+export function createNodeLibPreset(templatesRoot?: string): PresetDefinition {
   const packageDir = resolvePackageDir(
     "@boringparts/reference-node-lib",
     import.meta.url,
@@ -22,9 +19,8 @@ export function createNodeLibPreset(
       {
         nodeId: "library",
         defaultName: "node-lib",
-        defaultCollection: "packages",
         defaultPath: "packages/node-lib",
-        definition: {
+        referencePackage: {
           packageName: "@boringparts/reference-node-lib",
           packageDir,
           role: "node-library",

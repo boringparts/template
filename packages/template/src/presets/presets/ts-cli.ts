@@ -1,11 +1,8 @@
 import type { PresetDefinition } from "../../core/index.ts";
-import type { WorkspaceEnvironmentMeta } from "../environment-meta.ts";
 import { resolvePackageDir } from "../roots.ts";
 
 /** Builds the `ts-cli` preset backed by `@boringparts/reference-ts-cli`. */
-export function createTsCliPreset(
-  templatesRoot?: string,
-): PresetDefinition<WorkspaceEnvironmentMeta> {
+export function createTsCliPreset(templatesRoot?: string): PresetDefinition {
   const packageDir = resolvePackageDir(
     "@boringparts/reference-ts-cli",
     import.meta.url,
@@ -22,9 +19,8 @@ export function createTsCliPreset(
       {
         nodeId: "cli",
         defaultName: "cli",
-        defaultCollection: "packages",
         defaultPath: "packages/cli",
-        definition: {
+        referencePackage: {
           packageName: "@boringparts/reference-ts-cli",
           packageDir,
           role: "cli-tool",

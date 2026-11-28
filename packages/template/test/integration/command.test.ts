@@ -25,13 +25,13 @@ import {
 import {
   type PackageRole,
   type PresetDefinition,
+  type WorkspaceEnvironment,
   type WorkspaceTemplateRoots,
 } from "../../src/core/index.ts";
 import { runCli, type CliRuntime } from "../../src/main.ts";
 import {
   loadBuiltInPresets,
   resolveTemplateWorkspaceRoots,
-  type WorkspaceEnvironmentMeta,
 } from "../../src/presets/index.ts";
 
 const identity = cliCommandIdentity(
@@ -62,8 +62,8 @@ function testOverrideRuntime(
   args: readonly string[],
   options: {
     readonly cwd?: string;
-    readonly presets?: readonly PresetDefinition<WorkspaceEnvironmentMeta>[];
-    readonly workspaceRoots?: WorkspaceTemplateRoots<WorkspaceEnvironmentMeta>;
+    readonly presets?: readonly PresetDefinition[];
+    readonly workspaceRoots?: WorkspaceTemplateRoots;
   } = {},
 ) {
   let stdout = "";
@@ -95,12 +95,12 @@ function rolePreset(
   alias: string,
   role: PackageRole,
   defaultName: string,
-  defaultCollection: "packages" | "apps" | "crates" = "packages",
-): PresetDefinition<WorkspaceEnvironmentMeta> {
+  defaultParentDir = "packages",
+): PresetDefinition {
   const tsLib = loadBuiltInPresets().find(
     (preset) => preset.alias === "ts-lib",
   )!;
-  const baseDef = tsLib.nodes[0]!.definition;
+  const baseDef = tsLib.nodes[0]!.referencePackage;
   return {
     alias,
     title: `Role ${role}`,
@@ -110,9 +110,8 @@ function rolePreset(
       {
         nodeId: "main",
         defaultName,
-        defaultCollection,
-        defaultPath: `${defaultCollection}/${defaultName}`,
-        definition: {
+        defaultPath: `${defaultParentDir}/${defaultName}`,
+        referencePackage: {
           ...baseDef,
           role,
         },
@@ -493,7 +492,7 @@ void describe("CLI contract", () => {
   });
 
   void it("fails fast with exit code 2 (invalidRequest) and zero disk writes on invalid inputs and role boundary violations", async () => {
-    const fixedPreset: PresetDefinition<WorkspaceEnvironmentMeta> = {
+    const fixedPreset: PresetDefinition = {
       ...rolePreset("fixed-app", "browser-app", "web", "apps"),
       topology: "fixed",
     };
@@ -613,10 +612,14 @@ void describe("CLI contract", () => {
           ".git",
           ".github",
           ".devcontainer",
-          ".template",
+          ".vscode",
+          ".local",
           "node_modules",
           "dist",
           "target",
+          "coverage",
+          "playwright-report",
+          "test-results",
         ] as const
       ).map((reserved) => ({
         label: `reserved path ${reserved}`,
@@ -878,7 +881,7 @@ void describe("CLI contract", () => {
       )!;
       const baseNode = basePreset.nodes[0]!;
 
-      cpSync(baseNode.definition.packageDir, fixtureRefDir, {
+      cpSync(baseNode.referencePackage.packageDir, fixtureRefDir, {
         recursive: true,
         filter: (src) => path.basename(src) !== "node_modules",
       });
@@ -892,14 +895,14 @@ void describe("CLI contract", () => {
       writeFileSync(fixtureScript, "#!/usr/bin/env sh\nexit 0\n");
       chmodSync(fixtureScript, 0o755);
 
-      const fixturePreset: PresetDefinition<WorkspaceEnvironmentMeta> = {
+      const fixturePreset: PresetDefinition = {
         ...basePreset,
         alias: "ts-lib-with-data",
         nodes: [
           {
             ...baseNode,
-            definition: {
-              ...baseNode.definition,
+            referencePackage: {
+              ...baseNode.referencePackage,
               packageDir: fixtureRefDir,
             },
           },
@@ -937,7 +940,7 @@ void describe("CLI contract", () => {
   void it("excludes .gitignore-ignored files from source-mode reference packages while preserving data/ and failing when workspace-root toolchain fields are missing", async () => {
     const tsLibRefDir = loadBuiltInPresets().find(
       (preset) => preset.alias === "ts-lib",
-    )!.nodes[0]!.definition.packageDir;
+    )!.nodes[0]!.referencePackage.packageDir;
     const localDir = path.join(tsLibRefDir, ".local");
     const localExisted = existsSync(localDir);
     const ignoredLocalFile = path.join(localDir, "mc02-ignored-probe.txt");
@@ -972,35 +975,75 @@ void describe("CLI contract", () => {
 
       // Removing packageManager from workspace-root/package.json must fail rather than falling back to hardcoded defaults.
       const defaultRoots = resolveTemplateWorkspaceRoots();
-      const workspaceRootBase = defaultRoots.basePackages.find(
-        (pkg) => pkg.path === ".",
-      )!;
       const customRootRefDir = path.join(workspaceDir, "custom-workspace-root");
-      cpSync(workspaceRootBase.definition.packageDir, customRootRefDir, {
+      cpSync(defaultRoots.workspaceRoot.packageDir, customRootRefDir, {
         recursive: true,
         filter: (src) => path.basename(src) !== "node_modules",
       });
       const baselineTargetDir = path.join(workspaceDir, "baseline-root-ok");
-      const validCustomRoots: WorkspaceTemplateRoots<WorkspaceEnvironmentMeta> =
-        {
-          ...defaultRoots,
-          basePackages: defaultRoots.basePackages.map((basePkg) =>
-            basePkg.path !== "."
-              ? basePkg
-              : {
-                  ...basePkg,
-                  definition: {
-                    ...basePkg.definition,
-                    packageDir: customRootRefDir,
-                  },
-                },
-          ),
-        };
+      const validCustomRoots: WorkspaceTemplateRoots = {
+        ...defaultRoots,
+        workspaceRoot: {
+          ...defaultRoots.workspaceRoot,
+          packageDir: customRootRefDir,
+        },
+      };
       const validRun = testOverrideRuntime(
         ["init", baselineTargetDir, "--preset", "ts-lib", "--dry-run"],
         { workspaceRoots: validCustomRoots },
       );
       assert.equal(await executeCliRuntime(validRun.runtime), 0);
+
+      // Modifying workspace-root/turbo.json reflects deterministically in generated root turbo.json.
+      const customRootTurbo = JSON.parse(
+        readFileSync(path.join(customRootRefDir, "turbo.json"), "utf8"),
+      ) as {
+        readonly tasks: Record<string, Record<string, unknown>>;
+      };
+      customRootTurbo.tasks["smoke:check"] = {
+        dependsOn: ["lint:fix", "^build"],
+        outputs: ["coverage/**"],
+        tags: ["quality:light"],
+      };
+      writeFileSync(
+        path.join(customRootRefDir, "turbo.json"),
+        `${JSON.stringify(customRootTurbo, null, 2)}\n`,
+      );
+      const customTurboRepoDir = path.join(workspaceDir, "custom-root-turbo");
+      const customTurboRun = testOverrideRuntime(
+        ["init", customTurboRepoDir, "--preset", "ts-lib"],
+        { workspaceRoots: validCustomRoots },
+      );
+      assert.equal(await executeCliRuntime(customTurboRun.runtime), 0);
+      const generatedRootTurbo = JSON.parse(
+        readFileSync(path.join(customTurboRepoDir, "turbo.json"), "utf8"),
+      ) as {
+        readonly extends?: unknown;
+        readonly tags?: unknown;
+        readonly globalDependencies: readonly string[];
+        readonly tasks: Record<
+          string,
+          {
+            readonly dependsOn?: readonly string[];
+            readonly outputs?: readonly string[];
+            readonly tags?: readonly string[];
+          }
+        >;
+      };
+      assert.equal(generatedRootTurbo.extends, undefined);
+      assert.equal(generatedRootTurbo.tags, undefined);
+      assert.equal("//#build" in generatedRootTurbo.tasks, false);
+      assert.deepStrictEqual(generatedRootTurbo.tasks["//#smoke:check"], {
+        dependsOn: ["//#lint:fix", "^build"],
+        outputs: ["coverage/**"],
+        tags: ["quality:light"],
+      });
+      assert.deepStrictEqual(generatedRootTurbo.globalDependencies, [
+        "oxfmt.config.ts",
+        "oxlint.config.ts",
+        "packages/tooling-config/oxfmt.config.ts",
+        "packages/tooling-config/oxlint.config.ts",
+      ]);
 
       const invalidPkgJson = JSON.parse(
         readFileSync(path.join(customRootRefDir, "package.json"), "utf8"),
@@ -1146,8 +1189,8 @@ void describe("CLI contract", () => {
       const makeMetaPreset = (
         alias: string,
         defaultName: string,
-        meta: WorkspaceEnvironmentMeta,
-      ): PresetDefinition<WorkspaceEnvironmentMeta> => ({
+        environment: WorkspaceEnvironment,
+      ): PresetDefinition => ({
         ...basePreset,
         alias,
         nodes: [
@@ -1155,9 +1198,9 @@ void describe("CLI contract", () => {
             ...baseNode,
             defaultName,
             defaultPath: `packages/${defaultName}`,
-            definition: {
-              ...baseNode.definition,
-              meta,
+            referencePackage: {
+              ...baseNode.referencePackage,
+              environment,
             },
           },
         ],
@@ -1165,8 +1208,8 @@ void describe("CLI contract", () => {
 
       const conflictCases: readonly {
         readonly label: string;
-        readonly metaA: WorkspaceEnvironmentMeta;
-        readonly metaB: WorkspaceEnvironmentMeta;
+        readonly metaA: WorkspaceEnvironment;
+        readonly metaB: WorkspaceEnvironment;
       }[] = [
         {
           label: "conflicting devcontainer buildArgs",
@@ -1260,14 +1303,14 @@ void describe("CLI contract", () => {
       }
 
       // Directory ownership violations (resource escape, transformFiles escape, duplicate path)
-      const escapeResourcePreset: PresetDefinition<WorkspaceEnvironmentMeta> = {
+      const escapeResourcePreset: PresetDefinition = {
         ...basePreset,
         alias: "escape-resource",
         nodes: [
           {
             ...baseNode,
-            definition: {
-              ...baseNode.definition,
+            referencePackage: {
+              ...baseNode.referencePackage,
               resources: [
                 {
                   sourcePath: "resources/gitignore",
@@ -1279,14 +1322,14 @@ void describe("CLI contract", () => {
         ],
       };
 
-      const escapeHookPreset: PresetDefinition<WorkspaceEnvironmentMeta> = {
+      const escapeHookPreset: PresetDefinition = {
         ...basePreset,
         alias: "escape-hook",
         nodes: [
           {
             ...baseNode,
-            definition: {
-              ...baseNode.definition,
+            referencePackage: {
+              ...baseNode.referencePackage,
               transformFiles: (files) => {
                 const next = new Map(files);
                 next.set("../../escape.txt", {
@@ -1301,14 +1344,14 @@ void describe("CLI contract", () => {
         ],
       };
 
-      const injectHookPreset: PresetDefinition<WorkspaceEnvironmentMeta> = {
+      const injectHookPreset: PresetDefinition = {
         ...basePreset,
         alias: "inject-hook",
         nodes: [
           {
             ...baseNode,
-            definition: {
-              ...baseNode.definition,
+            referencePackage: {
+              ...baseNode.referencePackage,
               transformFiles: (files) => {
                 const next = new Map(files);
                 next.set("src/injected.ts", {
@@ -1325,25 +1368,24 @@ void describe("CLI contract", () => {
         ],
       };
 
-      const duplicateResourcePreset: PresetDefinition<WorkspaceEnvironmentMeta> =
-        {
-          ...basePreset,
-          alias: "duplicate-resource",
-          nodes: [
-            {
-              ...baseNode,
-              definition: {
-                ...baseNode.definition,
-                resources: [
-                  {
-                    sourcePath: "resources/gitignore",
-                    targetPath: "package.json",
-                  },
-                ],
-              },
+      const duplicateResourcePreset: PresetDefinition = {
+        ...basePreset,
+        alias: "duplicate-resource",
+        nodes: [
+          {
+            ...baseNode,
+            referencePackage: {
+              ...baseNode.referencePackage,
+              resources: [
+                {
+                  sourcePath: "resources/gitignore",
+                  targetPath: "package.json",
+                },
+              ],
             },
-          ],
-        };
+          },
+        ],
+      };
 
       for (const [label, preset] of [
         ["resource boundary escape", escapeResourcePreset],
@@ -1372,29 +1414,20 @@ void describe("CLI contract", () => {
         assert.equal(existsSync(targetDir), false, label);
       }
 
-      // Root package attempting to emit into a subpackage directory is also rejected.
+      // WorkspaceRoot attempting to emit a resource into a subpackage directory is also rejected.
       const defaultRoots = resolveTemplateWorkspaceRoots();
-      const intrusiveRoots: WorkspaceTemplateRoots<WorkspaceEnvironmentMeta> = {
+      const intrusiveRoots: WorkspaceTemplateRoots = {
         ...defaultRoots,
-        basePackages: defaultRoots.basePackages.map((basePkg) =>
-          basePkg.path !== "."
-            ? basePkg
-            : {
-                ...basePkg,
-                definition: {
-                  ...basePkg.definition,
-                  transformFiles: (files) => {
-                    const next = new Map(files);
-                    next.set("packages/lib/hijack.txt", {
-                      targetPath: "packages/lib/hijack.txt",
-                      content: new TextEncoder().encode("hijack\n"),
-                      executable: false,
-                    });
-                    return next;
-                  },
-                },
-              },
-        ),
+        workspaceRoot: {
+          ...defaultRoots.workspaceRoot,
+          resources: [
+            ...(defaultRoots.workspaceRoot.resources ?? []),
+            {
+              sourcePath: "resources/gitignore",
+              targetPath: "packages/lib/hijack.txt",
+            },
+          ],
+        },
       };
       const rootIntrusionDir = path.join(workspaceDir, "root-intrusion");
       const rootIntrusionRun = testOverrideRuntime(
@@ -1415,6 +1448,140 @@ void describe("CLI contract", () => {
         ),
       );
       assert.equal(existsSync(rootIntrusionDir), false);
+
+      // Singleton instances enforce identical transformFiles ownership checks without exemptions.
+      const singletonInjectRoots: WorkspaceTemplateRoots = {
+        ...defaultRoots,
+        singletonPackages: defaultRoots.singletonPackages.map((singleton) => ({
+          ...singleton,
+          referencePackage: {
+            ...singleton.referencePackage,
+            transformFiles: (files) => {
+              const next = new Map(files);
+              next.set("injected.ts", {
+                targetPath: "injected.ts",
+                content: new TextEncoder().encode("export const x = 1;\n"),
+                executable: false,
+              });
+              return next;
+            },
+          },
+        })),
+      };
+      const singletonInjectDir = path.join(workspaceDir, "singleton-inject");
+      const singletonInjectRun = testOverrideRuntime(
+        ["init", singletonInjectDir, "--preset", "ts-lib"],
+        { workspaceRoots: singletonInjectRoots },
+      );
+      assert.equal(await executeCliRuntime(singletonInjectRun.runtime), 2);
+      assert.ok(
+        (
+          JSON.parse(singletonInjectRun.stderr()) as {
+            readonly data: {
+              readonly issues: readonly { readonly code: string }[];
+            };
+          }
+        ).data.issues.some(
+          (issue) => issue.code === "DIRECTORY_OWNERSHIP_VIOLATION",
+        ),
+      );
+      assert.equal(existsSync(singletonInjectDir), false);
+
+      // Singleton packages declared with custom names/paths participate in homogeneous conflict & link checks,
+      // and dependencyBindings only apply when declared in the target package manifest.
+      const customSingletonRoots: WorkspaceTemplateRoots = {
+        ...defaultRoots,
+        singletonPackages: defaultRoots.singletonPackages.map((singleton) => ({
+          ...singleton,
+          defaultName: "shared-base",
+          defaultPath: "packages/shared-base",
+        })),
+      };
+      const customSingletonConflictDir = path.join(
+        workspaceDir,
+        "custom-singleton-conflict",
+      );
+      const customSingletonConflictRun = testOverrideRuntime(
+        ["init", customSingletonConflictDir, "--preset", "ts-lib:shared-base"],
+        { workspaceRoots: customSingletonRoots },
+      );
+      assert.equal(
+        await executeCliRuntime(customSingletonConflictRun.runtime),
+        2,
+      );
+      assert.ok(
+        (
+          JSON.parse(customSingletonConflictRun.stderr()) as {
+            readonly data: {
+              readonly issues: readonly { readonly code: string }[];
+            };
+          }
+        ).data.issues.some(
+          (issue) => issue.code === "CONFLICTING_PACKAGE_IDENTITY",
+        ),
+      );
+
+      const customSingletonLinkDir = path.join(
+        workspaceDir,
+        "custom-singleton-link",
+      );
+      const customSingletonLinkRun = testOverrideRuntime(
+        [
+          "init",
+          customSingletonLinkDir,
+          "--preset",
+          "ts-lib",
+          "--link",
+          "packages/lib:packages/shared-base",
+        ],
+        { workspaceRoots: customSingletonRoots },
+      );
+      assert.equal(await executeCliRuntime(customSingletonLinkRun.runtime), 2);
+      assert.ok(
+        (
+          JSON.parse(customSingletonLinkRun.stderr()) as {
+            readonly data: {
+              readonly issues: readonly { readonly code: string }[];
+            };
+          }
+        ).data.issues.some((issue) => issue.code === "UNSUPPORTED_LINK"),
+      );
+
+      const rustPreset = loadBuiltInPresets().find(
+        (preset) => preset.alias === "rust-bin",
+      )!;
+      const rustNode = rustPreset.nodes[0]!;
+      const rustProbeDir = path.join(workspaceDir, "rust-probe-ref");
+      cpSync(rustNode.referencePackage.packageDir, rustProbeDir, {
+        recursive: true,
+        filter: (src) => path.basename(src) !== "target",
+      });
+      writeFileSync(
+        path.join(rustProbeDir, "README.md"),
+        "Unrelated reference: @boringparts/reference-tooling-config\n",
+      );
+      const rustProbePreset: PresetDefinition = {
+        ...rustPreset,
+        nodes: [
+          {
+            ...rustNode,
+            referencePackage: {
+              ...rustNode.referencePackage,
+              packageDir: rustProbeDir,
+            },
+          },
+        ],
+      };
+      const rustNoBindDir = path.join(workspaceDir, "rust-no-unrelated-bind");
+      const rustNoBindRun = testOverrideRuntime(
+        ["init", rustNoBindDir, "--preset", "rust-bin"],
+        { presets: [rustProbePreset] },
+      );
+      assert.equal(await executeCliRuntime(rustNoBindRun.runtime), 0);
+      assert.equal(
+        readFileSync(path.join(rustNoBindDir, "crates/app/README.md"), "utf8"),
+        "Unrelated reference: @boringparts/reference-tooling-config\n",
+      );
     });
   });
 });

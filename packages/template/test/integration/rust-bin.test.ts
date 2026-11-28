@@ -18,7 +18,7 @@ const identity = cliCommandIdentity(
 );
 const rustBinRefDir = loadBuiltInPresets().find(
   (preset) => preset.alias === "rust-bin",
-)!.nodes[0]!.definition.packageDir;
+)!.nodes[0]!.referencePackage.packageDir;
 
 function testRuntime(args: readonly string[], cwd = process.cwd()) {
   let stdout = "";

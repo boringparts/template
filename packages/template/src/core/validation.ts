@@ -3,53 +3,118 @@ import { isBuiltin } from "node:module";
 import path from "node:path";
 
 import { normalizeRelativePackagePath } from "../sources/index.ts";
+import { mergeWorkspaceEnvironment } from "./environment.ts";
+import { collectManifestDependencyNames } from "./transform.ts";
 import type {
-  GeneratedInstance,
   InvalidRequestIssue,
-  PackageDefinition,
+  PackageInstance,
   PackageRole,
   PlanProjectRequest,
   PlanProjectResult,
   PresetDefinition,
   ProjectLink,
+  ReferencePackage,
+  ResourceFileMapping,
+  WorkspaceRoot,
 } from "./types.ts";
 
 const maxNpmPackageNameLength = 214;
-const defaultPackagePathPattern = /^[a-z0-9][a-z0-9-]*\/[a-z0-9][a-z0-9-]*$/u;
+const safeSegmentPattern = /^[a-z0-9][a-z0-9-]*$/u;
+const dotSegmentPattern = /^\.[a-z0-9][a-z0-9._-]*$/u;
 const restrictedPackageIdentifierPattern = /^[a-z0-9][a-z0-9._-]*$/u;
-const reservedPackageNames = new Set([
-  "node_modules",
-  "favicon.ico",
-  "tooling-config",
-]);
-const reservedWorkspaceCollections = new Set([
-  ".git",
-  ".github",
-  ".devcontainer",
-  ".template",
-  "node_modules",
-  "dist",
-  "target",
-]);
+const reservedPackageNames = new Set(["node_modules", "favicon.ico"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function readManifestBinKeys(packageDir: string): readonly string[] {
+function readManifestJson(
+  packageDir: string,
+): Record<string, unknown> | undefined {
   const manifestPath = path.join(packageDir, "package.json");
   if (!existsSync(manifestPath)) {
-    return [];
+    return undefined;
   }
   try {
     const parsed = JSON.parse(readFileSync(manifestPath, "utf8")) as unknown;
-    if (!isRecord(parsed) || !isRecord(parsed.bin)) {
-      return [];
-    }
-    return Object.keys(parsed.bin);
+    return isRecord(parsed) ? parsed : undefined;
   } catch {
+    return undefined;
+  }
+}
+
+function readManifestBinKeys(packageDir: string): readonly string[] {
+  const manifest = readManifestJson(packageDir);
+  if (manifest === undefined || !isRecord(manifest.bin)) {
     return [];
   }
+  return Object.keys(manifest.bin);
+}
+
+function readManifestDependencyNames(packageDir: string): ReadonlySet<string> {
+  const manifest = readManifestJson(packageDir);
+  return manifest === undefined
+    ? new Set<string>()
+    : collectManifestDependencyNames(manifest);
+}
+
+/**
+ * Parses top-level ignored directory names from a gitignore document
+ * so workspace root ignores remain the single authority for reserved top-level collections.
+ */
+function parseGitignoreTopLevelDirs(content: string): ReadonlySet<string> {
+  const dirs = new Set<string>();
+  for (const rawLine of content.split(/\r?\n/u)) {
+    const trimmed = rawLine.trim();
+    if (
+      trimmed.length === 0 ||
+      trimmed.startsWith("#") ||
+      trimmed.startsWith("!")
+    ) {
+      continue;
+    }
+    const withoutLeadingSlash = trimmed.startsWith("/")
+      ? trimmed.slice(1)
+      : trimmed;
+    const withoutTrailingSlash = withoutLeadingSlash.endsWith("/")
+      ? withoutLeadingSlash.slice(0, -1)
+      : withoutLeadingSlash;
+    if (
+      withoutTrailingSlash.length === 0 ||
+      withoutTrailingSlash.includes("/") ||
+      withoutTrailingSlash.includes("*") ||
+      withoutTrailingSlash.includes("?") ||
+      withoutTrailingSlash.includes("[") ||
+      withoutTrailingSlash.includes("]")
+    ) {
+      continue;
+    }
+    dirs.add(withoutTrailingSlash);
+  }
+  return dirs;
+}
+
+function resolveReservedTopLevelDirs(
+  workspaceRoot: WorkspaceRoot,
+): ReadonlySet<string> {
+  const gitignoreMapping = workspaceRoot.resources?.find(
+    (resource) =>
+      normalizeRelativePackagePath(resource.targetPath) === ".gitignore",
+  );
+  if (gitignoreMapping === undefined) {
+    return new Set();
+  }
+  const normalizedSource = normalizeRelativePackagePath(
+    gitignoreMapping.sourcePath,
+  );
+  if (normalizedSource === undefined) {
+    return new Set();
+  }
+  const gitignorePath = path.join(workspaceRoot.packageDir, normalizedSource);
+  if (!existsSync(gitignorePath)) {
+    return new Set();
+  }
+  return parseGitignoreTopLevelDirs(readFileSync(gitignorePath, "utf8"));
 }
 
 function isValidRestrictedIdentifier(value: string): boolean {
@@ -68,8 +133,7 @@ export function isValidPackageLeafName(value: string): boolean {
   return (
     isValidRestrictedIdentifier(value) &&
     !isBuiltin(value) &&
-    value !== "node_modules" &&
-    value !== "favicon.ico"
+    !reservedPackageNames.has(value)
   );
 }
 
@@ -78,8 +142,14 @@ export function isValidPackageScope(value: string): boolean {
   return isValidRestrictedIdentifier(value);
 }
 
-/** Validates a two-segment relative package path and detects reserved workspace directories. */
-export function validatePackagePath(value: string):
+/**
+ * Validates a two-segment relative package path and rejects dot-prefixed hidden directories
+ * or top-level directories ignored by the workspace root gitignore as `RESERVED_PACKAGE_PATH`.
+ */
+export function validatePackagePath(
+  value: string,
+  reservedTopLevelDirs: ReadonlySet<string> = new Set(),
+):
   | { readonly ok: true }
   | {
       readonly ok: false;
@@ -90,8 +160,7 @@ export function validatePackagePath(value: string):
     value.length === 0 ||
     value.includes("\0") ||
     value.includes("\\") ||
-    value.startsWith("/") ||
-    value.includes("..")
+    value.startsWith("/")
   ) {
     return {
       ok: false,
@@ -99,15 +168,39 @@ export function validatePackagePath(value: string):
       message: `Package path "${value}" must contain exactly two safe path segments.`,
     };
   }
-  const firstSegment = value.split("/", 1)[0] ?? "";
-  if (reservedWorkspaceCollections.has(firstSegment)) {
+  const segments = value.split("/");
+  if (segments.length !== 2) {
+    return {
+      ok: false,
+      code: "INVALID_PACKAGE_PATH",
+      message: `Package path "${value}" must contain exactly two safe path segments.`,
+    };
+  }
+  const [firstSegment, secondSegment] = segments as [string, string];
+  if (
+    firstSegment.length === 0 ||
+    secondSegment.length === 0 ||
+    firstSegment === "." ||
+    firstSegment === ".." ||
+    !safeSegmentPattern.test(secondSegment)
+  ) {
+    return {
+      ok: false,
+      code: "INVALID_PACKAGE_PATH",
+      message: `Package path "${value}" must contain exactly two safe lowercase segments.`,
+    };
+  }
+  if (
+    (firstSegment.startsWith(".") && dotSegmentPattern.test(firstSegment)) ||
+    reservedTopLevelDirs.has(firstSegment)
+  ) {
     return {
       ok: false,
       code: "RESERVED_PACKAGE_PATH",
       message: `Package path "${value}" uses reserved workspace directory "${firstSegment}".`,
     };
   }
-  if (!defaultPackagePathPattern.test(value)) {
+  if (!safeSegmentPattern.test(firstSegment)) {
     return {
       ok: false,
       code: "INVALID_PACKAGE_PATH",
@@ -158,14 +251,75 @@ function deduplicateIssues(
   return unique;
 }
 
-type MutablePlannedNode<TMeta> = {
-  readonly kind: "base" | "package";
+function validateDeclaredResources(options: {
+  readonly ownerLabel: string;
+  readonly resources: readonly ResourceFileMapping[];
+  readonly seenTargets: Set<string>;
+  readonly forbiddenSubpackagePaths?: readonly string[];
+  readonly issues: InvalidRequestIssue[];
+}): void {
+  for (const resource of options.resources) {
+    const normalizedSource = normalizeRelativePackagePath(resource.sourcePath);
+    if (normalizedSource === undefined) {
+      options.issues.push({
+        code: "DIRECTORY_OWNERSHIP_VIOLATION",
+        message: `${options.ownerLabel} resource source path "${resource.sourcePath}" escapes package directory.`,
+      });
+    }
+    const normalizedTarget = normalizeRelativePackagePath(resource.targetPath);
+    if (normalizedTarget === undefined) {
+      options.issues.push({
+        code: "DIRECTORY_OWNERSHIP_VIOLATION",
+        message: `${options.ownerLabel} resource target path "${resource.targetPath}" escapes package directory.`,
+      });
+      continue;
+    }
+    if (options.seenTargets.has(normalizedTarget)) {
+      options.issues.push({
+        code: "DIRECTORY_OWNERSHIP_VIOLATION",
+        message: `${options.ownerLabel} declares duplicate resource target path "${normalizedTarget}".`,
+      });
+    } else {
+      options.seenTargets.add(normalizedTarget);
+    }
+    for (const subPath of options.forbiddenSubpackagePaths ?? []) {
+      if (
+        normalizedTarget === subPath ||
+        normalizedTarget.startsWith(`${subPath}/`)
+      ) {
+        options.issues.push({
+          code: "DIRECTORY_OWNERSHIP_VIOLATION",
+          message: `Workspace root resource "${normalizedTarget}" intrudes into subpackage "${subPath}".`,
+        });
+      }
+    }
+  }
+}
+
+function bindDeclaredSingletons(
+  packageDir: string,
+  singletonBindings: ReadonlyMap<string, string>,
+  dependencyBindings: Map<string, string>,
+): void {
+  if (singletonBindings.size === 0) {
+    return;
+  }
+  const declaredDeps = readManifestDependencyNames(packageDir);
+  for (const [refPkgName, targetPkgName] of singletonBindings) {
+    if (declaredDeps.has(refPkgName)) {
+      dependencyBindings.set(refPkgName, targetPkgName);
+    }
+  }
+}
+
+type MutablePlannedNode = {
   readonly presetAlias: string;
   readonly nodeId: string;
   readonly leafName: string;
   readonly packageName: string;
   readonly path: string;
-  readonly definition: PackageDefinition<TMeta>;
+  readonly singleton: boolean;
+  readonly referencePackage: ReferencePackage;
   readonly dependencyBindings: Map<string, string>;
   readonly linkedProviders: string[];
 };
@@ -173,12 +327,13 @@ type MutablePlannedNode<TMeta> = {
 /**
  * Validates CLI initialization inputs in memory without touching disk and produces a deterministic `ProjectBlueprint`.
  */
-export function planProject<TMeta>(
-  request: PlanProjectRequest<TMeta>,
-): PlanProjectResult<TMeta> {
+export function planProject(request: PlanProjectRequest): PlanProjectResult {
   const issues: InvalidRequestIssue[] = [];
   const targetDir = path.resolve(request.cwd, request.dir);
   const repositoryName = path.basename(targetDir);
+  const reservedTopLevelDirs = resolveReservedTopLevelDirs(
+    request.workspaceRoot,
+  );
 
   let resolvedScope = "repository";
   if (request.scope !== undefined) {
@@ -212,47 +367,51 @@ export function planProject<TMeta>(
     });
   }
 
-  // Plan base singleton nodes (root `.` and shared `packages/tooling-config`) through the same node model.
-  const baseNodes: MutablePlannedNode<TMeta>[] = [];
-  const sharedBaseBindings = new Map<string, string>();
-  for (const base of request.basePackages ?? []) {
-    const packageName =
-      base.path === "." ? repositoryName : `@${resolvedScope}/${base.leafName}`;
-    if (base.path !== ".") {
-      if (packageName.length > maxNpmPackageNameLength) {
-        issues.push({
-          code:
-            request.scope !== undefined
-              ? "INVALID_PACKAGE_SCOPE"
-              : "INVALID_REPOSITORY_SCOPE",
-          message: `Scoped package name "${packageName}" exceeds ${String(maxNpmPackageNameLength)} characters.`,
-        });
-      }
-      sharedBaseBindings.set(base.definition.packageName, packageName);
+  // Instantiate singleton subpackages and requested preset subpackages into one homogeneous list.
+  const plannedNodes: MutablePlannedNode[] = [];
+  const singletonBindings = new Map<string, string>();
+
+  for (const singleton of request.singletonPackages ?? []) {
+    const pathCheck = validatePackagePath(
+      singleton.defaultPath,
+      reservedTopLevelDirs,
+    );
+    if (!pathCheck.ok) {
+      issues.push({ code: pathCheck.code, message: pathCheck.message });
     }
-    baseNodes.push({
-      kind: "base",
-      presetAlias: "workspace-base",
-      nodeId: base.nodeId,
-      leafName: base.leafName,
+    const packageName = `@${resolvedScope}/${singleton.defaultName}`;
+    if (packageName.length > maxNpmPackageNameLength) {
+      issues.push({
+        code:
+          request.scope !== undefined
+            ? "INVALID_PACKAGE_SCOPE"
+            : "INVALID_REPOSITORY_SCOPE",
+        message: `Scoped package name "${packageName}" exceeds ${String(maxNpmPackageNameLength)} characters.`,
+      });
+    }
+    singletonBindings.set(singleton.referencePackage.packageName, packageName);
+    const dependencyBindings = new Map<string, string>();
+    bindDeclaredSingletons(
+      singleton.referencePackage.packageDir,
+      singletonBindings,
+      dependencyBindings,
+    );
+    dependencyBindings.set(singleton.referencePackage.packageName, packageName);
+
+    plannedNodes.push({
+      presetAlias: "workspace-singleton",
+      nodeId: singleton.nodeId,
+      leafName: singleton.defaultName,
       packageName,
-      path: base.path,
-      definition: base.definition,
-      dependencyBindings: new Map<string, string>([
-        [base.definition.packageName, packageName],
-      ]),
+      path: singleton.defaultPath,
+      singleton: true,
+      referencePackage: singleton.referencePackage,
+      dependencyBindings,
       linkedProviders: [],
     });
   }
 
-  for (const baseNode of baseNodes) {
-    for (const [refPkgName, targetPkgName] of sharedBaseBindings) {
-      baseNode.dependencyBindings.set(refPkgName, targetPkgName);
-    }
-  }
-
-  const plannedNodes: MutablePlannedNode<TMeta>[] = [];
-  const selectedPresets: PresetDefinition<TMeta>[] = [];
+  const selectedPresets: PresetDefinition[] = [];
 
   for (const rawSpec of request.presetSpecs) {
     const parts = rawSpec.split(":");
@@ -304,9 +463,14 @@ export function planProject<TMeta>(
       }
 
       for (const node of preset.nodes) {
-        const dependencyBindings = new Map<string, string>(sharedBaseBindings);
+        const dependencyBindings = new Map<string, string>();
+        bindDeclaredSingletons(
+          node.referencePackage.packageDir,
+          singletonBindings,
+          dependencyBindings,
+        );
         dependencyBindings.set(
-          node.definition.packageName,
+          node.referencePackage.packageName,
           nodePackageById.get(node.nodeId)!,
         );
         for (const [refPkgName, targetNodeId] of Object.entries(
@@ -319,13 +483,13 @@ export function planProject<TMeta>(
         }
 
         plannedNodes.push({
-          kind: "package",
           presetAlias: preset.alias,
           nodeId: node.nodeId,
           leafName: node.defaultName,
           packageName: nodePackageById.get(node.nodeId)!,
           path: node.defaultPath,
-          definition: node.definition,
+          singleton: false,
+          referencePackage: node.referencePackage,
           dependencyBindings,
           linkedProviders: [],
         });
@@ -349,10 +513,16 @@ export function planProject<TMeta>(
       });
     }
 
+    const slashIndex = primary.defaultPath.indexOf("/");
+    const defaultParentDir =
+      slashIndex === -1 ? "" : primary.defaultPath.slice(0, slashIndex);
     const packagePath =
-      customPath ?? `${primary.defaultCollection}/${leafName}`;
+      customPath ??
+      (defaultParentDir.length > 0
+        ? `${defaultParentDir}/${leafName}`
+        : leafName);
     if (customPath !== undefined) {
-      const pathCheck = validatePackagePath(customPath);
+      const pathCheck = validatePackagePath(customPath, reservedTopLevelDirs);
       if (!pathCheck.ok) {
         issues.push({ code: pathCheck.code, message: pathCheck.message });
       }
@@ -370,40 +540,38 @@ export function planProject<TMeta>(
         message: `Scoped package name "${packageName}" exceeds ${String(maxNpmPackageNameLength)} characters.`,
       });
     }
-    const dependencyBindings = new Map<string, string>(sharedBaseBindings);
-    dependencyBindings.set(primary.definition.packageName, packageName);
+
+    const dependencyBindings = new Map<string, string>();
+    bindDeclaredSingletons(
+      primary.referencePackage.packageDir,
+      singletonBindings,
+      dependencyBindings,
+    );
+    dependencyBindings.set(primary.referencePackage.packageName, packageName);
 
     plannedNodes.push({
-      kind: "package",
       presetAlias: preset.alias,
       nodeId: primary.nodeId,
       leafName,
       packageName,
       path: packagePath,
-      definition: primary.definition,
+      singleton: false,
+      referencePackage: primary.referencePackage,
       dependencyBindings,
       linkedProviders: [],
     });
   }
 
-  // Check identity conflicts against base singletons and across planned business instances.
-  const seenNames = new Map<string, MutablePlannedNode<TMeta>>();
-  const seenPaths = new Map<string, MutablePlannedNode<TMeta>>();
-  const seenBins = new Map<string, MutablePlannedNode<TMeta>>();
-
-  const baseReservedPaths = new Set(baseNodes.map((node) => node.path));
-  const baseReservedNames = new Set(baseNodes.map((node) => node.packageName));
+  // Uniformly detect name, path, and CLI bin collisions across all PackageInstances (singletons + business instances).
+  const seenNames = new Map<string, MutablePlannedNode>();
+  const seenPaths = new Map<string, MutablePlannedNode>();
+  const seenBins = new Map<string, MutablePlannedNode>();
 
   for (const node of plannedNodes) {
-    if (
-      reservedPackageNames.has(node.leafName) ||
-      baseReservedPaths.has(node.path) ||
-      baseReservedNames.has(node.packageName) ||
-      node.path === "packages/tooling-config"
-    ) {
+    if (reservedPackageNames.has(node.leafName)) {
       issues.push({
         code: "CONFLICTING_PACKAGE_IDENTITY",
-        message: `Package "${node.packageName}" (${node.path}) conflicts with the base workspace package.`,
+        message: `Package "${node.packageName}" (${node.path}) uses a reserved package name.`,
       });
     }
 
@@ -428,7 +596,7 @@ export function planProject<TMeta>(
     }
 
     // Introspect manifest `bin` entries: single-entry `bin` maps to `node.leafName`.
-    const binKeys = readManifestBinKeys(node.definition.packageDir);
+    const binKeys = readManifestBinKeys(node.referencePackage.packageDir);
     const instantiatedBins = binKeys.length === 1 ? [node.leafName] : binKeys;
     for (const binName of instantiatedBins) {
       const existingByBin = seenBins.get(binName);
@@ -443,8 +611,7 @@ export function planProject<TMeta>(
     }
   }
 
-  // Validate explicit `--link <consumer-path>:<provider-path>` requests (rejecting base singletons).
-  const basePathsByPath = new Map(baseNodes.map((node) => [node.path, node]));
+  // Validate explicit `--link <consumer-path>:<provider-path>` requests.
   const links: ProjectLink[] = [];
   const seenLinkKeys = new Set<string>();
   for (const rawLink of request.linkSpecs) {
@@ -462,24 +629,13 @@ export function planProject<TMeta>(
 
     let linkPathsValid = true;
     for (const candidate of [consumerPath, providerPath]) {
-      const pathCheck = validatePackagePath(candidate);
+      const pathCheck = validatePackagePath(candidate, reservedTopLevelDirs);
       if (!pathCheck.ok) {
         issues.push({ code: pathCheck.code, message: pathCheck.message });
         linkPathsValid = false;
       }
     }
     if (!linkPathsValid) {
-      continue;
-    }
-
-    if (
-      basePathsByPath.has(consumerPath) ||
-      basePathsByPath.has(providerPath)
-    ) {
-      issues.push({
-        code: "UNSUPPORTED_LINK",
-        message: `Cannot link "${consumerPath}" -> "${providerPath}": base workspace singletons cannot participate in --link.`,
-      });
       continue;
     }
 
@@ -493,6 +649,14 @@ export function planProject<TMeta>(
       continue;
     }
 
+    if (consumer.singleton || provider.singleton) {
+      issues.push({
+        code: "UNSUPPORTED_LINK",
+        message: `Cannot link "${consumerPath}" -> "${providerPath}": singleton workspace packages cannot participate in --link.`,
+      });
+      continue;
+    }
+
     if (consumer.path === provider.path) {
       issues.push({
         code: "UNSUPPORTED_LINK",
@@ -501,10 +665,15 @@ export function planProject<TMeta>(
       continue;
     }
 
-    if (!canLinkRoles(consumer.definition.role, provider.definition.role)) {
+    if (
+      !canLinkRoles(
+        consumer.referencePackage.role,
+        provider.referencePackage.role,
+      )
+    ) {
       issues.push({
         code: "UNSUPPORTED_LINK",
-        message: `Package "${consumer.path}" (${consumer.definition.role}) cannot link to "${provider.path}" (${provider.definition.role}).`,
+        message: `Package "${consumer.path}" (${consumer.referencePackage.role}) cannot link to "${provider.path}" (${provider.referencePackage.role}).`,
       });
       continue;
     }
@@ -522,74 +691,58 @@ export function planProject<TMeta>(
     }
   }
 
-  const allNodes = [...baseNodes, ...plannedNodes];
-  const subpackagePaths = allNodes
-    .filter((node) => node.path !== ".")
-    .map((node) => node.path);
+  // Validate directory ownership invariants on WorkspaceRoot and all PackageInstances.
+  const subpackagePaths = plannedNodes.map((node) => node.path);
+  const rootResourceTargets = new Set<string>();
+  validateDeclaredResources({
+    ownerLabel: "Workspace root",
+    resources: [
+      ...(request.workspaceRoot.resources ?? []),
+      ...(request.workspaceRoot.publicationResources ?? []),
+    ],
+    seenTargets: rootResourceTargets,
+    forbiddenSubpackagePaths: subpackagePaths,
+    issues,
+  });
 
-  // Validate declared resource mappings for directory ownership invariants during planning.
-  for (const node of allNodes) {
-    const seenResourceTargets = new Set<string>();
-    for (const resource of node.definition.resources ?? []) {
-      const normalizedSource = normalizeRelativePackagePath(
-        resource.sourcePath,
-      );
-      if (normalizedSource === undefined) {
+  if (request.workspaceRoot.devcontainerBase !== undefined) {
+    for (const sourcePath of [
+      request.workspaceRoot.devcontainerBase.dockerfileSourcePath,
+      request.workspaceRoot.devcontainerBase.templateSourcePath,
+    ]) {
+      if (normalizeRelativePackagePath(sourcePath) === undefined) {
         issues.push({
           code: "DIRECTORY_OWNERSHIP_VIOLATION",
-          message: `Package "${node.path}" resource source path "${resource.sourcePath}" escapes package directory.`,
+          message: `Workspace root devcontainer source path "${sourcePath}" escapes package directory.`,
         });
-      }
-      const normalizedTarget = normalizeRelativePackagePath(
-        resource.targetPath,
-      );
-      if (normalizedTarget === undefined) {
-        issues.push({
-          code: "DIRECTORY_OWNERSHIP_VIOLATION",
-          message: `Package "${node.path}" resource target path "${resource.targetPath}" escapes package directory.`,
-        });
-        continue;
-      }
-      if (seenResourceTargets.has(normalizedTarget)) {
-        issues.push({
-          code: "DIRECTORY_OWNERSHIP_VIOLATION",
-          message: `Package "${node.path}" declares duplicate resource target path "${normalizedTarget}".`,
-        });
-      } else {
-        seenResourceTargets.add(normalizedTarget);
-      }
-      if (node.path === ".") {
-        for (const subPath of subpackagePaths) {
-          if (
-            normalizedTarget === subPath ||
-            normalizedTarget.startsWith(`${subPath}/`)
-          ) {
-            issues.push({
-              code: "DIRECTORY_OWNERSHIP_VIOLATION",
-              message: `Root package resource "${normalizedTarget}" intrudes into subpackage "${subPath}".`,
-            });
-          }
-        }
       }
     }
   }
 
-  const instances: GeneratedInstance<TMeta>[] = allNodes.map((node) => ({
-    kind: node.kind,
+  for (const node of plannedNodes) {
+    validateDeclaredResources({
+      ownerLabel: `Package "${node.path}"`,
+      resources: node.referencePackage.resources ?? [],
+      seenTargets: new Set<string>(),
+      issues,
+    });
+  }
+
+  const instances: PackageInstance[] = plannedNodes.map((node) => ({
     presetAlias: node.presetAlias,
     nodeId: node.nodeId,
     leafName: node.leafName,
     packageName: node.packageName,
     path: node.path,
-    definition: node.definition,
+    singleton: node.singleton,
+    referencePackage: node.referencePackage,
     dependencyBindings: node.dependencyBindings,
     linkedProviders: node.linkedProviders,
   }));
 
-  for (const instance of instances) {
-    if (instance.definition.validateWorkspace !== undefined) {
-      issues.push(...instance.definition.validateWorkspace(instances));
-    }
+  const envMerge = mergeWorkspaceEnvironment(request.workspaceRoot, instances);
+  if (!envMerge.ok) {
+    issues.push(...envMerge.issues);
   }
 
   if (issues.length > 0) {
@@ -602,6 +755,7 @@ export function planProject<TMeta>(
       targetDir,
       repositoryName,
       scope: resolvedScope,
+      workspaceRoot: request.workspaceRoot,
       instances,
       links,
     },

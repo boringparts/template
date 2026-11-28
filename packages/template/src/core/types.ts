@@ -1,4 +1,8 @@
 import type { WorkspacePolicy } from "../sources/index.ts";
+import type {
+  WorkspaceEnvironment,
+  WorkspaceEnvironmentContributor,
+} from "./environment.ts";
 
 /**
  * Package role in workspace dependency layering and target runtime boundaries.
@@ -19,8 +23,8 @@ export type ResourceFileMapping = {
   readonly executable?: boolean;
 };
 
-/** In-memory file contribution produced within an instance's own directory boundary. */
-export type PackageFileContribution = {
+/** In-memory file contribution produced within a package instance's own directory boundary. */
+export type PackageContribution = {
   readonly targetPath: string;
   readonly content: Uint8Array;
   readonly executable: boolean;
@@ -38,11 +42,11 @@ export type PackageManifestSummary = {
 };
 
 /** Read-only workspace context provided to a package's optional file transform hook. */
-export type PackageTransformContext<TMeta = unknown> = {
+export type PackageTransformContext = {
   readonly scope: string;
   readonly repositoryName: string;
-  readonly instance: GeneratedInstance<TMeta>;
-  readonly instances: readonly GeneratedInstance<TMeta>[];
+  readonly instance: PackageInstance;
+  readonly instances: readonly PackageInstance[];
   readonly manifests: ReadonlyMap<string, PackageManifestSummary>;
   readonly hasDevScript: boolean;
   readonly hasPublishable: boolean;
@@ -53,42 +57,62 @@ export type PackageTransformContext<TMeta = unknown> = {
  * Regular files are automatically discovered from `packageDir`; `resources` only
  * lists template assets from `resources/` that require explicit target remapping.
  */
-export type PackageDefinition<TMeta = unknown> = {
+export type ReferencePackage = {
   readonly packageName: string;
   readonly packageDir: string;
   readonly role: PackageRole;
   readonly publishable: boolean;
-  readonly meta?: TMeta;
+  readonly environment?: WorkspaceEnvironmentContributor;
   readonly resources?: readonly ResourceFileMapping[];
-  readonly validateWorkspace?: (
-    instances: readonly GeneratedInstance<TMeta>[],
-  ) => readonly InvalidRequestIssue[];
   readonly transformFiles?: (
-    files: ReadonlyMap<string, PackageFileContribution>,
-    context: PackageTransformContext<TMeta>,
-  ) => ReadonlyMap<string, PackageFileContribution>;
+    files: ReadonlyMap<string, PackageContribution>,
+    context: PackageTransformContext,
+  ) => ReadonlyMap<string, PackageContribution>;
+};
+
+/**
+ * Declarative handle to the target monorepo's workspace root shell,
+ * synthesized once in memory from checked root configuration, workspace policy,
+ * and merged environment declarations.
+ */
+export type WorkspaceRoot = {
+  readonly packageName: string;
+  readonly packageDir: string;
+  readonly resources?: readonly ResourceFileMapping[];
+  readonly publicationResources?: readonly ResourceFileMapping[];
+  readonly devcontainerBase?: {
+    readonly dockerfileSourcePath: string;
+    readonly templateSourcePath: string;
+  };
+  readonly environment?: WorkspaceEnvironment;
+};
+
+/** Declarative singleton subpackage automatically instantiated once per workspace. */
+export type SingletonPackage = {
+  readonly nodeId: string;
+  readonly defaultName: string;
+  readonly defaultPath: string;
+  readonly singleton: true;
+  readonly referencePackage: ReferencePackage;
 };
 
 export type PresetTopology = "configurable-primary-package" | "fixed";
 
-export type WorkspaceCollection = "packages" | "apps" | "crates";
-
-export type PresetNode<TMeta = unknown> = {
+export type PresetNode = {
   readonly nodeId: string;
-  readonly definition: PackageDefinition<TMeta>;
+  readonly referencePackage: ReferencePackage;
   readonly defaultName: string;
-  readonly defaultCollection: WorkspaceCollection;
   readonly defaultPath: string;
-  /** Maps a reference package name (e.g. `@boringparts/reference-hono-api`) to a sibling `nodeId`. */
+  /** Maps an internal reference package name to a sibling `nodeId`. */
   readonly dependencyBindings?: Readonly<Record<string, string>>;
 };
 
-export type PresetDefinition<TMeta = unknown> = {
+export type PresetDefinition = {
   readonly alias: string;
   readonly title: string;
   readonly description: string;
   readonly topology: PresetTopology;
-  readonly nodes: readonly PresetNode<TMeta>[];
+  readonly nodes: readonly PresetNode[];
 };
 
 export type PresetSummary = {
@@ -99,30 +123,23 @@ export type PresetSummary = {
   readonly roles: readonly PackageRole[];
 };
 
-/** Base singleton package node (root `.` or shared `packages/tooling-config`). */
-export type BasePackageNode<TMeta = unknown> = {
-  readonly nodeId: string;
-  readonly leafName: string;
-  readonly path: string;
-  readonly definition: PackageDefinition<TMeta>;
-};
-
-/** Resolved base packages, workspace policy, and optional bundled templates root for synthesis. */
-export type WorkspaceTemplateRoots<TMeta = unknown> = {
-  readonly basePackages: readonly BasePackageNode<TMeta>[];
+/** Resolved workspace root, singleton subpackages, workspace policy, and optional templates root. */
+export type WorkspaceTemplateRoots = {
+  readonly workspaceRoot: WorkspaceRoot;
+  readonly singletonPackages: readonly SingletonPackage[];
   readonly workspacePolicy: WorkspacePolicy;
   readonly templatesRoot?: string;
 };
 
-export type GeneratedInstance<TMeta = unknown> = {
-  readonly kind: "base" | "package";
+export type PackageInstance = {
   readonly presetAlias: string;
   readonly nodeId: string;
   readonly leafName: string;
   readonly packageName: string;
   readonly path: string;
-  readonly definition: PackageDefinition<TMeta>;
-  /** Maps reference package names (including self, shared singletons, and internal bindings) to instantiated names. */
+  readonly singleton: boolean;
+  readonly referencePackage: ReferencePackage;
+  /** Maps reference package names (including self, bound singletons, and internal bindings) to instantiated names. */
   readonly dependencyBindings: ReadonlyMap<string, string>;
   /** Target package names added via explicit `--link`. */
   readonly linkedProviders: readonly string[];
@@ -135,11 +152,12 @@ export type ProjectLink = {
   readonly providerPackageName: string;
 };
 
-export type ProjectBlueprint<TMeta = unknown> = {
+export type ProjectBlueprint = {
   readonly targetDir: string;
   readonly repositoryName: string;
   readonly scope: string;
-  readonly instances: readonly GeneratedInstance<TMeta>[];
+  readonly workspaceRoot: WorkspaceRoot;
+  readonly instances: readonly PackageInstance[];
   readonly links: readonly ProjectLink[];
 };
 
@@ -149,8 +167,8 @@ export type ProjectProjectionEntry = {
   readonly executable: boolean;
 };
 
-export type ProjectProjection<TMeta = unknown> = {
-  readonly blueprint: ProjectBlueprint<TMeta>;
+export type ProjectProjection = {
+  readonly blueprint: ProjectBlueprint;
   readonly entries: readonly ProjectProjectionEntry[];
   readonly toolchain: {
     readonly nodeVersion: string;
@@ -192,18 +210,19 @@ export class ProjectValidationError extends Error {
   }
 }
 
-export type PlanProjectRequest<TMeta = unknown> = {
+export type PlanProjectRequest = {
   readonly cwd: string;
   readonly dir: string;
   readonly presetSpecs: readonly string[];
   readonly linkSpecs: readonly string[];
   readonly scope?: string;
-  readonly presets: readonly PresetDefinition<TMeta>[];
-  readonly basePackages?: readonly BasePackageNode<TMeta>[];
+  readonly presets: readonly PresetDefinition[];
+  readonly workspaceRoot: WorkspaceRoot;
+  readonly singletonPackages?: readonly SingletonPackage[];
 };
 
-export type PlanProjectResult<TMeta = unknown> =
-  | { readonly ok: true; readonly blueprint: ProjectBlueprint<TMeta> }
+export type PlanProjectResult =
+  | { readonly ok: true; readonly blueprint: ProjectBlueprint }
   | { readonly ok: false; readonly issues: readonly InvalidRequestIssue[] };
 
 export type MaterializeResult =
