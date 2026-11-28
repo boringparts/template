@@ -95,6 +95,15 @@ void describe("@boringparts/template distribution tarball and out-of-repo consum
       mkdirSync(unpackDir, { recursive: true });
       runExec("tar", ["-xzf", tarballPath, "-C", unpackDir], tempRoot);
 
+      const sourceManifest: unknown = JSON.parse(
+        readFileSync(path.join(packageRoot, "package.json"), "utf8"),
+      );
+      assert.ok(
+        typeof sourceManifest === "object" &&
+          sourceManifest !== null &&
+          "version" in sourceManifest &&
+          typeof sourceManifest.version === "string",
+      );
       const packedManifest = JSON.parse(
         readFileSync(path.join(unpackDir, "package/package.json"), "utf8"),
       ) as {
@@ -107,7 +116,7 @@ void describe("@boringparts/template distribution tarball and out-of-repo consum
         readonly exports: Record<string, unknown>;
       };
       assert.equal(packedManifest.name, "@boringparts/template");
-      assert.equal(packedManifest.version, "0.4.0");
+      assert.equal(packedManifest.version, sourceManifest.version);
       assert.equal(packedManifest.private, false);
       assert.equal(packedManifest.bin, undefined);
       assert.deepStrictEqual(packedManifest.engines, { node: ">=24.0.0" });
