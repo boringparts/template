@@ -11,7 +11,6 @@ export type RegisteredReferencePackage = {
 };
 
 export type TemplateDistributionSources = {
-  readonly toolingConfigDir: string;
   readonly rootBaseDir: string;
   readonly referencePackages: readonly RegisteredReferencePackage[];
 };
@@ -19,11 +18,11 @@ export type TemplateDistributionSources = {
 const registeredReferenceSpecs = [
   { slug: "hono-api", packageName: "@boringparts/reference-hono-api" },
   { slug: "node-lib", packageName: "@boringparts/reference-node-lib" },
-  {
-    slug: "npm-publication",
-    packageName: "@boringparts/reference-npm-publication",
-  },
   { slug: "rust-bin", packageName: "@boringparts/reference-rust-bin" },
+  {
+    slug: "tooling-config",
+    packageName: "@boringparts/reference-tooling-config",
+  },
   { slug: "ts-cli", packageName: "@boringparts/reference-ts-cli" },
   { slug: "ts-lib", packageName: "@boringparts/reference-ts-lib" },
   { slug: "vike-db", packageName: "@boringparts/reference-vike-db" },
@@ -54,23 +53,19 @@ export function resolvePackageDir(
   callerMetaUrl: string,
   templatesRoot?: string,
 ): string {
-  if (templatesRoot !== undefined) {
-    if (packageName === "@boringparts/tooling-config") {
-      const candidate = path.join(templatesRoot, "packages", "tooling-config");
-      if (existsSync(candidate)) {
-        return candidate;
-      }
-    } else if (packageName.startsWith("@boringparts/reference-")) {
-      const slug = packageName.slice("@boringparts/reference-".length);
-      const candidate = path.join(templatesRoot, "references", slug);
-      if (existsSync(candidate)) {
-        return candidate;
-      }
+  if (
+    templatesRoot !== undefined &&
+    packageName.startsWith("@boringparts/reference-")
+  ) {
+    const slug = packageName.slice("@boringparts/reference-".length);
+    const candidate = path.join(templatesRoot, "references", slug);
+    if (existsSync(candidate)) {
+      return candidate;
     }
   }
 
   const require = createRequire(callerMetaUrl);
-  return path.dirname(require.resolve(`${packageName}/package.json`));
+  return path.dirname(require.resolve(`${packageName}/reference`));
 }
 
 /** Resolves the shared monorepo base assets and root policy files for engine synthesis. */
@@ -78,17 +73,12 @@ export function resolveTemplateWorkspaceRoots(
   templatesRoot?: string,
 ): WorkspaceTemplateRoots {
   const toolingConfigDir = resolvePackageDir(
-    "@boringparts/tooling-config",
+    "@boringparts/reference-tooling-config",
     import.meta.url,
     templatesRoot,
   );
   const workspaceRootRefDir = resolvePackageDir(
     "@boringparts/reference-workspace-root",
-    import.meta.url,
-    templatesRoot,
-  );
-  const npmPublicationRefDir = resolvePackageDir(
-    "@boringparts/reference-npm-publication",
     import.meta.url,
     templatesRoot,
   );
@@ -107,12 +97,9 @@ export function resolveTemplateWorkspaceRoots(
   return {
     toolingConfigDir,
     workspaceRootRefDir,
-    npmPublicationRefDir,
     rootPackageJsonPath: path.join(rootBaseDir, "package.json"),
     rootPnpmWorkspaceYamlPath: path.join(rootBaseDir, "pnpm-workspace.yaml"),
     rootRustToolchainPath: path.join(rootBaseDir, "rust-toolchain.toml"),
-    rootOxfmtConfigPath: path.join(rootBaseDir, "oxfmt.config.ts"),
-    rootOxlintConfigPath: path.join(rootBaseDir, "oxlint.config.ts"),
     rustLayerDockerfilePath: path.join(
       rustBinRefDir,
       "resources",
@@ -128,10 +115,6 @@ export function resolveTemplateWorkspaceRoots(
  * the `@boringparts/template` distribution `templates/` tree.
  */
 export function resolveTemplateDistributionSources(): TemplateDistributionSources {
-  const toolingConfigDir = resolvePackageDir(
-    "@boringparts/tooling-config",
-    import.meta.url,
-  );
   const referencePackages = registeredReferenceSpecs.map((spec) => ({
     slug: spec.slug,
     packageName: spec.packageName,
@@ -142,7 +125,6 @@ export function resolveTemplateDistributionSources(): TemplateDistributionSource
   )!.packageDir;
 
   return {
-    toolingConfigDir,
     rootBaseDir: path.resolve(workspaceRootRefDir, "..", ".."),
     referencePackages,
   };

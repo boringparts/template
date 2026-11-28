@@ -50,7 +50,6 @@ export function createVueHonoAppPreset(
               sourcePath: "tsconfig.build.json",
               targetPath: "tsconfig.build.json",
             },
-            { sourcePath: "resources/npmignore", targetPath: ".npmignore" },
             { sourcePath: "src/index.ts", targetPath: "src/index.ts" },
             { sourcePath: "src/runtime.ts", targetPath: "src/runtime.ts" },
             { sourcePath: "src/server.ts", targetPath: "src/server.ts" },
@@ -88,7 +87,6 @@ export function createVueHonoAppPreset(
             { sourcePath: "env.d.ts", targetPath: "env.d.ts" },
             { sourcePath: "index.html", targetPath: "index.html" },
             { sourcePath: "TESTING.md", targetPath: "TESTING.md" },
-            { sourcePath: "resources/npmignore", targetPath: ".npmignore" },
             { sourcePath: "src/App.vue", targetPath: "src/App.vue" },
             { sourcePath: "src/api.ts", targetPath: "src/api.ts" },
             { sourcePath: "src/main.ts", targetPath: "src/main.ts" },
@@ -122,7 +120,6 @@ export function createVueHonoAppPreset(
               sourcePath: "playwright.config.ts",
               targetPath: "playwright.config.ts",
             },
-            { sourcePath: "resources/npmignore", targetPath: ".npmignore" },
             {
               sourcePath: "test/e2e/app.spec.ts",
               targetPath: "test/e2e/app.spec.ts",

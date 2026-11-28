@@ -107,6 +107,7 @@ void describe("node-lib and ts-cli presets", () => {
       };
       assert.equal(pkg.name, "@acme-node-sdk/node-lib");
       assert.equal(Object.hasOwn(pkg.exports, "./package.json"), false);
+      assert.equal(Object.hasOwn(pkg.exports, "./reference"), false);
       assert.deepStrictEqual(pkg.engines, { node: ">=24.0.0" });
       assert.equal(pkg.devEngines.runtime.name, "node");
       assert.equal(pkg.devEngines.runtime.version, "24.0.0");

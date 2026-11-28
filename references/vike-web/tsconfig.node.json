@@ -1,5 +1,5 @@
 {
-  "extends": "@boringparts/tooling-config/base.json",
+  "extends": "@boringparts/reference-tooling-config/base.json",
   "compilerOptions": {
     "composite": true,
     "customConditions": [],

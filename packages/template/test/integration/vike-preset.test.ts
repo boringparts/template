@@ -75,7 +75,7 @@ void describe("vike-app preset", () => {
     ]);
   });
 
-  void it("initializes a fullstack vike-app monorepo with root deployment assets and rewritten references", async () => {
+  void it("initializes a fullstack vike-app monorepo with package-scoped deployment assets and rewritten references", async () => {
     await withTempDir(async (workspaceDir) => {
       const targetDir = path.join(workspaceDir, "acme-vike");
       const run = testRuntime(["init", targetDir, "--preset", "vike-app"]);
@@ -137,15 +137,27 @@ void describe("vike-app preset", () => {
         false,
       );
 
-      // Root projected static deployment assets
-      for (const expected of [
+      // Package-scoped deployment assets stay inside packages/deployment without projecting to root
+      for (const unexpectedRoot of [
         "Dockerfile",
         ".dockerignore",
         "scripts/container-entrypoint.sh",
+      ]) {
+        assert.equal(
+          existsSync(path.join(targetDir, unexpectedRoot)),
+          false,
+          `Unexpected root deployment asset: ${unexpectedRoot}`,
+        );
+      }
+
+      for (const expected of [
         "apps/web/package.json",
         "packages/db/package.json",
         "packages/migrations/package.json",
         "packages/deployment/package.json",
+        "packages/deployment/Dockerfile",
+        "packages/deployment/Dockerfile.dockerignore",
+        "packages/deployment/scripts/container-entrypoint.sh",
         "packages/deployment/scripts/check-standalone-deployment.ts",
       ]) {
         assert.equal(
@@ -156,16 +168,19 @@ void describe("vike-app preset", () => {
       }
 
       const entrypointStats = statSync(
-        path.join(targetDir, "scripts/container-entrypoint.sh"),
+        path.join(
+          targetDir,
+          "packages/deployment/scripts/container-entrypoint.sh",
+        ),
       );
       assert.notEqual(
         entrypointStats.mode & 0o111,
         0,
-        "scripts/container-entrypoint.sh must be executable",
+        "packages/deployment/scripts/container-entrypoint.sh must be executable",
       );
 
       const dockerfile = readFileSync(
-        path.join(targetDir, "Dockerfile"),
+        path.join(targetDir, "packages/deployment/Dockerfile"),
         "utf8",
       );
       assert.ok(dockerfile.includes("FROM node:26.13.1-bookworm-slim AS base"));
@@ -226,6 +241,11 @@ void describe("vike-app preset", () => {
         true,
         "db package must keep ./package.json export for drizzle/vite config imports",
       );
+      assert.equal(
+        Object.hasOwn(dbPkg.exports, "./reference"),
+        false,
+        "db package must strip ./reference locator export",
+      );
 
       const migrationsPkg = JSON.parse(
         readFileSync(
@@ -268,7 +288,7 @@ void describe("vike-app preset", () => {
       );
       assert.ok(
         deploymentPkg.scripts.lint?.includes(
-          "shellcheck ../../scripts/container-entrypoint.sh",
+          "shellcheck scripts/container-entrypoint.sh",
         ),
       );
 
@@ -353,9 +373,8 @@ void describe("vike-app preset", () => {
       assert.ok(checkerSource.includes('"@acme-vike/web"'));
       assert.ok(checkerSource.includes('"@acme-vike/db"'));
       assert.ok(checkerSource.includes('"@acme-vike/migrations"'));
-      assert.ok(checkerSource.includes('"apps/web"'));
-      assert.ok(checkerSource.includes('"Dockerfile"'));
-      assert.ok(checkerSource.includes('"scripts/container-entrypoint.sh"'));
+      assert.ok(checkerSource.includes("/Dockerfile"));
+      assert.ok(checkerSource.includes("/scripts/container-entrypoint.sh"));
       assert.ok(checkerSource.includes('"/migration"'));
       assert.equal(checkerSource.includes("references/vike-"), false);
 

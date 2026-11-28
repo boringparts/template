@@ -40,7 +40,6 @@ export function createTsLibPreset(templatesRoot?: string): PresetDefinition {
               targetPath: "tsconfig.build.json",
             },
             { sourcePath: "resources/gitignore", targetPath: ".gitignore" },
-            { sourcePath: "resources/npmignore", targetPath: ".npmignore" },
             { sourcePath: "src/index.ts", targetPath: "src/index.ts" },
             {
               sourcePath: "src/name-schema.ts",

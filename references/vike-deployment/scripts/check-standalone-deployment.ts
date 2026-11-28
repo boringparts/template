@@ -1,7 +1,21 @@
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+
+const ignoredWorkspaceDirs = new Set([
+  ".git",
+  ".local",
+  ".pnpm-store",
+  ".turbo",
+  ".vitest",
+  "coverage",
+  "dist",
+  "node_modules",
+  "playwright-report",
+  "target",
+  "test-results",
+]);
 
 function findWorkspaceRoot(startDir: string): string {
   let current = path.resolve(startDir);
@@ -17,21 +31,52 @@ function findWorkspaceRoot(startDir: string): string {
   }
 }
 
+function findWorkspacePackagePath(
+  workspaceRoot: string,
+  packageName: string,
+): string {
+  const stack = [workspaceRoot];
+  while (stack.length > 0) {
+    const dir = stack.pop()!;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory() || ignoredWorkspaceDirs.has(entry.name)) {
+        continue;
+      }
+      const subDir = path.join(dir, entry.name);
+      const manifestPath = path.join(subDir, "package.json");
+      if (existsSync(manifestPath)) {
+        const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+          readonly name?: unknown;
+        };
+        if (manifest.name === packageName) {
+          return path.relative(workspaceRoot, subDir).split(path.sep).join("/");
+        }
+      }
+      stack.push(subDir);
+    }
+  }
+  throw new Error(
+    `Could not locate workspace package "${packageName}" under ${workspaceRoot}`,
+  );
+}
+
 // Deployment check scripts run inside the deployment package (`pnpm --filter ... run check:deployment`),
-// while `docker buildx build` needs the repository root as its context so `turbo prune` sees every
-// workspace package. In generated repositories, `vike-app` projects `Dockerfile` and
-// `scripts/container-entrypoint.sh` directly to the repository root (`dockerfilePath` is rewritten).
+// while `docker buildx build` uses the repository root as context so `turbo prune` sees every
+// workspace package and BuildKit loads the sibling `Dockerfile.dockerignore` beside `dockerfilePath`.
 const repositoryRoot = findWorkspaceRoot(import.meta.dirname);
-// oxfmt-ignore
-const dockerfilePath =
-  "references/vike-deployment/resources/deployment/Dockerfile";
+const deploymentPackageRelativePath = path
+  .relative(repositoryRoot, path.resolve(import.meta.dirname, ".."))
+  .split(path.sep)
+  .join("/");
+const dockerfilePath = `${deploymentPackageRelativePath}/Dockerfile`;
 const applicationPackageName = "@boringparts/reference-vike-web";
-// oxfmt-ignore
-const entrypointScriptPath =
-  "references/vike-deployment/resources/deployment/scripts/container-entrypoint.sh";
+const entrypointScriptPath = `${deploymentPackageRelativePath}/scripts/container-entrypoint.sh`;
 const buildArguments = Object.entries({
   APPLICATION_PACKAGE_NAME: applicationPackageName,
-  APPLICATION_PACKAGE_PATH: "references/vike-web",
+  APPLICATION_PACKAGE_PATH: findWorkspacePackagePath(
+    repositoryRoot,
+    applicationPackageName,
+  ),
   DATABASE_PACKAGE_NAME: "@boringparts/reference-vike-db",
   MIGRATION_PACKAGE_NAME: "@boringparts/reference-vike-migrations",
   ENTRYPOINT_SCRIPT_PATH: entrypointScriptPath,

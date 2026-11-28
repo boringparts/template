@@ -222,15 +222,6 @@ export function createVikeAppPreset(templatesRoot?: string): PresetDefinition {
           "@boringparts/reference-vike-migrations": "migrations",
           "@boringparts/reference-vike-web": "web",
         },
-        pathReplacements: {
-          "references/vike-deployment/resources/deployment/Dockerfile":
-            "Dockerfile",
-          "references/vike-deployment/resources/deployment/scripts/container-entrypoint.sh":
-            "scripts/container-entrypoint.sh",
-          "resources/deployment/scripts/container-entrypoint.sh":
-            "../../scripts/container-entrypoint.sh",
-          "references/vike-web": "apps/web",
-        },
         reference: {
           packageName: "@boringparts/reference-vike-deployment",
           packageDir: deploymentDir,
@@ -244,25 +235,19 @@ export function createVikeAppPreset(templatesRoot?: string): PresetDefinition {
               sourcePath: "tsconfig.scripts.json",
               targetPath: "tsconfig.scripts.json",
             },
+            { sourcePath: "Dockerfile", targetPath: "Dockerfile" },
+            {
+              sourcePath: "Dockerfile.dockerignore",
+              targetPath: "Dockerfile.dockerignore",
+            },
+            {
+              sourcePath: "scripts/container-entrypoint.sh",
+              targetPath: "scripts/container-entrypoint.sh",
+              executable: true,
+            },
             {
               sourcePath: "scripts/check-standalone-deployment.ts",
               targetPath: "scripts/check-standalone-deployment.ts",
-            },
-          ],
-          rootFiles: [
-            {
-              sourcePath: "resources/deployment/Dockerfile",
-              targetPath: "Dockerfile",
-            },
-            {
-              sourcePath: "resources/deployment/container.dockerignore",
-              targetPath: ".dockerignore",
-            },
-            {
-              sourcePath:
-                "resources/deployment/scripts/container-entrypoint.sh",
-              targetPath: "scripts/container-entrypoint.sh",
-              executable: true,
             },
           ],
         },

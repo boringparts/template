@@ -35,13 +35,13 @@ updates:
     directories:
       - /
       - /references/workspace-root/resources/github
-      - /references/npm-publication/resources
+      - /references/workspace-root/resources/publication
     schedule:
       interval: weekly
   - package-ecosystem: docker
     directories:
       - /.devcontainer
       - /references/workspace-root/resources/environment
-      - /references/vike-deployment/resources/deployment
+      - /references/vike-deployment
     schedule:
       interval: weekly

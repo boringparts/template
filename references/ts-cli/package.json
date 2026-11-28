@@ -9,7 +9,7 @@
   ],
   "type": "module",
   "exports": {
-    "./package.json": "./package.json"
+    "./reference": "./package.json"
   },
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json --pretty false",
@@ -27,7 +27,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@boringparts/tooling-config": "workspace:*",
+    "@boringparts/reference-tooling-config": "workspace:*",
     "@types/node": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",

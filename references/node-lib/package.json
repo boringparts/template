@@ -12,7 +12,7 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./package.json": "./package.json"
+    "./reference": "./package.json"
   },
   "scripts": {
     "format:check": "oxfmt --list-different .",
@@ -28,7 +28,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@boringparts/tooling-config": "workspace:*",
+    "@boringparts/reference-tooling-config": "workspace:*",
     "@types/node": "catalog:node-24",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",

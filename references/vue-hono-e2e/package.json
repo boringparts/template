@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./package.json": "./package.json"
+    "./reference": "./package.json"
   },
   "scripts": {
     "format:check": "oxfmt --list-different .",
@@ -17,8 +17,8 @@
   },
   "devDependencies": {
     "@boringparts/reference-hono-api": "workspace:*",
+    "@boringparts/reference-tooling-config": "workspace:*",
     "@boringparts/reference-vue-hono-web": "workspace:*",
-    "@boringparts/tooling-config": "workspace:*",
     "@playwright/test": "catalog:",
     "@types/node": "catalog:",
     "oxfmt": "catalog:",

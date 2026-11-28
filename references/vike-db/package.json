@@ -43,7 +43,8 @@
       "source": "./src/types.ts",
       "types": "./dist/types.d.ts"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./reference": "./package.json"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json --pretty false",
@@ -60,7 +61,7 @@
     "drizzle-orm": "catalog:"
   },
   "devDependencies": {
-    "@boringparts/tooling-config": "workspace:*",
+    "@boringparts/reference-tooling-config": "workspace:*",
     "@types/node": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",

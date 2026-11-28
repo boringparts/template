@@ -48,7 +48,6 @@ export function createVueAppPreset(templatesRoot?: string): PresetDefinition {
             { sourcePath: "env.d.ts", targetPath: "env.d.ts" },
             { sourcePath: "index.html", targetPath: "index.html" },
             { sourcePath: "TESTING.md", targetPath: "TESTING.md" },
-            { sourcePath: "resources/npmignore", targetPath: ".npmignore" },
             { sourcePath: "src/App.vue", targetPath: "src/App.vue" },
             {
               sourcePath: "src/components/CounterButton.vue",

@@ -104,12 +104,9 @@ export type PresetSummary = {
 export type WorkspaceTemplateRoots = {
   readonly toolingConfigDir: string;
   readonly workspaceRootRefDir: string;
-  readonly npmPublicationRefDir: string;
   readonly rootPackageJsonPath: string;
   readonly rootPnpmWorkspaceYamlPath: string;
   readonly rootRustToolchainPath: string;
-  readonly rootOxfmtConfigPath: string;
-  readonly rootOxlintConfigPath: string;
   readonly rustLayerDockerfilePath?: string;
   readonly rustLockfilePath?: string;
 };
