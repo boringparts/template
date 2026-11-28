@@ -1,12 +1,11 @@
-import path from "node:path";
-
 import type { PresetDefinition } from "@boringparts/template-engine";
 
 import {
+  browserTestDevcontainerMeta,
   frontendVscodeMeta,
   type WorkspaceEnvironmentMeta,
 } from "../environment-meta.ts";
-import { resolvePackageDir, resolvePlaywrightVersion } from "../roots.ts";
+import { resolvePackageDir } from "../roots.ts";
 
 /**
  * Builds the fixed-topology `vue-hono-app` preset combining `apps/api`, `apps/web`,
@@ -30,12 +29,6 @@ export function createVueHonoAppPreset(
     import.meta.url,
     templatesRoot,
   );
-  const workspaceRootRefDir = resolvePackageDir(
-    "@boringparts/reference-workspace-root",
-    import.meta.url,
-    templatesRoot,
-  );
-  const playwrightVersion = resolvePlaywrightVersion(templatesRoot);
 
   return {
     alias: "vue-hono-app",
@@ -86,25 +79,7 @@ export function createVueHonoAppPreset(
           packageDir: e2eDir,
           role: "native-package",
           publishable: false,
-          meta: {
-            devcontainer: {
-              layers: [
-                {
-                  id: "browser-test",
-                  dockerfilePath: path.join(
-                    workspaceRootRefDir,
-                    "resources",
-                    "environment",
-                    "devcontainer",
-                    "browser-test.Dockerfile",
-                  ),
-                },
-              ],
-              buildArgs: {
-                PLAYWRIGHT_CLI_PACKAGE: `@playwright/test@${playwrightVersion}`,
-              },
-            },
-          },
+          meta: browserTestDevcontainerMeta(templatesRoot),
         },
       },
     ],

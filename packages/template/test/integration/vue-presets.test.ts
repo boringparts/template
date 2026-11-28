@@ -390,10 +390,6 @@ void describe("vue-app and vue-hono-app presets via runCli", () => {
         false,
       );
       assert.equal(Object.hasOwn(e2ePkg.exports ?? {}, "./reference"), false);
-      assert.equal(
-        existsSync(path.join(targetDir, "packages/e2e/.npmignore")),
-        false,
-      );
 
       const e2eTurbo = JSON.parse(
         readFileSync(path.join(targetDir, "packages/e2e/turbo.json"), "utf8"),

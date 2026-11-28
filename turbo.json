@@ -4,7 +4,11 @@
     "oxfmt.config.ts",
     "oxlint.config.ts",
     "packages/tooling-config/oxfmt.config.ts",
-    "packages/tooling-config/oxlint.config.ts"
+    "packages/tooling-config/oxlint.config.ts",
+    "references/tooling-config/oxfmt.config.ts",
+    "references/tooling-config/oxlint.config.ts",
+    "references/workspace-root/oxfmt.config.ts",
+    "references/workspace-root/oxlint.config.ts"
   ],
   "tasks": {
     "//#boundaries": {

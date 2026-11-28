@@ -11,6 +11,7 @@ import { createVueHonoAppPreset } from "./presets/vue-hono-app.ts";
 
 export { createBasePackages } from "./base-packages.ts";
 export {
+  browserTestDevcontainerMeta,
   frontendVscodeMeta,
   mergeWorkspaceEnvironmentMeta,
   type DependabotIgnoreRule,

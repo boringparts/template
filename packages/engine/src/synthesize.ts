@@ -16,7 +16,6 @@ import {
 import {
   ProjectValidationError,
   type GeneratedInstance,
-  type InvalidRequestIssue,
   type PackageFileContribution,
   type PackageManifestSummary,
   type ProjectBlueprint,
@@ -55,19 +54,13 @@ function extractOverrideLeadingPackage(overrideKey: string): string {
   return versionSep === -1 ? firstSegment : firstSegment.slice(0, versionSep);
 }
 
-function synthesizeRootBaseManifest<TMeta>(options: {
-  readonly blueprint: ProjectBlueprint<TMeta>;
-  readonly authorRootJson: Record<string, unknown>;
-  readonly refRootJson: Record<string, unknown>;
-  readonly rootDependencyBindings: ReadonlyMap<string, string>;
-  readonly hasDevScript: boolean;
-}): {
-  readonly rootPackageJson: string;
+function resolveAuthorToolchain(authorRootJson: Record<string, unknown>): {
+  readonly devEngines: Record<string, unknown> | undefined;
   readonly nodeVersion: string;
   readonly packageManagerPin: string;
 } {
-  const devEngines = isRecord(options.authorRootJson.devEngines)
-    ? options.authorRootJson.devEngines
+  const devEngines = isRecord(authorRootJson.devEngines)
+    ? authorRootJson.devEngines
     : undefined;
   const runtime =
     devEngines !== undefined && isRecord(devEngines.runtime)
@@ -78,10 +71,20 @@ function synthesizeRootBaseManifest<TMeta>(options: {
       ? runtime.version
       : "26.13.1";
   const packageManagerPin =
-    typeof options.authorRootJson.packageManager === "string"
-      ? options.authorRootJson.packageManager
+    typeof authorRootJson.packageManager === "string"
+      ? authorRootJson.packageManager
       : "pnpm@12.21.0";
+  return { devEngines, nodeVersion, packageManagerPin };
+}
 
+function synthesizeRootBaseManifest<TMeta>(options: {
+  readonly blueprint: ProjectBlueprint<TMeta>;
+  readonly devEngines: Record<string, unknown> | undefined;
+  readonly packageManagerPin: string;
+  readonly refRootJson: Record<string, unknown>;
+  readonly rootDependencyBindings: ReadonlyMap<string, string>;
+  readonly hasDevScript: boolean;
+}): string {
   const scripts: Record<string, string> = isRecord(options.refRootJson.scripts)
     ? { ...(options.refRootJson.scripts as Record<string, string>) }
     : {};
@@ -112,15 +115,13 @@ function synthesizeRootBaseManifest<TMeta>(options: {
     type: "module",
     scripts,
     devDependencies: sortedDevDeps,
-    ...(devEngines === undefined ? {} : { devEngines }),
-    packageManager: packageManagerPin,
+    ...(options.devEngines === undefined
+      ? {}
+      : { devEngines: options.devEngines }),
+    packageManager: options.packageManagerPin,
   };
 
-  return {
-    rootPackageJson: `${JSON.stringify(rootManifest, null, 2)}\n`,
-    nodeVersion,
-    packageManagerPin,
-  };
+  return `${JSON.stringify(rootManifest, null, 2)}\n`;
 }
 
 function synthesizeRootBaseTurboJson(options: {
@@ -306,7 +307,8 @@ function collectBaseInstanceFiles<TMeta>(
   instance: GeneratedInstance<TMeta>,
   options: {
     readonly blueprint: ProjectBlueprint<TMeta>;
-    readonly authorRootJson: Record<string, unknown>;
+    readonly devEngines: Record<string, unknown> | undefined;
+    readonly packageManagerPin: string;
     readonly hasDevScript: boolean;
   },
 ): Map<string, PackageFileContribution> {
@@ -376,9 +378,10 @@ function collectBaseInstanceFiles<TMeta>(
     if (normalized === "package.json") {
       if (instance.path === ".") {
         const refRootJson = JSON.parse(rawText) as Record<string, unknown>;
-        const { rootPackageJson } = synthesizeRootBaseManifest({
+        const rootPackageJson = synthesizeRootBaseManifest({
           blueprint: options.blueprint,
-          authorRootJson: options.authorRootJson,
+          devEngines: options.devEngines,
+          packageManagerPin: options.packageManagerPin,
           refRootJson,
           rootDependencyBindings: instance.dependencyBindings,
           hasDevScript: options.hasDevScript,
@@ -547,21 +550,8 @@ export function buildProjectProjection<TMeta>(
   const authorRootJson = JSON.parse(
     readText(roots.rootPackageJsonPath),
   ) as Record<string, unknown>;
-  const devEngines = isRecord(authorRootJson.devEngines)
-    ? authorRootJson.devEngines
-    : undefined;
-  const runtime =
-    devEngines !== undefined && isRecord(devEngines.runtime)
-      ? devEngines.runtime
-      : undefined;
-  const nodeVersion =
-    runtime !== undefined && typeof runtime.version === "string"
-      ? runtime.version
-      : "26.13.1";
-  const packageManagerPin =
-    typeof authorRootJson.packageManager === "string"
-      ? authorRootJson.packageManager
-      : "pnpm@12.21.0";
+  const { devEngines, nodeVersion, packageManagerPin } =
+    resolveAuthorToolchain(authorRootJson);
 
   const hasPublishable = blueprint.instances.some(
     (instance) => instance.definition.publishable,
@@ -580,7 +570,8 @@ export function buildProjectProjection<TMeta>(
   for (const instance of nonRootInstances) {
     const baseFiles = collectBaseInstanceFiles(instance, {
       blueprint,
-      authorRootJson,
+      devEngines,
+      packageManagerPin,
       hasDevScript: false,
     });
     const manifestEntry = baseFiles.get("package.json");
@@ -642,6 +633,15 @@ export function buildProjectProjection<TMeta>(
           },
         ]);
       }
+      const normalizedKey = normalizeRelativePackagePath(key);
+      if (normalizedKey === undefined || !baseFiles.has(normalizedKey)) {
+        throw new ProjectValidationError([
+          {
+            code: "DIRECTORY_OWNERSHIP_VIOLATION",
+            message: `Package "${instance.path}" transformFiles attempted to introduce unbacked file "${key}".`,
+          },
+        ]);
+      }
       commitInstanceContribution(instance, contribution);
     }
   }
@@ -655,7 +655,8 @@ export function buildProjectProjection<TMeta>(
   for (const rootInstance of rootInstances) {
     const baseFiles = collectBaseInstanceFiles(rootInstance, {
       blueprint,
-      authorRootJson,
+      devEngines,
+      packageManagerPin,
       hasDevScript: finalHasDevScript,
     });
     const finalFiles =
@@ -724,11 +725,6 @@ export function buildProjectProjection<TMeta>(
   const sortedEntries = [...entriesByPath.values()].toSorted((a, b) =>
     a.path.localeCompare(b.path),
   );
-
-  const issues: InvalidRequestIssue[] = [];
-  if (issues.length > 0) {
-    throw new ProjectValidationError(issues);
-  }
 
   return {
     blueprint,

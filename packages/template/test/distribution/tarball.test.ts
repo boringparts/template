@@ -23,6 +23,20 @@ const packageRoot = path.resolve(
 
 const allPresetArgs = standardPresetVerificationScenarios;
 
+function collectTarDirSegments(
+  entries: readonly string[],
+  prefix: string,
+): readonly string[] {
+  return [
+    ...new Set(
+      entries
+        .filter((entry) => entry.startsWith(prefix))
+        .map((entry) => entry.slice(prefix.length).split("/")[0] ?? "")
+        .filter((segment) => segment.length > 0),
+    ),
+  ].toSorted((a, b) => a.localeCompare(b));
+}
+
 function runExec(
   command: string,
   args: readonly string[],
@@ -72,51 +86,13 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
       assert.ok(entries.includes("package/dist/main.d.ts"));
       assert.ok(entries.includes("package/templates/root/package.json"));
       assert.ok(entries.includes("package/templates/root/pnpm-workspace.yaml"));
-      assert.equal(
-        entries.includes("package/templates/root/rust-toolchain.toml"),
-        false,
+      const templateTopDirs = collectTarDirSegments(
+        entries,
+        "package/templates/",
       );
-      assert.ok(
-        entries.includes(
-          "package/templates/references/rust-bin/rust-toolchain.toml",
-        ),
-      );
-      assert.equal(
-        entries.includes("package/templates/root/oxfmt.config.ts"),
-        false,
-      );
-      assert.equal(
-        entries.includes("package/templates/root/oxlint.config.ts"),
-        false,
-      );
-      assert.equal(
-        entries.includes(
-          "package/templates/references/npm-publication/package.json",
-        ),
-        false,
-      );
-      assert.ok(
-        entries.includes(
-          "package/templates/references/workspace-root/oxfmt.config.ts",
-        ),
-      );
-      assert.ok(
-        entries.includes(
-          "package/templates/references/workspace-root/oxlint.config.ts",
-        ),
-      );
-      assert.ok(
-        entries.includes(
-          "package/templates/references/workspace-root/resources/publication/config.json",
-        ),
-      );
-      assert.ok(
-        entries.includes(
-          "package/templates/references/workspace-root/resources/publication/release.yml",
-        ),
-      );
+      assert.deepStrictEqual(templateTopDirs, ["references", "root"]);
 
-      for (const slug of [
+      const expectedReferenceSlugs = [
         "hono-api",
         "node-lib",
         "rust-bin",
@@ -131,7 +107,14 @@ void describe("CLI distribution tarball and isolated consumer installation", () 
         "vue-hono-e2e",
         "vue-hono-web",
         "workspace-root",
-      ]) {
+      ];
+      const actualReferenceSlugs = collectTarDirSegments(
+        entries,
+        "package/templates/references/",
+      );
+      assert.deepStrictEqual(actualReferenceSlugs, expectedReferenceSlugs);
+
+      for (const slug of expectedReferenceSlugs) {
         assert.ok(
           entries.includes(`package/templates/references/${slug}/package.json`),
           `Missing reference template in tarball: ${slug}`,

@@ -1,10 +1,13 @@
 import { readFileSync } from "node:fs";
+import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
 import type {
   GeneratedInstance,
   InvalidRequestIssue,
 } from "@boringparts/template-engine";
+
+import { resolvePackageDir, resolvePlaywrightVersion } from "./roots.ts";
 
 export type DevcontainerMount = {
   readonly type: "volume" | "bind" | "tmpfs";
@@ -267,6 +270,38 @@ export function mergeWorkspaceEnvironmentMeta(
       devcontainer: { layers, buildArgs, mounts, containerEnv },
       vscode: { extensions, settings },
       dependabot: { updates, npmGroups },
+    },
+  };
+}
+
+/** Shared devcontainer Playwright browser layer and build argument for browser-tested packages. */
+export function browserTestDevcontainerMeta(
+  templatesRoot?: string,
+): StaticWorkspaceEnvironmentMeta {
+  const workspaceRootRefDir = resolvePackageDir(
+    "@boringparts/reference-workspace-root",
+    import.meta.url,
+    templatesRoot,
+  );
+  const playwrightVersion = resolvePlaywrightVersion(templatesRoot);
+
+  return {
+    devcontainer: {
+      layers: [
+        {
+          id: "browser-test",
+          dockerfilePath: path.join(
+            workspaceRootRefDir,
+            "resources",
+            "environment",
+            "devcontainer",
+            "browser-test.Dockerfile",
+          ),
+        },
+      ],
+      buildArgs: {
+        PLAYWRIGHT_CLI_PACKAGE: `@playwright/test@${playwrightVersion}`,
+      },
     },
   };
 }

@@ -3,10 +3,11 @@ import path from "node:path";
 import type { PresetDefinition } from "@boringparts/template-engine";
 
 import {
+  browserTestDevcontainerMeta,
   frontendVscodeMeta,
   type WorkspaceEnvironmentMeta,
 } from "../environment-meta.ts";
-import { resolvePackageDir, resolvePlaywrightVersion } from "../roots.ts";
+import { resolvePackageDir } from "../roots.ts";
 
 /** Builds the fixed-topology `vike-app` preset backed by the four Vike reference packages. */
 export function createVikeAppPreset(
@@ -37,7 +38,6 @@ export function createVikeAppPreset(
     import.meta.url,
     templatesRoot,
   );
-  const playwrightVersion = resolvePlaywrightVersion(templatesRoot);
 
   return {
     alias: "vike-app",
@@ -61,23 +61,7 @@ export function createVikeAppPreset(
           role: "runtime-service",
           publishable: false,
           meta: {
-            devcontainer: {
-              layers: [
-                {
-                  id: "browser-test",
-                  dockerfilePath: path.join(
-                    workspaceRootRefDir,
-                    "resources",
-                    "environment",
-                    "devcontainer",
-                    "browser-test.Dockerfile",
-                  ),
-                },
-              ],
-              buildArgs: {
-                PLAYWRIGHT_CLI_PACKAGE: `@playwright/test@${playwrightVersion}`,
-              },
-            },
+            ...browserTestDevcontainerMeta(templatesRoot),
             ...frontendVscodeMeta,
           },
         },

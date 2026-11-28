@@ -16,6 +16,7 @@ import {
 import { isNodeBrokenPipe } from "@boringparts/cli-contract/node";
 import {
   buildProjectProjection,
+  invalidRequestIssueCodes,
   planProject,
   ProjectValidationError,
   summarizePresets,
@@ -104,21 +105,7 @@ const initSuccessSchema = z.object({
   }),
 });
 
-const invalidRequestCodeSchema = z.enum([
-  "PRESET_UNKNOWN",
-  "FIXED_TOPOLOGY_OVERRIDE",
-  "INVALID_PRESET_SPEC",
-  "INVALID_PACKAGE_NAME",
-  "INVALID_PACKAGE_PATH",
-  "RESERVED_PACKAGE_PATH",
-  "INVALID_PACKAGE_SCOPE",
-  "INVALID_REPOSITORY_SCOPE",
-  "CONFLICTING_PACKAGE_IDENTITY",
-  "CONFLICTING_ENVIRONMENT_METADATA",
-  "DIRECTORY_OWNERSHIP_VIOLATION",
-  "INVALID_LINK_SPEC",
-  "UNSUPPORTED_LINK",
-]);
+const invalidRequestCodeSchema = z.enum(invalidRequestIssueCodes);
 
 const initInvalidRequestSchema = z.object({
   issues: z.array(

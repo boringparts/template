@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -25,14 +25,32 @@ void describe("todo queries", () => {
         );
       }
 
-      process.env.DATABASE_PROFILE = "dev";
-      const devTarget = databaseStorageTarget();
-      mkdirSync(path.dirname(devTarget), { recursive: true });
-      writeFileSync(devTarget, "placeholder");
-      writeFileSync(`${devTarget}-wal`, "placeholder");
-      resetDatabaseStorageTarget();
-      assert.equal(existsSync(devTarget), false);
-      assert.equal(existsSync(`${devTarget}-wal`), false);
+      process.env.DATABASE_PROFILE = "test";
+      const testTarget = databaseStorageTarget();
+      const sidecarPaths = [
+        testTarget,
+        `${testTarget}-journal`,
+        `${testTarget}-wal`,
+        `${testTarget}-shm`,
+      ] as const;
+      const backups = new Map<string, Buffer>();
+      for (const filePath of sidecarPaths) {
+        if (existsSync(filePath)) {
+          backups.set(filePath, readFileSync(filePath));
+        }
+      }
+      try {
+        mkdirSync(path.dirname(testTarget), { recursive: true });
+        writeFileSync(testTarget, "placeholder");
+        writeFileSync(`${testTarget}-wal`, "placeholder");
+        resetDatabaseStorageTarget();
+        assert.equal(existsSync(testTarget), false);
+        assert.equal(existsSync(`${testTarget}-wal`), false);
+      } finally {
+        for (const [filePath, content] of backups) {
+          writeFileSync(filePath, content);
+        }
+      }
     } finally {
       if (previousProfile === undefined) {
         delete process.env.DATABASE_PROFILE;

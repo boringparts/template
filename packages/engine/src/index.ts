@@ -11,6 +11,7 @@ export {
 export { buildProjectProjection } from "./synthesize.ts";
 export { formatJson } from "./transform.ts";
 export {
+  invalidRequestIssueCodes,
   ProjectValidationError,
   type BasePackageNode,
   type GeneratedInstance,

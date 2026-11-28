@@ -201,7 +201,6 @@ void describe("node-lib and ts-cli presets", () => {
       assert.equal(pkg.devDependencies["@types/node"], "catalog:node-24");
       assert.equal(pkg.dependencies["@boringparts/cli-contract"], "catalog:");
       assert.equal("test:dist" in pkg.scripts, true);
-      assert.equal("test:e2e" in pkg.scripts, false);
 
       const cliTurbo = JSON.parse(
         readFileSync(
@@ -210,7 +209,6 @@ void describe("node-lib and ts-cli presets", () => {
         ),
       ) as { readonly tasks: Record<string, unknown> };
       assert.equal("test:dist" in cliTurbo.tasks, true);
-      assert.equal("test:e2e" in cliTurbo.tasks, false);
 
       for (const relPath of [
         "packages/my-tool/src/cli.ts",

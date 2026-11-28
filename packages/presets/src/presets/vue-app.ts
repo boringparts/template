@@ -1,12 +1,11 @@
-import path from "node:path";
-
 import type { PresetDefinition } from "@boringparts/template-engine";
 
 import {
+  browserTestDevcontainerMeta,
   frontendVscodeMeta,
   type WorkspaceEnvironmentMeta,
 } from "../environment-meta.ts";
-import { resolvePackageDir, resolvePlaywrightVersion } from "../roots.ts";
+import { resolvePackageDir } from "../roots.ts";
 
 /** Builds the `vue-app` preset backed by `@boringparts/reference-vue-app`. */
 export function createVueAppPreset(
@@ -17,12 +16,6 @@ export function createVueAppPreset(
     import.meta.url,
     templatesRoot,
   );
-  const workspaceRootRefDir = resolvePackageDir(
-    "@boringparts/reference-workspace-root",
-    import.meta.url,
-    templatesRoot,
-  );
-  const playwrightVersion = resolvePlaywrightVersion(templatesRoot);
 
   return {
     alias: "vue-app",
@@ -42,23 +35,7 @@ export function createVueAppPreset(
           role: "browser-app",
           publishable: false,
           meta: {
-            devcontainer: {
-              layers: [
-                {
-                  id: "browser-test",
-                  dockerfilePath: path.join(
-                    workspaceRootRefDir,
-                    "resources",
-                    "environment",
-                    "devcontainer",
-                    "browser-test.Dockerfile",
-                  ),
-                },
-              ],
-              buildArgs: {
-                PLAYWRIGHT_CLI_PACKAGE: `@playwright/test@${playwrightVersion}`,
-              },
-            },
+            ...browserTestDevcontainerMeta(templatesRoot),
             ...frontendVscodeMeta,
           },
         },

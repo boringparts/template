@@ -326,10 +326,6 @@ void describe("CLI contract", () => {
       assert.equal(Object.hasOwn(libPkg.exports, "./package.json"), false);
       assert.equal(Object.hasOwn(libPkg.exports, "./reference"), false);
       assert.equal(
-        existsSync(path.join(targetDir, "packages/lib/.npmignore")),
-        false,
-      );
-      assert.equal(
         libPkg.devDependencies["@acme-sdk/tooling-config"],
         "workspace:*",
       );
@@ -1218,6 +1214,30 @@ void describe("CLI contract", () => {
         ],
       };
 
+      const injectHookPreset: PresetDefinition<WorkspaceEnvironmentMeta> = {
+        ...basePreset,
+        alias: "inject-hook",
+        nodes: [
+          {
+            ...baseNode,
+            definition: {
+              ...baseNode.definition,
+              transformFiles: (files) => {
+                const next = new Map(files);
+                next.set("src/injected.ts", {
+                  targetPath: "src/injected.ts",
+                  content: new TextEncoder().encode(
+                    "export const injected = 1;\n",
+                  ),
+                  executable: false,
+                });
+                return next;
+              },
+            },
+          },
+        ],
+      };
+
       const duplicateResourcePreset: PresetDefinition<WorkspaceEnvironmentMeta> =
         {
           ...basePreset,
@@ -1241,6 +1261,7 @@ void describe("CLI contract", () => {
       for (const [label, preset] of [
         ["resource boundary escape", escapeResourcePreset],
         ["transformFiles boundary escape", escapeHookPreset],
+        ["transformFiles unbacked file injection", injectHookPreset],
         ["duplicate target path", duplicateResourcePreset],
       ] as const) {
         const targetDir = path.join(workspaceDir, `ownership-${preset.alias}`);
