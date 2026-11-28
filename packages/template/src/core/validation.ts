@@ -6,7 +6,11 @@ import {
   type SourceContext,
 } from "../sources/index.ts";
 import { mergeWorkspaceEnvironment } from "./environment.ts";
-import { collectManifestDependencyNames } from "./transform.ts";
+import {
+  collectManifestDependencyNames,
+  isRecord,
+  readManifestJson,
+} from "./transform.ts";
 import type {
   InvalidRequestIssue,
   PackageInstance,
@@ -24,26 +28,6 @@ const safeSegmentPattern = /^[a-z0-9][a-z0-9-]*$/u;
 const dotSegmentPattern = /^\.[a-z0-9][a-z0-9._-]*$/u;
 const restrictedPackageIdentifierPattern = /^[a-z0-9][a-z0-9._-]*$/u;
 const reservedPackageNames = new Set(["node_modules", "favicon.ico"]);
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function readManifestJson(
-  source: SourceContext,
-  sourceDir: string,
-): Record<string, unknown> | undefined {
-  const rawManifest = source.tryReadPackageText(sourceDir, "package.json");
-  if (rawManifest === undefined) {
-    return undefined;
-  }
-  try {
-    const parsed = JSON.parse(rawManifest) as unknown;
-    return isRecord(parsed) ? parsed : undefined;
-  } catch {
-    return undefined;
-  }
-}
 
 function readManifestBinKeys(
   source: SourceContext,
@@ -279,7 +263,7 @@ export function validatePackagePath(
 }
 
 /**
- * Enforces the 6-role explicit `--link` compatibility matrix:
+ * Enforces the 6-role explicit link compatibility matrix:
  * - `native-package` cannot consume or provide links
  * - `shared-library` may be linked by any JS/TS package except `native-package`
  * - `node-library` may only be linked by `cli-tool`, `runtime-service`, or `node-library`
@@ -428,7 +412,7 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
   } else if (!isValidPackageScope(repositoryName)) {
     issues.push({
       code: "INVALID_REPOSITORY_SCOPE",
-      message: `Target directory name "${repositoryName}" cannot be used as a default npm scope; specify --scope.`,
+      message: `Target directory name "${repositoryName}" cannot be used as a default npm scope; specify an explicit scope.`,
     });
   } else {
     resolvedScope = repositoryName;
@@ -441,7 +425,7 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
   if (request.presetSpecs.length === 0) {
     issues.push({
       code: "INVALID_PRESET_SPEC",
-      message: "At least one --preset specification is required.",
+      message: "At least one preset specification is required.",
     });
   }
 
@@ -450,13 +434,6 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
   const singletonBindings = new Map<string, string>();
 
   for (const singleton of request.singletonPackages ?? []) {
-    const pathCheck = validatePackagePath(
-      singleton.defaultPath,
-      reservedTopLevelDirs,
-    );
-    if (!pathCheck.ok) {
-      issues.push({ code: pathCheck.code, message: pathCheck.message });
-    }
     const refPackageName = resolveAndValidateSourcePackageName({
       source: request.source,
       sourceDir: singleton.referencePackage.sourceDir,
@@ -506,7 +483,7 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
     ) {
       issues.push({
         code: "INVALID_PRESET_SPEC",
-        message: `Invalid --preset syntax "${rawSpec}"; expected <preset>[:<name>[:<path>]].`,
+        message: `Invalid preset specification "${rawSpec}"; expected <preset>[:<name>[:<path>]].`,
       });
       continue;
     }
@@ -612,12 +589,6 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
       (defaultParentDir.length > 0
         ? `${defaultParentDir}/${leafName}`
         : leafName);
-    if (customPath !== undefined) {
-      const pathCheck = validatePackagePath(customPath, reservedTopLevelDirs);
-      if (!pathCheck.ok) {
-        issues.push({ code: pathCheck.code, message: pathCheck.message });
-      }
-    }
 
     const packageName = `@${resolvedScope}/${leafName}`;
     if (packageName.length > maxNpmPackageNameLength) {
@@ -668,6 +639,11 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
   const seenBins = new Map<string, MutablePlannedNode>();
 
   for (const node of plannedNodes) {
+    const pathCheck = validatePackagePath(node.path, reservedTopLevelDirs);
+    if (!pathCheck.ok) {
+      issues.push({ code: pathCheck.code, message: pathCheck.message });
+    }
+
     if (reservedPackageNames.has(node.leafName)) {
       issues.push({
         code: "CONFLICTING_PACKAGE_IDENTITY",
@@ -714,7 +690,7 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
     }
   }
 
-  // Validate explicit `--link <consumer-path>:<provider-path>` requests.
+  // Validate explicit `<consumer-path>:<provider-path>` link requests.
   const links: ProjectLink[] = [];
   const seenLinkKeys = new Set<string>();
   for (const rawLink of request.linkSpecs ?? []) {
@@ -722,7 +698,7 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
     if (parts.length !== 2 || parts[0] === "" || parts[1] === "") {
       issues.push({
         code: "INVALID_LINK_SPEC",
-        message: `Invalid --link syntax "${rawLink}"; expected <consumer-path>:<provider-path>.`,
+        message: `Invalid link specification "${rawLink}"; expected <consumer-path>:<provider-path>.`,
       });
       continue;
     }
@@ -755,7 +731,7 @@ export function planProject(request: PlanProjectRequest): PlanProjectResult {
     if (consumer.singleton || provider.singleton) {
       issues.push({
         code: "UNSUPPORTED_LINK",
-        message: `Cannot link "${consumerPath}" -> "${providerPath}": singleton workspace packages cannot participate in --link.`,
+        message: `Cannot link "${consumerPath}" -> "${providerPath}": singleton workspace packages cannot participate in explicit links.`,
       });
       continue;
     }

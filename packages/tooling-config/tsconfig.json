@@ -5,10 +5,5 @@
     "noEmit": true,
     "declarationMap": false
   },
-  "include": [
-    "*.config.ts",
-    "task-gates.ts",
-    "scripts/**/*.ts",
-    "template/**/*.ts"
-  ]
+  "include": ["*.config.ts", "task-gates.ts", "scripts/**/*.ts"]
 }

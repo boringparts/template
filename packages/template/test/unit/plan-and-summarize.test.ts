@@ -516,6 +516,125 @@ void describe("summarizePresets and planProject primitives", () => {
           ),
         );
       }
+
+      // Fixed topology nodes must also validate defaultPath against reserved & two-segment rules
+      const fixedReservedPreset = definePreset({
+        alias: "fixed-reserved",
+        title: "Fixed Reserved",
+        description: "Fixed preset using reserved defaultPath",
+        topology: "fixed",
+        nodes: [
+          {
+            nodeId: "app",
+            defaultName: "app",
+            defaultPath: "dist/app",
+            referencePackage: {
+              sourceDir: "web",
+              role: "browser-app",
+              publishable: false,
+            },
+          },
+        ],
+      });
+      const fixedReservedPlan = planProject({
+        cwd: baseDir,
+        dir: "fixed-reserved-ws",
+        presetSpecs: ["fixed-reserved"],
+        source,
+        workspaceRoot,
+        presets: [fixedReservedPreset],
+      });
+      assert.equal(fixedReservedPlan.ok, false);
+      if (!fixedReservedPlan.ok) {
+        assert.ok(
+          fixedReservedPlan.issues.some(
+            (i) => i.code === "RESERVED_PACKAGE_PATH",
+          ),
+        );
+      }
+
+      const fixedSingleSegmentPreset = definePreset({
+        alias: "fixed-single",
+        title: "Fixed Single Segment",
+        description: "Fixed preset using single-segment defaultPath",
+        topology: "fixed",
+        nodes: [
+          {
+            nodeId: "app",
+            defaultName: "app",
+            defaultPath: "app",
+            referencePackage: {
+              sourceDir: "web",
+              role: "browser-app",
+              publishable: false,
+            },
+          },
+        ],
+      });
+      const fixedSingleSegmentPlan = planProject({
+        cwd: baseDir,
+        dir: "fixed-single-ws",
+        presetSpecs: ["fixed-single"],
+        source,
+        workspaceRoot,
+        presets: [fixedSingleSegmentPreset],
+      });
+      assert.equal(fixedSingleSegmentPlan.ok, false);
+      if (!fixedSingleSegmentPlan.ok) {
+        assert.ok(
+          fixedSingleSegmentPlan.issues.some(
+            (i) => i.code === "INVALID_PACKAGE_PATH",
+          ),
+        );
+      }
+
+      // Configurable preset with underscore leaf name and derived path must fail consistently at planning time
+      const derivedUnderscorePathPlan = planProject({
+        cwd: baseDir,
+        dir: "underscore-derived-ws",
+        presetSpecs: ["cli:my_cli"],
+        source,
+        workspaceRoot,
+        presets,
+      });
+      assert.equal(derivedUnderscorePathPlan.ok, false);
+      if (!derivedUnderscorePathPlan.ok) {
+        assert.ok(
+          derivedUnderscorePathPlan.issues.some(
+            (i) => i.code === "INVALID_PACKAGE_PATH",
+          ),
+        );
+      }
+
+      // Underscore/dot-prefixed invalid package leaf names still report INVALID_PACKAGE_NAME
+      for (const badSpec of ["shared:_core", "shared:.core"]) {
+        const badLeafPlan = planProject({
+          cwd: baseDir,
+          dir: "bad-leaf-ws",
+          presetSpecs: [badSpec],
+          source,
+          workspaceRoot,
+          presets,
+        });
+        assert.equal(badLeafPlan.ok, false);
+        if (!badLeafPlan.ok) {
+          assert.ok(
+            badLeafPlan.issues.some((i) => i.code === "INVALID_PACKAGE_NAME"),
+          );
+        }
+      }
+
+      // Underscore package leaf name with an explicit safe two-segment path succeeds for planning and linking
+      const explicitSafePathPlan = planProject({
+        cwd: baseDir,
+        dir: "explicit-safe-path-ws",
+        presetSpecs: ["cli:my_cli:packages/my-cli", "shared"],
+        linkSpecs: ["packages/my-cli:packages/shared"],
+        source,
+        workspaceRoot,
+        presets,
+      });
+      assert.equal(explicitSafePathPlan.ok, true);
     } finally {
       rmSync(baseDir, { recursive: true, force: true });
     }

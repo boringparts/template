@@ -12,6 +12,8 @@ import {
   formatJson,
   hasManifestDevScript,
   isBinaryContent,
+  isRecord,
+  readManifestJson,
   rewriteSubpackageManifest,
   rewriteSubpackageTurboConfig,
   rewriteTextSpecifiers,
@@ -29,30 +31,8 @@ import {
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 function compareStrings(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
-}
-
-function readManifestName(
-  source: SourceContext,
-  sourceDir: string,
-): string | undefined {
-  const raw = source.tryReadPackageText(sourceDir, "package.json");
-  if (raw === undefined) {
-    return undefined;
-  }
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    return isRecord(parsed) && typeof parsed.name === "string"
-      ? parsed.name
-      : undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 function extractOverrideLeadingPackage(overrideKey: string): string {
@@ -608,9 +588,15 @@ function synthesizeWorkspaceRoot(options: {
     if (!instance.singleton) {
       continue;
     }
+    const manifest = readManifestJson(
+      source,
+      instance.referencePackage.sourceDir,
+    );
     const refPkgName =
       instance.referencePackage.packageName ??
-      readManifestName(source, instance.referencePackage.sourceDir);
+      (manifest !== undefined && typeof manifest.name === "string"
+        ? manifest.name
+        : undefined);
     if (refPkgName !== undefined && declaredRootDeps.has(refPkgName)) {
       rootDependencyBindings.set(refPkgName, instance.packageName);
     }
