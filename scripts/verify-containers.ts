@@ -12,10 +12,10 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import {
-  standardPresetVerificationScenarios,
-  type PresetVerificationScenario,
-} from "../packages/presets/src/scenarios.ts";
+type PresetVerificationScenario = {
+  readonly id: string;
+  readonly args: readonly string[];
+};
 
 type PresetScenario = PresetVerificationScenario & {
   readonly kind: "preset";
@@ -28,11 +28,33 @@ type RepoSmokeScenario = {
 
 type VerificationScenario = PresetScenario | RepoSmokeScenario;
 
-const presetScenarios: readonly PresetScenario[] =
-  standardPresetVerificationScenarios.map((scenario) => ({
+function loadPresetScenarios(cwd: string): readonly PresetScenario[] {
+  // Query scenarios via pnpm package orchestration so root package.json does not pull
+  // @boringparts/template-presets (and its app/native refs) into global turbo boundaries.
+  const raw = runCaptured(
+    "pnpm",
+    [
+      "--filter",
+      "@boringparts/template-presets",
+      "exec",
+      "node",
+      "--conditions=source",
+      "--input-type=module",
+      "-e",
+      "import { standardPresetVerificationScenarios } from '@boringparts/template-presets'; process.stdout.write(JSON.stringify(standardPresetVerificationScenarios));",
+    ],
+    { cwd },
+  );
+  const parsed = JSON.parse(raw) as readonly PresetVerificationScenario[];
+  return parsed.map((scenario) => ({
     kind: "preset",
     ...scenario,
   }));
+}
+
+const presetScenarios: readonly PresetScenario[] = loadPresetScenarios(
+  process.cwd(),
+);
 
 const repoSmokeScenario: RepoSmokeScenario = {
   kind: "repo-smoke",
