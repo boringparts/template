@@ -1,3 +1,5 @@
+import type { SourceContext } from "../sources/index.ts";
+
 const binaryExtensions = new Set([
   ".png",
   ".jpg",
@@ -16,8 +18,26 @@ const binaryExtensions = new Set([
   ".wasm",
 ]);
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+/** Type guard checking whether an unknown value is a plain key-value record. */
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Reads and parses a package's `package.json` manifest as an object, returning `undefined` when missing or invalid. */
+export function readManifestJson(
+  source: SourceContext,
+  sourceDir: string,
+): Record<string, unknown> | undefined {
+  const rawManifest = source.tryReadPackageText(sourceDir, "package.json");
+  if (rawManifest === undefined) {
+    return undefined;
+  }
+  try {
+    const parsed = JSON.parse(rawManifest) as unknown;
+    return isRecord(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function tryFormatInlineJsonArray(
@@ -183,7 +203,7 @@ export function hasManifestDevScript(rawJson: string): boolean {
  * - assigns the instantiated package name
  * - automatically rewrites a single-entry `bin` object key to the instantiated leaf name
  * - rewrites bound internal reference package dependencies via `dependencyBindings`
- * - injects `"workspace:*"` dependencies for explicit `--link` providers
+ * - injects `"workspace:*"` dependencies for explicit link providers
  */
 export function rewriteSubpackageManifest(options: {
   readonly rawJson: string;

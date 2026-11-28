@@ -127,7 +127,7 @@ export type PackageInstance = {
   readonly referencePackage: ReferencePackage;
   /** Maps reference package names (including self, bound singletons, and internal bindings) to instantiated names. */
   readonly dependencyBindings: ReadonlyMap<string, string>;
-  /** Target package names added via explicit `--link`. */
+  /** Target package names added via explicit links. */
   readonly linkedProviders: readonly string[];
 };
 
