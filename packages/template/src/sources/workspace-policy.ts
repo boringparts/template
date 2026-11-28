@@ -1,13 +1,9 @@
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import path from "node:path";
 
-import { resolveTemplatePackageDir } from "./template-package-dir.ts";
+import { parse as parseYaml } from "yaml";
 
 /**
- * Validated pnpm workspace dependency catalogs, overrides, and install policy
- * loaded from `pnpm config list --json` in source mode or `workspace-policy.json`
- * in packaged distributions.
+ * Validated pnpm workspace dependency catalogs, overrides, and install policy.
  */
 export type WorkspacePolicy = {
   readonly catalog: Readonly<Record<string, string>>;
@@ -26,7 +22,14 @@ export type WorkspacePolicy = {
   readonly syncInjectedDepsAfterScripts: readonly string[];
 };
 
-let cachedSourceWorkspacePolicy: WorkspacePolicy | undefined;
+/**
+ * Dependency catalogs and overrides extracted from a consumer's `pnpm-workspace.yaml`.
+ */
+export type PnpmWorkspaceCatalog = {
+  readonly catalog: Readonly<Record<string, string>>;
+  readonly catalogs: Readonly<Record<string, Readonly<Record<string, string>>>>;
+  readonly overrides: Readonly<Record<string, string>>;
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -36,7 +39,11 @@ function expectStringRecord(
   value: unknown,
   field: string,
   sourceLabel: string,
+  allowUndefined = false,
 ): Record<string, string> {
+  if (value === undefined && allowUndefined) {
+    return {};
+  }
   if (!isRecord(value)) {
     throw new Error(
       `Workspace policy (${sourceLabel}) is missing object field "${field}".`,
@@ -58,7 +65,11 @@ function expectBooleanRecord(
   value: unknown,
   field: string,
   sourceLabel: string,
+  allowUndefined = false,
 ): Record<string, boolean> {
+  if (value === undefined && allowUndefined) {
+    return {};
+  }
   if (!isRecord(value)) {
     throw new Error(
       `Workspace policy (${sourceLabel}) is missing object field "${field}".`,
@@ -79,8 +90,11 @@ function expectBooleanRecord(
 function expectCatalogsRecord(
   value: unknown,
   sourceLabel: string,
-  stripDefaultMirror: boolean,
+  allowUndefined = false,
 ): Record<string, Record<string, string>> {
+  if (value === undefined && allowUndefined) {
+    return {};
+  }
   if (!isRecord(value)) {
     throw new Error(
       `Workspace policy (${sourceLabel}) is missing object field "catalogs".`,
@@ -88,10 +102,6 @@ function expectCatalogsRecord(
   }
   const result: Record<string, Record<string, string>> = {};
   for (const [catalogName, entries] of Object.entries(value)) {
-    // `pnpm config list --json` mirrors top-level `catalog` under `catalogs.default`.
-    if (stripDefaultMirror && catalogName === "default") {
-      continue;
-    }
     result[catalogName] = expectStringRecord(
       entries,
       `catalogs.${catalogName}`,
@@ -144,7 +154,11 @@ function expectStringArray(
   value: unknown,
   field: string,
   sourceLabel: string,
+  allowUndefined = false,
 ): readonly string[] {
+  if (value === undefined && allowUndefined) {
+    return [];
+  }
   if (
     !Array.isArray(value) ||
     value.some((item) => typeof item !== "string" || item.length === 0)
@@ -156,28 +170,64 @@ function expectStringArray(
   return [...(value as readonly string[])];
 }
 
+/**
+ * Reads `catalog`, `catalogs`, and `overrides` from a consumer's `pnpm-workspace.yaml` file
+ * without spawning any package-manager subprocess.
+ */
+export function readPnpmWorkspaceCatalog(
+  workspaceYamlPath: string,
+): PnpmWorkspaceCatalog {
+  const rawYaml = readFileSync(workspaceYamlPath, "utf8");
+  const parsed = parseYaml(rawYaml) as unknown;
+  if (parsed === null || parsed === undefined) {
+    return { catalog: {}, catalogs: {}, overrides: {} };
+  }
+  if (!isRecord(parsed)) {
+    throw new Error(
+      `Workspace config (${workspaceYamlPath}) must parse to a YAML mapping.`,
+    );
+  }
+
+  return {
+    catalog: expectStringRecord(
+      parsed.catalog,
+      "catalog",
+      workspaceYamlPath,
+      true,
+    ),
+    catalogs: expectCatalogsRecord(parsed.catalogs, workspaceYamlPath, true),
+    overrides: expectStringRecord(
+      parsed.overrides,
+      "overrides",
+      workspaceYamlPath,
+      true,
+    ),
+  };
+}
+
 /** Validates raw workspace policy data and rejects missing or malformed fields. */
 export function validateWorkspacePolicy(
   raw: unknown,
-  sourceLabel: string,
-  options: { readonly stripDefaultCatalogMirror?: boolean } = {},
+  sourceLabel = "workspace-policy",
 ): WorkspacePolicy {
   if (!isRecord(raw)) {
     throw new Error(`Workspace policy (${sourceLabel}) must be a JSON object.`);
   }
 
   return {
-    catalog: expectStringRecord(raw.catalog, "catalog", sourceLabel),
-    catalogs: expectCatalogsRecord(
-      raw.catalogs,
+    catalog: expectStringRecord(raw.catalog, "catalog", sourceLabel, true),
+    catalogs: expectCatalogsRecord(raw.catalogs, sourceLabel, true),
+    overrides: expectStringRecord(
+      raw.overrides,
+      "overrides",
       sourceLabel,
-      options.stripDefaultCatalogMirror ?? false,
+      true,
     ),
-    overrides: expectStringRecord(raw.overrides, "overrides", sourceLabel),
     allowBuilds: expectBooleanRecord(
       raw.allowBuilds,
       "allowBuilds",
       sourceLabel,
+      true,
     ),
     minimumReleaseAge: expectNonNegativeNumber(
       raw.minimumReleaseAge,
@@ -193,6 +243,7 @@ export function validateWorkspacePolicy(
       raw.minimumReleaseAgeExclude,
       "minimumReleaseAgeExclude",
       sourceLabel,
+      true,
     ),
     nodeLinker: expectNonEmptyString(raw.nodeLinker, "nodeLinker", sourceLabel),
     preferSymlinkedExecutables: expectBoolean(
@@ -224,42 +275,7 @@ export function validateWorkspacePolicy(
       raw.syncInjectedDepsAfterScripts,
       "syncInjectedDepsAfterScripts",
       sourceLabel,
+      true,
     ),
   };
-}
-
-/**
- * Loads `WorkspacePolicy` from `${templatesRoot}/workspace-policy.json` when running from
- * bundled distribution templates, or via `pnpm config list --json` in monorepo source mode
- * (cached once per process).
- */
-export function loadWorkspacePolicy(templatesRoot?: string): WorkspacePolicy {
-  if (templatesRoot !== undefined) {
-    const policyPath = path.join(templatesRoot, "workspace-policy.json");
-    const parsed = JSON.parse(readFileSync(policyPath, "utf8")) as unknown;
-    return validateWorkspacePolicy(parsed, policyPath);
-  }
-
-  if (cachedSourceWorkspacePolicy !== undefined) {
-    return cachedSourceWorkspacePolicy;
-  }
-
-  const packageDir = resolveTemplatePackageDir();
-  if (packageDir === undefined) {
-    throw new Error(
-      "Unable to locate @boringparts/template package directory for workspace policy resolution.",
-    );
-  }
-  const stdout = execFileSync("pnpm", ["config", "list", "--json"], {
-    cwd: packageDir,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  const parsed = JSON.parse(stdout) as unknown;
-  cachedSourceWorkspacePolicy = validateWorkspacePolicy(
-    parsed,
-    "pnpm config list --json",
-    { stripDefaultCatalogMirror: true },
-  );
-  return cachedSourceWorkspacePolicy;
 }

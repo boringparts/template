@@ -1,10 +1,8 @@
 import { stringify as stringifyYaml } from "yaml";
 
 import {
-  loadPackageSourceFiles,
   normalizeRelativePackagePath,
-  readPackageSourceFile,
-  readSourceTextFile,
+  type SourceContext,
   type WorkspacePolicy,
 } from "../sources/index.ts";
 import { mergeWorkspaceEnvironment } from "./environment.ts";
@@ -26,7 +24,6 @@ import {
   type ProjectProjection,
   type ProjectProjectionEntry,
   type WorkspaceRoot,
-  type WorkspaceTemplateRoots,
 } from "./types.ts";
 
 const encoder = new TextEncoder();
@@ -38,6 +35,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function compareStrings(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function readManifestName(
+  source: SourceContext,
+  sourceDir: string,
+): string | undefined {
+  const raw = source.tryReadPackageText(sourceDir, "package.json");
+  if (raw === undefined) {
+    return undefined;
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return isRecord(parsed) && typeof parsed.name === "string"
+      ? parsed.name
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function extractOverrideLeadingPackage(overrideKey: string): string {
@@ -379,7 +394,9 @@ function synthesizePnpmWorkspaceYaml(options: {
       ? { minimumReleaseAgeExclude: prunedExclusions }
       : {}),
     packages: [...collections].toSorted(),
-    catalog: prunedCatalog,
+    ...(Object.keys(prunedCatalog).length > 0
+      ? { catalog: prunedCatalog }
+      : {}),
     ...(Object.keys(prunedNamedCatalogs).length > 0
       ? { catalogs: prunedNamedCatalogs }
       : {}),
@@ -390,13 +407,23 @@ function synthesizePnpmWorkspaceYaml(options: {
 
 function collectInstanceFiles(
   instance: PackageInstance,
-  templatesRoot?: string,
+  source: SourceContext,
 ): Map<string, PackageContribution> {
   const localFiles = new Map<string, PackageContribution>();
+  const normalizedSourceDir = normalizeRelativePackagePath(
+    instance.referencePackage.sourceDir,
+  );
+  if (normalizedSourceDir === undefined) {
+    throw new ProjectValidationError([
+      {
+        code: "DIRECTORY_OWNERSHIP_VIOLATION",
+        message: `Package "${instance.path}" source directory "${instance.referencePackage.sourceDir}" escapes source context.`,
+      },
+    ]);
+  }
 
-  const scanned = loadPackageSourceFiles(instance.referencePackage.packageDir, {
+  const scanned = source.listPackageFiles(normalizedSourceDir, {
     includeResources: false,
-    ...(templatesRoot === undefined ? {} : { templatesRoot }),
   });
 
   const rewriteEntry = (
@@ -476,8 +503,8 @@ function collectInstanceFiles(
         },
       ]);
     }
-    const sourceFile = readPackageSourceFile(
-      instance.referencePackage.packageDir,
+    const sourceFile = source.readPackageFile(
+      normalizedSourceDir,
       normalizedSource,
     );
     rewriteEntry(
@@ -493,16 +520,25 @@ function collectInstanceFiles(
 function synthesizeWorkspaceRoot(options: {
   readonly blueprint: ProjectBlueprint;
   readonly workspaceRoot: WorkspaceRoot;
+  readonly source: SourceContext;
   readonly workspacePolicy: WorkspacePolicy;
-  readonly templatesRoot?: string;
   readonly hasDevScript: boolean;
   readonly hasPublishable: boolean;
   readonly defaultCatalogDeps: Set<string>;
   readonly namedCatalogDeps: Map<string, Set<string>>;
   readonly entriesByPath: Map<string, ProjectProjectionEntry>;
 }): { readonly nodeVersion: string; readonly packageManagerPin: string } {
-  const { workspaceRoot, blueprint, entriesByPath } = options;
+  const { workspaceRoot, blueprint, entriesByPath, source } = options;
   const subpackagePaths = blueprint.instances.map((instance) => instance.path);
+  const rootSourceDir = normalizeRelativePackagePath(workspaceRoot.sourceDir);
+  if (rootSourceDir === undefined) {
+    throw new ProjectValidationError([
+      {
+        code: "DIRECTORY_OWNERSHIP_VIOLATION",
+        message: `Workspace root source directory "${workspaceRoot.sourceDir}" escapes source context.`,
+      },
+    ]);
+  }
 
   const commitRootContribution = (
     rawTargetPath: string,
@@ -552,9 +588,7 @@ function synthesizeWorkspaceRoot(options: {
   };
 
   const refRootJson = JSON.parse(
-    decoder.decode(
-      readPackageSourceFile(workspaceRoot.packageDir, "package.json").content,
-    ),
+    source.readPackageText(rootSourceDir, "package.json"),
   ) as unknown;
   if (!isRecord(refRootJson)) {
     throw new Error("Reference workspace-root package.json must be an object.");
@@ -571,23 +605,20 @@ function synthesizeWorkspaceRoot(options: {
   const declaredRootDeps = collectManifestDependencyNames(refRootJson);
   const rootDependencyBindings = new Map<string, string>();
   for (const instance of blueprint.instances) {
-    if (
-      instance.singleton &&
-      declaredRootDeps.has(instance.referencePackage.packageName)
-    ) {
-      rootDependencyBindings.set(
-        instance.referencePackage.packageName,
-        instance.packageName,
-      );
+    if (!instance.singleton) {
+      continue;
+    }
+    const refPkgName =
+      instance.referencePackage.packageName ??
+      readManifestName(source, instance.referencePackage.sourceDir);
+    if (refPkgName !== undefined && declaredRootDeps.has(refPkgName)) {
+      rootDependencyBindings.set(refPkgName, instance.packageName);
     }
   }
 
   // 1. Copy/rewrite non-manifest regular files from workspace-root reference package.
-  const scannedRootFiles = loadPackageSourceFiles(workspaceRoot.packageDir, {
+  const scannedRootFiles = source.listPackageFiles(rootSourceDir, {
     includeResources: false,
-    ...(options.templatesRoot === undefined
-      ? {}
-      : { templatesRoot: options.templatesRoot }),
   });
 
   for (const file of scannedRootFiles) {
@@ -629,10 +660,7 @@ function synthesizeWorkspaceRoot(options: {
         },
       ]);
     }
-    const sourceFile = readPackageSourceFile(
-      workspaceRoot.packageDir,
-      normalizedSource,
-    );
+    const sourceFile = source.readPackageFile(rootSourceDir, normalizedSource);
     const executable = resource.executable ?? sourceFile.executable;
     if (isBinaryContent(normalizedTarget, sourceFile.content)) {
       commitRootContribution(normalizedTarget, sourceFile.content, executable);
@@ -680,9 +708,7 @@ function synthesizeWorkspaceRoot(options: {
     }
   }
   const rootTurboJson = rootifyWorkspaceTurboConfig({
-    rawRefTurboJson: decoder.decode(
-      readPackageSourceFile(workspaceRoot.packageDir, "turbo.json").content,
-    ),
+    rawRefTurboJson: source.readPackageText(rootSourceDir, "turbo.json"),
     singletonConfigPaths,
     hasDevScript: options.hasDevScript,
     hasPublishable: options.hasPublishable,
@@ -693,6 +719,7 @@ function synthesizeWorkspaceRoot(options: {
   const envMerge = mergeWorkspaceEnvironment(
     workspaceRoot,
     blueprint.instances,
+    { source, workspacePolicy: options.workspacePolicy },
   );
   if (!envMerge.ok) {
     throw new ProjectValidationError(envMerge.issues);
@@ -727,14 +754,11 @@ function synthesizeWorkspaceRoot(options: {
   }
 
   const dockerfileFragments = [
-    decoder
-      .decode(
-        readPackageSourceFile(workspaceRoot.packageDir, baseDockerfilePath)
-          .content,
-      )
-      .trimEnd(),
+    source.readPackageText(rootSourceDir, baseDockerfilePath).trimEnd(),
     ...merged.devcontainer.layers.map((layer) =>
-      readSourceTextFile(layer.dockerfilePath).trimEnd(),
+      source
+        .readPackageText(layer.sourceDir, layer.dockerfileSourcePath)
+        .trimEnd(),
     ),
   ];
   commitRootText(
@@ -743,9 +767,7 @@ function synthesizeWorkspaceRoot(options: {
   );
 
   const templateJson = JSON.parse(
-    decoder.decode(
-      readPackageSourceFile(workspaceRoot.packageDir, baseTemplatePath).content,
-    ),
+    source.readPackageText(rootSourceDir, baseTemplatePath),
   ) as Record<string, unknown>;
 
   const buildConfig: Record<string, unknown> = isRecord(templateJson.build)
@@ -827,12 +849,15 @@ function synthesizeWorkspaceRoot(options: {
 }
 
 /**
- * Synthesizes the complete in-memory `ProjectProjection` from a validated `ProjectBlueprint`
- * and workspace template roots. Performs zero disk writes and enforces strict directory ownership.
+ * Synthesizes the complete in-memory `ProjectProjection` from a validated `ProjectBlueprint`,
+ * an explicit `SourceContext`, and a `WorkspacePolicy`. Performs zero disk writes and enforces strict directory ownership.
  */
 export function buildProjectProjection(
   blueprint: ProjectBlueprint,
-  roots: WorkspaceTemplateRoots,
+  options: {
+    readonly source: SourceContext;
+    readonly workspacePolicy: WorkspacePolicy;
+  },
 ): ProjectProjection {
   const entriesByPath = new Map<string, ProjectProjectionEntry>();
 
@@ -888,7 +913,7 @@ export function buildProjectProjection(
 
   // 1. Collect, rewrite, and validate all homogeneous PackageInstances.
   for (const instance of blueprint.instances) {
-    const baseFiles = collectInstanceFiles(instance, roots.templatesRoot);
+    const baseFiles = collectInstanceFiles(instance, options.source);
     const finalFiles =
       instance.referencePackage.transformFiles !== undefined
         ? instance.referencePackage.transformFiles(baseFiles, {
@@ -937,10 +962,8 @@ export function buildProjectProjection(
   const toolchain = synthesizeWorkspaceRoot({
     blueprint,
     workspaceRoot: blueprint.workspaceRoot,
-    workspacePolicy: roots.workspacePolicy,
-    ...(roots.templatesRoot === undefined
-      ? {}
-      : { templatesRoot: roots.templatesRoot }),
+    source: options.source,
+    workspacePolicy: options.workspacePolicy,
     hasDevScript,
     hasPublishable,
     defaultCatalogDeps,

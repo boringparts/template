@@ -1,18 +1,14 @@
 export {
-  loadPackageSourceFiles,
+  createPackagedSourceContext,
+  createWorkspaceSourceContext,
   normalizeRelativePackagePath,
-  readPackageSourceFile,
-  readSourceTextFile,
-  tryReadSourceTextFile,
-  type ReadPackageSourceFileResult,
-  type ScannedPackageFile,
+  type PackagedSourceContext,
+  type SourceContext,
+  type SourceFile,
 } from "./package-files.ts";
 export {
-  resolveReferencePackageDir,
-  type RegisteredReferencePackage,
-} from "./reference-packages.ts";
-export {
-  loadWorkspacePolicy,
+  readPnpmWorkspaceCatalog,
   validateWorkspacePolicy,
+  type PnpmWorkspaceCatalog,
   type WorkspacePolicy,
 } from "./workspace-policy.ts";

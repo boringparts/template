@@ -1,15 +1,14 @@
 {
   "extends": ["//"],
-  "tags": ["cli"],
+  "tags": ["library"],
   "tasks": {
     "build": {
-      "dependsOn": [],
-      "outputs": ["dist/**", "templates/**"],
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
       "cache": false,
       "tags": ["work:preparation"]
     },
     "format:check": {
-      "inputs": [],
       "outputs": [],
       "tags": ["quality:light"]
     },
@@ -22,7 +21,6 @@
     },
     "lint": {
       "dependsOn": ["^lint"],
-      "inputs": [],
       "outputs": [],
       "tags": ["quality:light"]
     },
@@ -33,7 +31,7 @@
       "tags": ["work:repair"]
     },
     "test": {
-      "dependsOn": ["build"],
+      "dependsOn": [],
       "outputs": [],
       "tags": ["quality:light"]
     },
@@ -44,8 +42,7 @@
       "tags": ["quality:heavy"]
     },
     "typecheck": {
-      "dependsOn": [],
-      "inputs": [],
+      "dependsOn": ["^typecheck"],
       "outputs": [],
       "tags": ["quality:light"]
     }

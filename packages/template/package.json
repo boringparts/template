@@ -2,11 +2,13 @@
   "name": "@boringparts/template",
   "version": "0.4.0",
   "private": false,
-  "description": "Project template generator for boringparts starter projects.",
+  "description": "Composable meta-framework library for pnpm and Turborepo monorepos.",
   "keywords": [
-    "cli",
+    "monorepo",
+    "pnpm",
     "project-template",
-    "starter"
+    "scaffolding",
+    "turborepo"
   ],
   "homepage": "https://github.com/boringparts/template#readme",
   "bugs": {
@@ -17,66 +19,44 @@
     "type": "git",
     "url": "git+https://github.com/boringparts/template.git"
   },
-  "bin": {
-    "template": "./dist/cli.js"
-  },
   "files": [
-    "dist",
-    "templates"
+    "dist"
   ],
   "type": "module",
   "exports": {
     ".": {
-      "source": "./src/main.ts",
-      "types": "./dist/main.d.ts",
-      "default": "./dist/main.js"
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./package.json": "./package.json"
   },
   "publishConfig": {
     "exports": {
       ".": {
-        "types": "./dist/main.d.ts",
-        "default": "./dist/main.js"
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
       },
       "./package.json": "./package.json"
     },
     "access": "public"
   },
   "scripts": {
-    "build": "node --conditions=source scripts/build-distribution.ts",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json --pretty false",
     "format:check": "oxfmt --list-different .",
     "format:write": "oxfmt --write .",
-    "lint": "oxlint --quiet --format=unix --ignore-pattern node_modules --ignore-pattern dist --ignore-pattern templates .",
-    "lint:fix": "oxlint --format=unix --ignore-pattern node_modules --ignore-pattern dist --ignore-pattern templates . --fix",
+    "lint": "oxlint --quiet --format=unix --ignore-pattern node_modules --ignore-pattern dist .",
+    "lint:fix": "oxlint --format=unix --ignore-pattern node_modules --ignore-pattern dist . --fix",
     "test": "node --conditions=source --test --test-reporter=spec 'test/unit/**/*.test.ts' 'test/integration/**/*.test.ts'",
     "test:dist": "node --test --test-timeout=180000 --test-reporter=spec 'test/distribution/**/*.test.ts'",
     "typecheck": "tsc -p tsconfig.node.json --noEmit --pretty false"
   },
   "dependencies": {
-    "@boringparts/cli-contract": "catalog:",
-    "smol-toml": "catalog:",
-    "yaml": "catalog:",
-    "zod": "catalog:"
+    "yaml": "catalog:"
   },
   "devDependencies": {
-    "@boringparts/reference-hono-api": "workspace:*",
-    "@boringparts/reference-node-lib": "workspace:*",
-    "@boringparts/reference-rust-bin": "workspace:*",
-    "@boringparts/reference-tooling-config": "workspace:*",
-    "@boringparts/reference-ts-cli": "workspace:*",
-    "@boringparts/reference-ts-lib": "workspace:*",
-    "@boringparts/reference-vike-db": "workspace:*",
-    "@boringparts/reference-vike-deployment": "workspace:*",
-    "@boringparts/reference-vike-migrations": "workspace:*",
-    "@boringparts/reference-vike-web": "workspace:*",
-    "@boringparts/reference-vue-app": "workspace:*",
-    "@boringparts/reference-vue-hono-e2e": "workspace:*",
-    "@boringparts/reference-vue-hono-web": "workspace:*",
-    "@boringparts/reference-workspace-root": "workspace:*",
     "@boringparts/tooling-config": "workspace:*",
     "@types/node": "catalog:node-24",
-    "esbuild": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "tsrs": "catalog:",

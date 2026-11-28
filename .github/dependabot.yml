@@ -9,11 +9,6 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    groups:
-      drizzle:
-        patterns:
-          - drizzle-*
-          - drizzle-orm
     ignore:
       - dependency-name: "@types/node"
         update-types:
@@ -23,27 +18,11 @@ updates:
           - version-update:semver-major
           - version-update:semver-minor
           - version-update:semver-patch
-  - package-ecosystem: rust-toolchain
-    directories:
-      - /
-      - /references/rust-bin
-    schedule:
-      interval: weekly
-  - package-ecosystem: cargo
-    directory: /references/rust-bin
-    schedule:
-      interval: weekly
   - package-ecosystem: github-actions
-    directories:
-      - /
-      - /references/workspace-root/resources/github
-      - /references/workspace-root/resources/publication
+    directory: /
     schedule:
       interval: weekly
   - package-ecosystem: docker
-    directories:
-      - /.devcontainer
-      - /references/workspace-root/resources/environment
-      - /references/vike-deployment
+    directory: /.devcontainer
     schedule:
       interval: weekly

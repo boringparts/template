@@ -1,14 +1,9 @@
 {
-  "globalPassThroughEnv": ["CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN"],
   "globalDependencies": [
     "oxfmt.config.ts",
     "oxlint.config.ts",
     "packages/tooling-config/oxfmt.config.ts",
-    "packages/tooling-config/oxlint.config.ts",
-    "references/tooling-config/oxfmt.config.ts",
-    "references/tooling-config/oxlint.config.ts",
-    "references/workspace-root/oxfmt.config.ts",
-    "references/workspace-root/oxlint.config.ts"
+    "packages/tooling-config/oxlint.config.ts"
   ],
   "tasks": {
     "//#boundaries": {
@@ -16,12 +11,6 @@
     },
     "//#check": {
       "tags": ["quality:entry"]
-    },
-    "//#check:containers": {
-      "dependsOn": ["@boringparts/template#build"],
-      "outputs": [],
-      "cache": false,
-      "tags": ["quality:heavy"]
     },
     "//#check:full": {
       "tags": ["quality:entry"]
@@ -77,11 +66,6 @@
       "library": {
         "dependencies": {
           "allow": ["library"]
-        }
-      },
-      "cli": {
-        "dependencies": {
-          "allow": ["library", "app", "native"]
         }
       },
       "native": {

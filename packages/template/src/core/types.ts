@@ -1,4 +1,4 @@
-import type { WorkspacePolicy } from "../sources/index.ts";
+import type { SourceContext, WorkspacePolicy } from "../sources/index.ts";
 import type {
   WorkspaceEnvironment,
   WorkspaceEnvironmentContributor,
@@ -6,7 +6,7 @@ import type {
 
 /**
  * Package role in workspace dependency layering and target runtime boundaries.
- * Governs explicit `--link` validation across packages.
+ * Governs explicit link validation across packages.
  */
 export type PackageRole =
   | "cli-tool"
@@ -39,12 +39,12 @@ export type PackageTransformContext = {
 
 /**
  * Pure declarative handle to a checked native reference package.
- * Regular files are automatically discovered from `packageDir`; `resources` only
- * lists template assets from `resources/` that require explicit target remapping.
+ * Regular files are automatically discovered from `sourceDir` within a `SourceContext`;
+ * `resources` only lists template assets from `resources/` that require explicit target remapping.
  */
 export type ReferencePackage = {
-  readonly packageName: string;
-  readonly packageDir: string;
+  readonly sourceDir: string;
+  readonly packageName?: string;
   readonly role: PackageRole;
   readonly publishable: boolean;
   readonly environment?: WorkspaceEnvironmentContributor;
@@ -61,8 +61,8 @@ export type ReferencePackage = {
  * and merged environment declarations.
  */
 export type WorkspaceRoot = {
-  readonly packageName: string;
-  readonly packageDir: string;
+  readonly sourceDir: string;
+  readonly packageName?: string;
   readonly resources?: readonly ResourceFileMapping[];
   readonly publicationResources?: readonly ResourceFileMapping[];
   readonly devcontainerBase?: {
@@ -108,12 +108,13 @@ export type PresetSummary = {
   readonly roles: readonly PackageRole[];
 };
 
-/** Resolved workspace root, singleton subpackages, workspace policy, and optional templates root. */
-export type WorkspaceTemplateRoots = {
+/** Explicit template catalog combining a `SourceContext`, root, singletons, presets, and policy. */
+export type TemplateCatalog = {
+  readonly source: SourceContext;
   readonly workspaceRoot: WorkspaceRoot;
-  readonly singletonPackages: readonly SingletonPackage[];
+  readonly singletonPackages?: readonly SingletonPackage[];
+  readonly presets: readonly PresetDefinition[];
   readonly workspacePolicy: WorkspacePolicy;
-  readonly templatesRoot?: string;
 };
 
 export type PackageInstance = {
@@ -184,7 +185,7 @@ export type InvalidRequestIssue = {
   readonly message: string;
 };
 
-/** Structured planning/synthesis validation failure returned as CLI `invalidRequest` (exit code `2`). */
+/** Structured planning/synthesis validation failure. */
 export class ProjectValidationError extends Error {
   readonly issues: readonly InvalidRequestIssue[];
 
@@ -199,11 +200,13 @@ export type PlanProjectRequest = {
   readonly cwd: string;
   readonly dir: string;
   readonly presetSpecs: readonly string[];
-  readonly linkSpecs: readonly string[];
+  readonly linkSpecs?: readonly string[];
   readonly scope?: string;
-  readonly presets: readonly PresetDefinition[];
+  readonly source: SourceContext;
   readonly workspaceRoot: WorkspaceRoot;
   readonly singletonPackages?: readonly SingletonPackage[];
+  readonly presets: readonly PresetDefinition[];
+  readonly workspacePolicy?: WorkspacePolicy;
 };
 
 export type PlanProjectResult =

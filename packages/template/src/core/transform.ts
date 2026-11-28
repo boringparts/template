@@ -182,7 +182,6 @@ export function hasManifestDevScript(rawJson: string): boolean {
  * Rewrites a subpackage `package.json`:
  * - assigns the instantiated package name
  * - automatically rewrites a single-entry `bin` object key to the instantiated leaf name
- * - unconditionally removes the author-only `"./reference"` export while preserving runtime exports
  * - rewrites bound internal reference package dependencies via `dependencyBindings`
  * - injects `"workspace:*"` dependencies for explicit `--link` providers
  */
@@ -200,16 +199,6 @@ export function rewriteSubpackageManifest(options: {
     const binEntries = Object.entries(manifest.bin);
     if (binEntries.length === 1) {
       manifest.bin = { [options.leafName]: binEntries[0]![1] };
-    }
-  }
-
-  if (
-    isRecord(manifest.exports) &&
-    Object.hasOwn(manifest.exports, "./reference")
-  ) {
-    delete manifest.exports["./reference"];
-    if (Object.keys(manifest.exports).length === 0) {
-      delete manifest.exports;
     }
   }
 

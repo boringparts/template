@@ -1,42 +1,18 @@
 {
   "name": "template",
   "build": {
-    "dockerfile": "Dockerfile",
-    "args": {
-      "RUST_TOOLCHAIN": "1.100.0"
-    }
-  },
-  "features": {
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    "dockerfile": "Dockerfile"
   },
   "customizations": {
     "vscode": {
       "extensions": ["oxc.oxc-vscode"]
     }
   },
-  "containerEnv": {
-    "RUST_BACKTRACE": "1"
-  },
   "mounts": [
     {
       "type": "volume",
       "source": "${devcontainerId}-pnpm-store",
       "target": "/pnpm/store"
-    },
-    {
-      "type": "volume",
-      "source": "${devcontainerId}-cargo-registry",
-      "target": "/usr/local/cargo/registry"
-    },
-    {
-      "type": "volume",
-      "source": "${devcontainerId}-cargo-git",
-      "target": "/usr/local/cargo/git"
-    },
-    {
-      "type": "volume",
-      "source": "${devcontainerId}-target",
-      "target": "${containerWorkspaceFolder}/target"
     }
   ]
 }
