@@ -1,31 +1,40 @@
 import type { PresetDefinition, PresetSummary } from "./types.ts";
 
 export { writeProjectProjection } from "./materialize.ts";
+export {
+  excludedPackageDirectoryNames,
+  excludedPackageFileNames,
+  normalizeRelativePackagePath,
+  scanPackageDirectory,
+  type ScannedPackageFile,
+} from "./scan.ts";
 export { buildProjectProjection } from "./synthesize.ts";
-export type {
-  DevcontainerLayer,
-  EditorCapability,
-  GeneratedInstance,
-  InvalidRequestIssue,
-  InvalidRequestIssueCode,
-  MaterializeResult,
-  PackageRole,
-  PlanProjectRequest,
-  PlanProjectResult,
-  PresetDefinition,
-  PresetNode,
-  PresetSummary,
-  PresetTopology,
-  PresetWorkspaceCapabilities,
-  ProjectBlueprint,
-  ProjectLink,
-  ProjectProjection,
-  ProjectProjectionEntry,
-  ReferenceFileHandle,
-  ReferencePackage,
-  RootStaticFileHandle,
-  WorkspaceCollection,
-  WorkspaceTemplateRoots,
+export { formatJson } from "./transform.ts";
+export {
+  ProjectValidationError,
+  type BasePackageNode,
+  type GeneratedInstance,
+  type InvalidRequestIssue,
+  type InvalidRequestIssueCode,
+  type MaterializeResult,
+  type PackageDefinition,
+  type PackageFileContribution,
+  type PackageManifestSummary,
+  type PackageRole,
+  type PackageTransformContext,
+  type PlanProjectRequest,
+  type PlanProjectResult,
+  type PresetDefinition,
+  type PresetNode,
+  type PresetSummary,
+  type PresetTopology,
+  type ProjectBlueprint,
+  type ProjectLink,
+  type ProjectProjection,
+  type ProjectProjectionEntry,
+  type ResourceFileMapping,
+  type WorkspaceCollection,
+  type WorkspaceTemplateRoots,
 } from "./types.ts";
 export {
   canLinkRoles,
@@ -36,14 +45,14 @@ export {
 } from "./validation.ts";
 
 /** Returns CLI-ready metadata summaries for a list of preset definitions. */
-export function summarizePresets(
-  presets: readonly PresetDefinition[],
+export function summarizePresets<TMeta>(
+  presets: readonly PresetDefinition<TMeta>[],
 ): readonly PresetSummary[] {
   return presets.map((preset) => ({
     name: preset.alias,
     title: preset.title,
     description: preset.description,
     topology: preset.topology,
-    roles: preset.nodes.map((node) => node.reference.role),
+    roles: preset.nodes.map((node) => node.definition.role),
   }));
 }

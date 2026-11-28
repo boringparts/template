@@ -1,9 +1,17 @@
+import path from "node:path";
+
 import type { PresetDefinition } from "@boringparts/template-engine";
 
-import { resolvePackageDir } from "../roots.ts";
+import {
+  frontendVscodeMeta,
+  type WorkspaceEnvironmentMeta,
+} from "../environment-meta.ts";
+import { resolvePackageDir, resolvePlaywrightVersion } from "../roots.ts";
 
 /** Builds the fixed-topology `vike-app` preset backed by the four Vike reference packages. */
-export function createVikeAppPreset(templatesRoot?: string): PresetDefinition {
+export function createVikeAppPreset(
+  templatesRoot?: string,
+): PresetDefinition<WorkspaceEnvironmentMeta> {
   const webDir = resolvePackageDir(
     "@boringparts/reference-vike-web",
     import.meta.url,
@@ -24,6 +32,12 @@ export function createVikeAppPreset(templatesRoot?: string): PresetDefinition {
     import.meta.url,
     templatesRoot,
   );
+  const workspaceRootRefDir = resolvePackageDir(
+    "@boringparts/reference-workspace-root",
+    import.meta.url,
+    templatesRoot,
+  );
+  const playwrightVersion = resolvePlaywrightVersion(templatesRoot);
 
   return {
     alias: "vike-app",
@@ -41,80 +55,31 @@ export function createVikeAppPreset(templatesRoot?: string): PresetDefinition {
           "@boringparts/reference-vike-db": "db",
           "@boringparts/reference-vike-deployment": "deployment",
         },
-        reference: {
+        definition: {
           packageName: "@boringparts/reference-vike-web",
           packageDir: webDir,
           role: "runtime-service",
           publishable: false,
-          files: [
-            { sourcePath: "package.json", targetPath: "package.json" },
-            { sourcePath: "turbo.json", targetPath: "turbo.json" },
-            { sourcePath: "tsconfig.json", targetPath: "tsconfig.json" },
-            {
-              sourcePath: "tsconfig.app.json",
-              targetPath: "tsconfig.app.json",
+          meta: {
+            devcontainer: {
+              layers: [
+                {
+                  id: "browser-test",
+                  dockerfilePath: path.join(
+                    workspaceRootRefDir,
+                    "resources",
+                    "environment",
+                    "devcontainer",
+                    "browser-test.Dockerfile",
+                  ),
+                },
+              ],
+              buildArgs: {
+                PLAYWRIGHT_CLI_PACKAGE: `@playwright/test@${playwrightVersion}`,
+              },
             },
-            {
-              sourcePath: "tsconfig.node.json",
-              targetPath: "tsconfig.node.json",
-            },
-            { sourcePath: "+server.ts", targetPath: "+server.ts" },
-            { sourcePath: ".env.example", targetPath: ".env.example" },
-            { sourcePath: "TESTING.md", targetPath: "TESTING.md" },
-            { sourcePath: "assets/logo.svg", targetPath: "assets/logo.svg" },
-            {
-              sourcePath: "components/PageShell.vue",
-              targetPath: "components/PageShell.vue",
-            },
-            { sourcePath: "pages/+Head.vue", targetPath: "pages/+Head.vue" },
-            {
-              sourcePath: "pages/+Layout.vue",
-              targetPath: "pages/+Layout.vue",
-            },
-            { sourcePath: "pages/+config.ts", targetPath: "pages/+config.ts" },
-            {
-              sourcePath: "pages/index/+Page.telefunc.ts",
-              targetPath: "pages/index/+Page.telefunc.ts",
-            },
-            {
-              sourcePath: "pages/index/+Page.vue",
-              targetPath: "pages/index/+Page.vue",
-            },
-            {
-              sourcePath: "pages/tailwind.css",
-              targetPath: "pages/tailwind.css",
-            },
-            {
-              sourcePath: "playwright.config.ts",
-              targetPath: "playwright.config.ts",
-            },
-            { sourcePath: "server/api.ts", targetPath: "server/api.ts" },
-            { sourcePath: "server/app.ts", targetPath: "server/app.ts" },
-            {
-              sourcePath: "server/database.ts",
-              targetPath: "server/database.ts",
-            },
-            {
-              sourcePath: "test/e2e/app.spec.ts",
-              targetPath: "test/e2e/app.spec.ts",
-            },
-            {
-              sourcePath: "test/playwright-teardown.ts",
-              targetPath: "test/playwright-teardown.ts",
-            },
-            {
-              sourcePath: "test/todos.browser.test.ts",
-              targetPath: "test/todos.browser.test.ts",
-            },
-            { sourcePath: "tooling/vite.ts", targetPath: "tooling/vite.ts" },
-            { sourcePath: "types/env.d.ts", targetPath: "types/env.d.ts" },
-            {
-              sourcePath: "types/global.d.ts",
-              targetPath: "types/global.d.ts",
-            },
-            { sourcePath: "vite.config.ts", targetPath: "vite.config.ts" },
-            { sourcePath: "vitest.config.ts", targetPath: "vitest.config.ts" },
-          ],
+            ...frontendVscodeMeta,
+          },
         },
       },
       {
@@ -125,51 +90,20 @@ export function createVikeAppPreset(templatesRoot?: string): PresetDefinition {
         dependencyBindings: {
           "@boringparts/reference-vike-deployment": "deployment",
         },
-        reference: {
+        definition: {
           packageName: "@boringparts/reference-vike-db",
           packageDir: dbDir,
           role: "node-library",
           publishable: false,
-          preservePackageJsonExport: true,
-          files: [
-            { sourcePath: "package.json", targetPath: "package.json" },
-            { sourcePath: "turbo.json", targetPath: "turbo.json" },
-            { sourcePath: "tsconfig.json", targetPath: "tsconfig.json" },
-            {
-              sourcePath: "tsconfig.node.json",
-              targetPath: "tsconfig.node.json",
+          meta: {
+            dependabot: {
+              npmGroups: {
+                drizzle: {
+                  patterns: ["drizzle-*", "drizzle-orm"],
+                },
+              },
             },
-            {
-              sourcePath: "tsconfig.build.json",
-              targetPath: "tsconfig.build.json",
-            },
-            {
-              sourcePath: "tsconfig.scripts.json",
-              targetPath: "tsconfig.scripts.json",
-            },
-            {
-              sourcePath: "scripts/seed-example.ts",
-              targetPath: "scripts/seed-example.ts",
-            },
-            { sourcePath: "src/db.ts", targetPath: "src/db.ts" },
-            { sourcePath: "src/index.ts", targetPath: "src/index.ts" },
-            {
-              sourcePath: "src/queries/todos.ts",
-              targetPath: "src/queries/todos.ts",
-            },
-            { sourcePath: "src/readiness.ts", targetPath: "src/readiness.ts" },
-            { sourcePath: "src/schema.ts", targetPath: "src/schema.ts" },
-            {
-              sourcePath: "src/seed/example.ts",
-              targetPath: "src/seed/example.ts",
-            },
-            { sourcePath: "src/storage.ts", targetPath: "src/storage.ts" },
-            { sourcePath: "src/types.ts", targetPath: "src/types.ts" },
-            {
-              sourcePath: "test/todos.test.ts",
-              targetPath: "test/todos.test.ts",
-            },
-          ],
+          },
         },
       },
       {
@@ -180,36 +114,11 @@ export function createVikeAppPreset(templatesRoot?: string): PresetDefinition {
         dependencyBindings: {
           "@boringparts/reference-vike-db": "db",
         },
-        reference: {
+        definition: {
           packageName: "@boringparts/reference-vike-migrations",
           packageDir: migrationsDir,
           role: "node-library",
           publishable: false,
-          files: [
-            { sourcePath: "package.json", targetPath: "package.json" },
-            { sourcePath: "turbo.json", targetPath: "turbo.json" },
-            { sourcePath: "tsconfig.json", targetPath: "tsconfig.json" },
-            {
-              sourcePath: "tsconfig.build.json",
-              targetPath: "tsconfig.build.json",
-            },
-            {
-              sourcePath: "drizzle.config.ts",
-              targetPath: "drizzle.config.ts",
-            },
-            {
-              sourcePath:
-                "drizzle/migrations/20260709120325_old_captain_flint/migration.sql",
-              targetPath:
-                "drizzle/migrations/20260709120325_old_captain_flint/migration.sql",
-            },
-            {
-              sourcePath:
-                "drizzle/migrations/20260709120325_old_captain_flint/snapshot.json",
-              targetPath:
-                "drizzle/migrations/20260709120325_old_captain_flint/snapshot.json",
-            },
-          ],
         },
       },
       {
@@ -222,44 +131,38 @@ export function createVikeAppPreset(templatesRoot?: string): PresetDefinition {
           "@boringparts/reference-vike-migrations": "migrations",
           "@boringparts/reference-vike-web": "web",
         },
-        reference: {
+        definition: {
           packageName: "@boringparts/reference-vike-deployment",
           packageDir: deploymentDir,
           role: "native-package",
           publishable: false,
-          files: [
-            { sourcePath: "package.json", targetPath: "package.json" },
-            { sourcePath: "turbo.json", targetPath: "turbo.json" },
-            { sourcePath: "tsconfig.json", targetPath: "tsconfig.json" },
-            {
-              sourcePath: "tsconfig.scripts.json",
-              targetPath: "tsconfig.scripts.json",
+          meta: {
+            devcontainer: {
+              layers: [
+                {
+                  id: "shellcheck",
+                  dockerfilePath: path.join(
+                    workspaceRootRefDir,
+                    "resources",
+                    "environment",
+                    "devcontainer",
+                    "shellcheck.Dockerfile",
+                  ),
+                },
+              ],
             },
-            { sourcePath: "Dockerfile", targetPath: "Dockerfile" },
-            {
-              sourcePath: "Dockerfile.dockerignore",
-              targetPath: "Dockerfile.dockerignore",
+            dependabot: {
+              updates: [
+                {
+                  packageEcosystem: "docker",
+                  directory: "/packages/deployment",
+                  interval: "weekly",
+                },
+              ],
             },
-            {
-              sourcePath: "scripts/container-entrypoint.sh",
-              targetPath: "scripts/container-entrypoint.sh",
-              executable: true,
-            },
-            {
-              sourcePath: "scripts/check-standalone-deployment.ts",
-              targetPath: "scripts/check-standalone-deployment.ts",
-            },
-          ],
+          },
         },
       },
     ],
-    capabilities: {
-      devcontainerLayers: ["github-cli", "browser-test", "shellcheck"],
-      editorCapabilities: ["oxc-format-lint", "vue", "tailwind", "vitest"],
-      rootDockerDependabot: true,
-      allowBuilds: ["esbuild"],
-      pnpmOverrides: ["pinia>typescript", "vue>typescript"],
-      rootDevDelegateNodeId: "web",
-    },
   };
 }

@@ -1,9 +1,12 @@
 import type { PresetDefinition } from "@boringparts/template-engine";
 
+import type { WorkspaceEnvironmentMeta } from "../environment-meta.ts";
 import { resolvePackageDir } from "../roots.ts";
 
 /** Builds the `node-lib` preset backed by `@boringparts/reference-node-lib`. */
-export function createNodeLibPreset(templatesRoot?: string): PresetDefinition {
+export function createNodeLibPreset(
+  templatesRoot?: string,
+): PresetDefinition<WorkspaceEnvironmentMeta> {
   const packageDir = resolvePackageDir(
     "@boringparts/reference-node-lib",
     import.meta.url,
@@ -22,40 +25,16 @@ export function createNodeLibPreset(templatesRoot?: string): PresetDefinition {
         defaultName: "node-lib",
         defaultCollection: "packages",
         defaultPath: "packages/node-lib",
-        reference: {
+        definition: {
           packageName: "@boringparts/reference-node-lib",
           packageDir,
           role: "node-library",
           publishable: true,
-          files: [
-            { sourcePath: "package.json", targetPath: "package.json" },
-            { sourcePath: "turbo.json", targetPath: "turbo.json" },
-            { sourcePath: "tsconfig.json", targetPath: "tsconfig.json" },
-            {
-              sourcePath: "tsconfig.node.json",
-              targetPath: "tsconfig.node.json",
-            },
-            {
-              sourcePath: "tsconfig.build.json",
-              targetPath: "tsconfig.build.json",
-            },
+          resources: [
             { sourcePath: "resources/gitignore", targetPath: ".gitignore" },
-            {
-              sourcePath: "src/artifact-schema.ts",
-              targetPath: "src/artifact-schema.ts",
-            },
-            { sourcePath: "src/index.ts", targetPath: "src/index.ts" },
-            {
-              sourcePath: "test/artifact-key.test.ts",
-              targetPath: "test/artifact-key.test.ts",
-            },
           ],
         },
       },
     ],
-    capabilities: {
-      devcontainerLayers: ["github-cli"],
-      editorCapabilities: ["oxc-format-lint"],
-    },
   };
 }

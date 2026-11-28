@@ -1,6 +1,7 @@
 import { parse as parseToml, stringify as stringifyToml } from "smol-toml";
 
-const toolingConfigRefName = "@boringparts/reference-tooling-config";
+import type { PackageManifestSummary, PackageRole } from "./types.ts";
+
 const binaryExtensions = new Set([
   ".png",
   ".jpg",
@@ -148,30 +149,51 @@ export function collectManifestCatalogUsage(
   }
 }
 
+/** Summarizes a parsed package `package.json` for read-only workspace inspection. */
+export function summarizePackageManifest(options: {
+  readonly rawJson: string;
+  readonly packageName: string;
+  readonly path: string;
+  readonly leafName: string;
+  readonly role: PackageRole;
+  readonly publishable: boolean;
+}): PackageManifestSummary {
+  const manifest = JSON.parse(options.rawJson) as Record<string, unknown>;
+  const hasDevScript =
+    isRecord(manifest.scripts) &&
+    typeof manifest.scripts.dev === "string" &&
+    manifest.scripts.dev.length > 0;
+  const binNames = isRecord(manifest.bin) ? Object.keys(manifest.bin) : [];
+  return {
+    packageName: options.packageName,
+    path: options.path,
+    leafName: options.leafName,
+    role: options.role,
+    publishable: options.publishable,
+    hasDevScript,
+    binNames,
+  };
+}
+
 /**
  * Rewrites a subpackage `package.json`:
  * - assigns the instantiated package name
- * - rewrites `bin` command key if `rewriteBinName` is enabled
- * - removes the author-only `"./reference"` export
- * - rewrites `@boringparts/reference-tooling-config` and bound `@boringparts/reference-*` dependencies
+ * - automatically rewrites a single-entry `bin` object key to the instantiated leaf name
+ * - unconditionally removes the author-only `"./reference"` export while preserving runtime exports
+ * - rewrites bound `@boringparts/reference-*` dependencies via `dependencyBindings`
  * - injects `"workspace:*"` dependencies for explicit `--link` providers
  */
 export function rewriteSubpackageManifest(options: {
   readonly rawJson: string;
-  readonly scope: string;
   readonly leafName: string;
   readonly packageName: string;
-  readonly rewriteBinName?: boolean;
   readonly dependencyBindings: ReadonlyMap<string, string>;
-  readonly pathReplacements?: ReadonlyMap<string, string>;
   readonly linkedProviders: readonly string[];
-  readonly defaultCatalogDeps: Set<string>;
-  readonly namedCatalogDeps: Map<string, Set<string>>;
 }): string {
   const manifest = JSON.parse(options.rawJson) as Record<string, unknown>;
   manifest.name = options.packageName;
 
-  if (options.rewriteBinName && isRecord(manifest.bin)) {
+  if (isRecord(manifest.bin)) {
     const binEntries = Object.entries(manifest.bin);
     if (binEntries.length === 1) {
       manifest.bin = { [options.leafName]: binEntries[0]![1] };
@@ -190,23 +212,18 @@ export function rewriteSubpackageManifest(options: {
 
   if (isRecord(manifest.scripts)) {
     const rewrittenScripts: Record<string, unknown> = {};
-    const pathReplacements =
-      options.pathReplacements ?? new Map<string, string>();
     for (const [scriptName, scriptCmd] of Object.entries(manifest.scripts)) {
       rewrittenScripts[scriptName] =
         typeof scriptCmd === "string"
           ? rewriteTextSpecifiers({
               text: scriptCmd,
-              scope: options.scope,
               dependencyBindings: options.dependencyBindings,
-              pathReplacements,
             })
           : scriptCmd;
     }
     manifest.scripts = rewrittenScripts;
   }
 
-  const toolingReplacement = `@${options.scope}/tooling-config`;
   for (const field of [
     "dependencies",
     "devDependencies",
@@ -219,10 +236,9 @@ export function rewriteSubpackageManifest(options: {
     }
     const rewritten: Record<string, unknown> = {};
     for (const [dep, spec] of Object.entries(section)) {
-      if (dep === toolingConfigRefName) {
-        rewritten[toolingReplacement] = "workspace:*";
-      } else if (options.dependencyBindings.has(dep)) {
-        rewritten[options.dependencyBindings.get(dep)!] = "workspace:*";
+      const bound = options.dependencyBindings.get(dep);
+      if (bound !== undefined) {
+        rewritten[bound] = "workspace:*";
       } else {
         rewritten[dep] = spec;
       }
@@ -250,18 +266,12 @@ export function rewriteSubpackageManifest(options: {
     manifest.dependencies = sortedDeps;
   }
 
-  collectManifestCatalogUsage(
-    manifest,
-    options.defaultCatalogDeps,
-    options.namedCatalogDeps,
-  );
   return `${JSON.stringify(manifest, null, 2)}\n`;
 }
 
 /** Rewrites reference package identifiers inside a subpackage `turbo.json` task graph. */
 export function rewriteSubpackageTurboConfig(options: {
   readonly rawJson: string;
-  readonly scope: string;
   readonly dependencyBindings: ReadonlyMap<string, string>;
 }): string {
   const config = JSON.parse(options.rawJson) as Record<string, unknown>;
@@ -270,7 +280,6 @@ export function rewriteSubpackageTurboConfig(options: {
     return formatJson(config);
   }
 
-  const toolingReplacement = `@${options.scope}/tooling-config`;
   for (const taskConfig of Object.values(tasks)) {
     if (!isRecord(taskConfig) || !Array.isArray(taskConfig.dependsOn)) {
       continue;
@@ -285,9 +294,6 @@ export function rewriteSubpackageTurboConfig(options: {
       }
       const pkgPrefix = entry.slice(0, hashIndex);
       const taskSuffix = entry.slice(hashIndex);
-      if (pkgPrefix === toolingConfigRefName) {
-        return `${toolingReplacement}${taskSuffix}`;
-      }
       const boundPkg = options.dependencyBindings.get(pkgPrefix);
       return boundPkg === undefined ? entry : `${boundPkg}${taskSuffix}`;
     });
@@ -390,19 +396,15 @@ export function synthesizeWorkspaceCargoLock(
 }
 
 /**
- * Deterministically replaces `@boringparts/reference-tooling-config`, bound `@boringparts/reference-*`
- * specifiers, and configured relative reference paths in UTF-8 source, test, and config files.
+ * Deterministically replaces bound `@boringparts/reference-*` specifiers
+ * in UTF-8 source, test, and config files.
  */
 export function rewriteTextSpecifiers(options: {
   readonly text: string;
-  readonly scope: string;
   readonly dependencyBindings: ReadonlyMap<string, string>;
-  readonly pathReplacements: ReadonlyMap<string, string>;
 }): string {
   const replacements: [string, string][] = [
-    [toolingConfigRefName, `@${options.scope}/tooling-config`],
     ...options.dependencyBindings.entries(),
-    ...options.pathReplacements.entries(),
   ];
   // Apply longest patterns first so prefix substrings never corrupt longer package names.
   replacements.sort(([left], [right]) => right.length - left.length);

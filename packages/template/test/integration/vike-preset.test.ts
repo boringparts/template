@@ -202,17 +202,14 @@ void describe("vike-app preset", () => {
         false,
       );
 
-      // Root package.json delegates dev to @acme-vike/web without injected db:prepare scripts or publication scripts
+      // Root package.json enables unified dev script without injected db:prepare or publication scripts
       const rootPkg = JSON.parse(
         readFileSync(path.join(targetDir, "package.json"), "utf8"),
       ) as {
         readonly scripts: Record<string, string>;
         readonly devDependencies: Record<string, string>;
       };
-      assert.equal(
-        rootPkg.scripts.dev,
-        "turbo run dev --filter=@acme-vike/web",
-      );
+      assert.equal(rootPkg.scripts.dev, "turbo run dev");
       assert.equal("publication:pack" in rootPkg.scripts, false);
       assert.equal("database:prepare:dev" in rootPkg.scripts, false);
       assert.equal("@changesets/cli" in rootPkg.devDependencies, false);
@@ -397,7 +394,7 @@ void describe("vike-app preset", () => {
         ),
       );
 
-      // Dependabot includes root docker ecosystem and npm drizzle group
+      // Dependabot includes deployment package docker ecosystem and npm drizzle group
       const dependabot = parseYaml(
         readFileSync(path.join(targetDir, ".github/dependabot.yml"), "utf8"),
       ) as {
@@ -411,7 +408,9 @@ void describe("vike-app preset", () => {
       };
       assert.ok(
         dependabot.updates.some(
-          (u) => u["package-ecosystem"] === "docker" && u.directory === "/",
+          (u) =>
+            u["package-ecosystem"] === "docker" &&
+            u.directory === "/packages/deployment",
         ),
       );
       const npmUpdate = dependabot.updates.find(
@@ -433,7 +432,6 @@ void describe("vike-app preset", () => {
       assert.deepStrictEqual(workspaceYaml.packages, ["apps/*", "packages/*"]);
       assert.deepStrictEqual(workspaceYaml.allowBuilds, { esbuild: true });
       assert.deepStrictEqual(workspaceYaml.overrides, {
-        "pinia>typescript": "-",
         "vue>typescript": "-",
       });
       assert.ok("vike" in workspaceYaml.catalog);

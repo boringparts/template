@@ -115,7 +115,7 @@ void describe("vue-app and vue-hono-app presets via runCli", () => {
         readonly scripts: Record<string, string>;
         readonly devDependencies: Record<string, string>;
       };
-      assert.equal(rootPkg.scripts.dev, "turbo run dev --filter=@acme-web/web");
+      assert.equal(rootPkg.scripts.dev, "turbo run dev");
       assert.equal("publication:pack" in rootPkg.scripts, false);
       assert.equal("publication:publish" in rootPkg.scripts, false);
       assert.equal("@changesets/cli" in rootPkg.devDependencies, false);
@@ -221,10 +221,7 @@ void describe("vue-app and vue-hono-app presets via runCli", () => {
       const customNameRootPkg = JSON.parse(
         readFileSync(path.join(customNameDir, "package.json"), "utf8"),
       ) as { readonly scripts: Record<string, string> };
-      assert.equal(
-        customNameRootPkg.scripts.dev,
-        "turbo run dev --filter=@portal-only/portal",
-      );
+      assert.equal(customNameRootPkg.scripts.dev, "turbo run dev");
 
       // 3. Custom name and path -> clients/portal
       const customPathDir = path.join(workspaceDir, "custom-clients");
@@ -331,7 +328,7 @@ void describe("vue-app and vue-hono-app presets via runCli", () => {
       const rootPkg = JSON.parse(
         readFileSync(path.join(targetDir, "package.json"), "utf8"),
       ) as { readonly scripts: Record<string, string> };
-      assert.equal(rootPkg.scripts.dev, "turbo run dev --filter=@acme-fs/web");
+      assert.equal(rootPkg.scripts.dev, "turbo run dev");
       assert.equal("test:e2e" in rootPkg.scripts, false);
 
       // apps/web manifest, turbo.json, and source API import specifier rewritten

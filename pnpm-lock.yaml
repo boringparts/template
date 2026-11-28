@@ -415,6 +415,12 @@ importers:
       '@boringparts/template-engine':
         specifier: workspace:*
         version: link:../engine
+      smol-toml:
+        specifier: 'catalog:'
+        version: 1.9.1
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.1
     devDependencies:
       '@boringparts/tooling-config':
         specifier: workspace:*
